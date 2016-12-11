@@ -1,35 +1,16 @@
 /**
  * Created by nathan on 12/9/16.
+ * Board is the game Board plus helper functions.
+ * Boards will be created at will to test out different combinations.
+ * THere will always be the main board (probably need a Game to hold that plus Boards used for simulations to try out different algos
+ * So a copy method will probably also be needed by that point
  */
-class Board (size: Int) {
+class Board(size: Int) {
 
-  private val b = Array.ofDim[Int](size,size)
+  // Pieces are all created with the factory method of the Piece object
+  // the Board is a special kind of Piece - one that is initialized completely empty
+  private val board:Piece = new BoardPiece(size)
 
-  private val board = Array.ofDim[Cell](size,size)
-  for {i <- 0 until size
-    j <- 0 until size}
-    board(i)(j) = new Cell
-
-  override def toString = {
-
-    val s = new StringBuilder()
-    for (row <- board) {
-      s ++= row.map(Board.cellAsString).foldRight(" ")((a, b) => a + " " + b) + "\n"
-    }
-
-    s.toString
-  }
-
-
-
-
-}
-
-object Board {
-
-  private val BOX = '\u25A0'
-  private def cellAsString(cell: Cell) : String = {
-    cell.color + BOX
-  }
+  override def toString:String = board.toString
 
 }
