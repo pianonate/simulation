@@ -6,7 +6,7 @@ import Console._
 
 object Main extends App {
 
-    val b = new Board(3)
+    val b = new Board(4)
     println(b.toString)
 
 }
