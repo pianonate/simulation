@@ -6,9 +6,7 @@ import Console._
 
 object Main extends App {
 
-  10 to 10 foreach { (x: Int) =>
-    val b = new Board(x)
+    val b = new Board(4)
     println(b.toString)
-  }
 
 }
