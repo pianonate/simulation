@@ -3,37 +3,49 @@
  * represents pieces to try
  */
 
-abstract sealed class Piece {
+abstract class Piece {
   val name: String
   val color: Ansi
   val layout: Array[Array[Cell]]
+  lazy val rows:Int = layout.length
+  lazy val cols:Int = layout(0).length
 
-  // the score is the count of every on position in a piece
-  lazy private val onPositions = for {
+  // the score is the count of every occupied position in a piece
+  private def onPositions = for {
     i <- layout
     j <- i
     if j.occupied // filter out off positions
   } yield j
 
-  lazy val score:Int = onPositions.length
+  // point value is calculated once and used to know the point of a piece
+  lazy val initialPointValue:Int = onPositions.length
+
+  // boards can have their Cell's changed so that the occupied status will change
+  // we can use currentPointValue when comparing Board state
+  def occupiedCount = onPositions.length
 
   override def toString:String = {
 
     val s = new StringBuilder()
     for {row <- layout} {
-      s ++= row.map(cell => cell.toString).foldRight(" ")((a, b) => a + " " + b) + "\n"
+      s ++= row.map(cellToStringMapFunction).foldRight(" ")((a, b) => a + " " + b) + "\n"
     }
 
     s.toString
   }
 
+  // when outputting pieces individually, don't output anything for unoccupied cells
+  // mimic'd by using a single space (console is mono-spaced.
+  protected def cellToStringMapFunction(cell:Cell) = {
+    if (cell.occupied)
+      cell.toString
+    else
+      " "
+  }
+
 }
 
-class BoardPiece(size: Int) extends Piece {
-  val name = "Board"
-  val color = Ansi.BrightBlack
-  val layout = Piece.getBoardLayout(size, color)
-}
+
 
 /*
  Singleton
@@ -256,8 +268,6 @@ class BigUpperRightL extends Piece {
 
 object Piece {
 
-
-
  val pieces = List[Piece](
     new Singleton ,
     new H2Line,
@@ -280,35 +290,33 @@ object Piece {
     new BigUpperRightL
   )
 
+  def randomPiece: Piece = {
+    // add a random piece to the board and print it out
+    val pieceIndex = scala.util.Random.nextInt(Piece.pieces.size)
+    pieces(pieceIndex)
 
+  }
+
+
+  // this is called by board piece constructors to get their layout
   def getLayout( color: Ansi, template: Array[Array[Boolean]]): Array[Array[Cell]] = {
-    getLayoutImpl(color, false, template)
+    getLayoutImpl(color, template)
   }
 
   def getBoardLayout(size: Int, color: Ansi): Array[Array[Cell]] = {
     // this special getLayout is only called to construct the board - so the layout is always going to be
-    // everything off
-    getLayoutImpl(color, true, Array.ofDim[Boolean](size,size))
+    // everything off - the layout template is going to be the default of Boolean - which is false at every position
+    // generated 2D array
+    getLayoutImpl(color, Array.ofDim[Boolean](size,size))
   }
 
-  private def getLayoutImpl(color: Ansi, showUnoccupied: Boolean, template: Array[Array[Boolean]]): Array[Array[Cell]] = {
+  private def getLayoutImpl(color: Ansi, template: Array[Array[Boolean]]): Array[Array[Cell]] = {
 
-    // why can't Cell's be auto initialized based on this the following line the way that Ints and Booleans can
-    val layout = Array.ofDim[Cell](template.length,template(0).length)
+    // a layout is an array of Cell objects that conform to a template defined by a 2D array of booleans indicating
+    // whether a particular cell is occupied or not.  In this implementation, the color is the same for the entire piece
+    // and showUnoccupied indicates whether this cell has an occupied value or not.
+    Array.tabulate(template.length,template(0).length){(i,j) => new Cell(template(i)(j), color)}
 
-    for {
-      i <- template.indices
-      j <- template(0).indices
-    } {
-      val occupied = template(i)(j)
-      if (occupied)
-        layout(i)(j) = new Cell(occupied,color,showUnoccupied)
-      else
-        layout(i)(j) = new Cell(showUnoccupied=showUnoccupied)
-    }
-
-    layout
   }
-
 
 }

@@ -1,16 +1,81 @@
 /**
  * Created by nathan on 12/9/16.
  * Board is the game Board plus helper functions.
- * Boards will be created at will to test out different combinations.
- * THere will always be the main board (probably need a Game to hold that plus Boards used for simulations to try out different algos
- * So a copy method will probably also be needed by that point
+ * It's like other pieces in that it has a name, and a layout and a color (which is the color when first instantiated)
+ * Boards can be created at will to test out different combinations.
+ * THere will always be the main board held by the Game but other Board objects will be created when running algos
+ * So a copy method will probably also be needed at some point
  */
-class Board(size: Int) {
+class Board(size: Int) extends Piece {
+  val name = "Board"
+  val color = Ansi.BrightBlack
+  val layout = Piece.getBoardLayout(size, color)
 
-  // Pieces are all created with the factory method of the Piece object
-  // the Board is a special kind of Piece - one that is initialized completely empty
-  private val board:Piece = new BoardPiece(size)
+  // the board outputs unoccupied cells so just call toString on every piece
+  // different than the Piece.toString which will not output unoccupied Cell's in other pieces
+  override def cellToStringMapFunction(cell:Cell) = cell.toString
 
-  override def toString:String = board.toString
+  def placeThreePieces(pieces: List[Piece]):Unit = {
+    pieces.foreach(placePiece)
+  }
+
+  private def placePiece(piece:Piece) = {
+    val legal = legalPlacements(piece)
+    // eventually this will fail... - we'll be coding that later.
+    val loc = legal.head
+
+    for {r <- piece.layout.indices
+      c <- piece.layout(0).indices
+      cell = piece.layout(r)(c)
+      if (cell.occupied)
+    } {
+      val replaceCell = new Cell(cell.occupied, cell.color)
+      layout(r + loc._1)(c + loc._2) = replaceCell
+    }
+  }
+
+
+  private def unoccupiedCells():List[(Int,Int)] = {
+
+    val a = for {r <- layout.indices;c <-layout(0).indices;if layout(r)(c).occupied == false} yield (r,c)
+    a.toList
+
+  }
+
+  private def legalPlacements(piece: Piece):List[(Int,Int)] = {
+    // walk through each unoccupied position on the board
+    // see if the piece fits at that position, if it does, add that position to the list
+    for { loc <- unoccupiedCells() if legalPlacement(piece, loc) } yield loc
+
+  }
+
+  private def legalPlacement(piece: Piece, loc: (Int, Int)): Boolean = {
+
+    val locRow = loc._1
+    val locCol = loc._2
+
+    if ((piece.rows + locRow) > rows) return false
+    if ((piece.cols + locCol) > cols) return false
+    
+    // this for comprehension will find all instances
+    // where the piece has an occupied value and filter out the results
+    // to yield the unoccupied status of each corresponding position on the board
+    val boardOccupiedVector: Seq[Boolean] = for {
+      
+      r <- piece.layout.indices
+      c <- piece.layout(0).indices
+      pieceOccupied = piece.layout(r)(c).occupied
+      boardUnoccupied = (layout(r + locRow)(c + locCol).occupied==false)
+      if (pieceOccupied)
+      
+    } yield boardUnoccupied
+
+    // returns true only if all values are true
+    // the vector contains the unoccupied status of every relevant positions
+    // so if they are all unoccupied, then we are good to go
+    boardOccupiedVector.forall(x => x)
+    
+
+  }
 
 }
