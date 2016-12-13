@@ -9,35 +9,40 @@
 class Board(size: Int) extends Piece {
   val name = "Board"
   val color = Ansi.BrightBlack
-  val layout = Piece.getBoardLayout(size, color)
+  val layout: Array[Array[Cell]] = Piece.getBoardLayout(size, color)
 
   // the board outputs unoccupied cells so just call toString on every piece
   // different than the Piece.toString which will not output unoccupied Cell's in other pieces
-  override def cellToStringMapFunction(cell:Cell) = cell.toString
+  // this method is mapped in from Piece.toString
+  override def cellToStringMapFunction(cell:Cell): String = cell.toString
 
-  def placeThreePieces(pieces: List[Piece]):Unit = {
-    pieces.foreach(placePiece)
-  }
+  def placeThreePieces(pieces: List[Piece]):Boolean = pieces.forall(placePiece)
 
-  private def placePiece(piece:Piece) = {
+  private def placePiece(piece:Piece):Boolean = {
     val legal = legalPlacements(piece)
-    // eventually this will fail... - we'll be coding that later.
-    val loc = legal.head
+    if (legal.isEmpty)
+      false
+    else {
 
-    for {r <- piece.layout.indices
-      c <- piece.layout(0).indices
-      cell = piece.layout(r)(c)
-      if (cell.occupied)
-    } {
-      val replaceCell = new Cell(cell.occupied, cell.color)
-      layout(r + loc._1)(c + loc._2) = replaceCell
+      // eventually this will fail... - we'll be coding that later.
+      val loc = legal.head
+
+      for {r <- piece.layout.indices
+        c <- piece.layout(0).indices
+        cell = piece.layout(r)(c)
+        if cell.occupied
+      } {
+        val replaceCell = new Cell(cell.occupied, cell.color)
+        layout(r + loc._1)(c + loc._2) = replaceCell
+      }
+      true
     }
   }
 
 
   private def unoccupiedCells():List[(Int,Int)] = {
 
-    val a = for {r <- layout.indices;c <-layout(0).indices;if layout(r)(c).occupied == false} yield (r,c)
+    val a = for {r <- layout.indices;c <-layout(0).indices;if !layout(r)(c).occupied} yield (r,c)
     a.toList
 
   }
@@ -54,26 +59,26 @@ class Board(size: Int) extends Piece {
     val locRow = loc._1
     val locCol = loc._2
 
-    if ((piece.rows + locRow) > rows) return false
-    if ((piece.cols + locCol) > cols) return false
+    if ((piece.rows + locRow) > rows) return false // exceeds the bounds of the board - no point in checking any further
+    if ((piece.cols + locCol) > cols) return false // exceeds the bounds of the board - no point in checking any further
     
     // this for comprehension will find all instances
-    // where the piece has an occupied value and filter out the results
+    // where the piece has an occupied value and the board has an unoccupied value
     // to yield the unoccupied status of each corresponding position on the board
     val boardOccupiedVector: Seq[Boolean] = for {
       
       r <- piece.layout.indices
       c <- piece.layout(0).indices
       pieceOccupied = piece.layout(r)(c).occupied
-      boardUnoccupied = (layout(r + locRow)(c + locCol).occupied==false)
-      if (pieceOccupied)
+      boardUnoccupied = !layout(r + locRow)(c + locCol).occupied
+      if pieceOccupied
+      if boardUnoccupied
       
     } yield boardUnoccupied
 
-    // returns true only if all values are true
-    // the vector contains the unoccupied status of every relevant positions
-    // so if they are all unoccupied, then we are good to go
-    boardOccupiedVector.forall(x => x)
+    // basically, this vector will have a bunch of true values because each possible position on the board is unoccupied
+    // being !empty is good enough here
+    boardOccupiedVector.nonEmpty
     
 
   }

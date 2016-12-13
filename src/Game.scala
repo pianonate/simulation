@@ -7,53 +7,91 @@
  */
 object Game {
 
+  object GameOver extends Exception { }
+
   private val board = new Board(10)
 
-  def run: Unit = {
+  def run(): Unit = {
 
-    do {
+   try {
+     do {
 
-      val pieces = List.fill(3){Piece.randomPiece}
-      // val pieces = List(Piece.pieces(7), Piece.pieces(7), Piece.pieces(2))
 
-      showPieces(pieces)
+       // get 3 random pieces
+       val pieces = List.fill(3) {
+         Piece.randomPiece
+       }
+       //val pieces = List(Piece.pieces(0), Piece.pieces(1), Piece.pieces(2))
 
-      board.placeThreePieces(pieces)
+       // attempt to place these pieces (this is where the algo will kick in eventually)
+       if (!board.placeThreePieces(pieces)) throw GameOver
 
-      println(board.toString)
-      println("Occupied positions: " + board.occupiedCount)
-      println("type enter to place another piece and 'q' to quit")
+       showPieces(pieces)
 
-    }  while (Console.in.read != 'q')
+       //update usage
+       pieces foreach { piece => piece.usage += 1 }
 
+       showBoardFooter()
+
+     } while (Console.in.read != 'q')
+
+   } catch {
+
+     case GameOver => // normal game over
+     case e: Throwable => println("abormal run termination:\n" + e.toString)
+
+   } finally {
+     showEndGame()
+   }
+
+
+  }
+
+  private def showEndGame() = {
+    println
+    println("GAME OVER!!")
+    println
+    Piece.pieces.foreach { piece => println(String.format("%19s", piece.name) + " used: " + piece.usage) }
+  }
+
+  private def showBoardFooter() = {
+    println(board.toString)
+    println("Occupied positions: " + board.occupiedCount)
+    println("type enter to place another piece and 'q' to quit")
   }
 
   private def showPieces(pieces:List[Piece]):Unit = {
 
-    def max(a:Array[String], b:Array[String]):Array[String] = if (a.length > b.length) a else b
 
-    val piecesAsStringArrays = pieces.map(piece => piece.toString.split('\n'))
-    val tallestPieceHeight= piecesAsStringArrays.reduceLeft(max).length
+    // we'll need the height of the tallest piece as a guard for shorter pieces where we need to
+    // print out spaces as placeholders.  otherwise array access in the for would be broken
+    // if we did some magic to append fill rows to the pieces as strings array...
+    val tallestPieceHeight= pieces.map(piece => piece.rows).reduceLeft((a,b) => if (a>b) a else b)
+
+    // because we're not printing out one piece, but three across, we need to split
+    // the toString from each piece into an Array.  In this case, we'll create a List[Array[String]]
+    val piecesToStrings = pieces map { piece =>
+
+      val a = piece.toString.split('\n')
+      if (a.length < tallestPieceHeight)
+        a ++ Array.fill(tallestPieceHeight - a.length)(piece.printFillString) // fill out the array
+      else
+        a // just return the array
+
+    }
 
     println("Placed these pieces:")
 
-    // i is used to track whether it's possible print a row from a piece
-    // or if you have to output a filler string
-    for (i <- 0 to tallestPieceHeight) {
-      for (piece <-piecesAsStringArrays) {
-        if (i < piece.length)
-          print(piece(i))
-        else {
-          // number of chars is the number of boxes (minus  the escape characters)
-          // split on box char to get the length
-          val fillLength = piece(0).count(_ == Cell.BOX_CHAR.charAt(0)) + piece(0).count(_ == ' ')
-          List.fill(fillLength)(" ") foreach print
-        }
-      }
-      print("\n")
-    }
+    // turn arrays into a list so you can transpose them
+    // transpose will create a list of 1st rows, a list of 2nd rows, etc.
+    // then print them out - accross and then newline delimit
+    piecesToStrings.map(a => a.toList)
+      .transpose
+      .foreach {l => print(l.mkString);println}
+
+    // one more newline
+    println
 
   }
-
 
 }

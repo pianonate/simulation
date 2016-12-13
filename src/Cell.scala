@@ -15,7 +15,6 @@ class Cell ( val occupied: Boolean = false, val color: Ansi = Cell.unoccupiedCol
 }
 
 object Cell {
-  val BOX_CHAR = "\u25A0"
-  val unoccupiedColor = Ansi.BrightWhite
-
+  private val BOX_CHAR = "\u25A0"
+  private val unoccupiedColor = Ansi.BrightWhite
 }
