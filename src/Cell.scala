@@ -3,7 +3,7 @@
  * a cell within a piece is either occupied or not.  it also has a color.
  * if it's the game board piece, then it should show unoccupied cells on toString
  */
-class Cell ( val occupied: Boolean = false, val color: Ansi = Cell.unoccupiedColor) {
+case class Cell (  occupied: Boolean = false,  color: Ansi = Cell.unoccupiedColor) {
 
   override def toString:String = {
     if (occupied)

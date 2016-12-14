@@ -16,7 +16,7 @@ abstract class Piece {
   lazy val printFillString: String = List.fill(cols * 2 + 1)(" ").mkString // used by the game to output a blank row when printed side by side with other pieces
 
   // point value is calculated once and used to know the point of a piece
-  lazy val initialPointValue: Int = onPositions.length
+  lazy val pointValue: Int = onPositions.length
 
   // the score is the count of every occupied position in a piece
   private def onPositions: Array[Cell] = for {
@@ -145,34 +145,41 @@ object Piece {
   private val bigUpperRightEl = Piece.rotate90("BigUpperRightEl", bigUpperLeftEl)
   private val bigLowerRightEl = Piece.rotate90("BigLowerRightEl", bigUpperRightEl)
 
-  val pieces: List[Piece] = List[Piece](
-    singleton, // 0
-    h2line, // 1
-    v2line, // 2
-    h3line, // 3
-    v3line, // 4
-    h4line, // 5
-    v4line, // 6
-    h5line, // 7
-    v5line, // 8
-    box, // 9
-    bigbox, // 10
-    lowerLeftEl, // 11
-    upperLeftEl, // 12
-    upperRightEl, // 13
-    lowerRightEl, // 14
-    bigLowerLeftEl, // 15
-    bigUpperLeftEl, // 16
-    bigUpperRightEl, // 17
-    bigLowerRightEl // 18
+  // map as a convenience for selecting random entry or choosing specific named pieces
+  private val pieceMap  = Map(
+    singleton.name -> singleton,              // 0
+    h2line.name -> h2line,                    // 1
+    v2line.name -> v2line,                    // 2
+    h3line.name -> h3line,                    // 3
+    v3line.name -> v3line,                    // 4
+    h4line.name -> h4line,                    // 5
+    v4line.name -> v4line,                    // 6
+    h5line.name -> h5line,                    // 7
+    v5line.name -> v5line,                    // 8
+    box.name -> box,                          // 9
+    bigbox.name -> bigbox,                    // 10
+    lowerLeftEl.name -> lowerLeftEl,          // 11
+    upperLeftEl.name -> upperLeftEl,          // 12
+    upperLeftEl.name -> upperRightEl,         // 13
+    lowerRightEl.name -> lowerRightEl,        // 14
+    bigLowerLeftEl.name -> bigLowerLeftEl,    // 15
+    bigUpperLeftEl.name -> bigUpperLeftEl,    // 16
+    bigUpperRightEl.name -> bigUpperRightEl,  // 17
+    bigLowerRightEl.name -> bigLowerRightEl   // 18
 
   )
 
-  def randomPiece: Piece = {
+  val pieces: List[Piece] = pieceMap.values.toList
+
+  def getRandomPiece: Piece = {
     // add a random piece to the board and print it out
     val pieceIndex = scala.util.Random.nextInt(Piece.pieces.size)
     pieces(pieceIndex)
 
+  }
+
+  def getNamedPieces(names: String*): List[Piece]= {
+    names.map(name => pieceMap(name)).toList
   }
 
   // this is called by board piece constructors to get their layout
@@ -200,6 +207,7 @@ object Piece {
   def rotate90(newName: String, pieceToCopy: Piece): Piece = {
 
     class Rotated(val name: String, val color: Ansi, val layout: Array[Array[Cell]]) extends Piece
+
     val rotatedLayout = pieceToCopy.layout.transpose.map(_.reverse).map(_.toArray)
     new Rotated(newName, pieceToCopy.color, rotatedLayout)
 

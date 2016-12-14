@@ -16,9 +16,36 @@ class Board(size: Int) extends Piece {
   // this method is mapped in from Piece.toString
   override def cellToStringMapFunction(cell:Cell): String = cell.toString
 
-  def placeThreePieces(pieces: List[Piece]):Boolean = pieces.forall(placePiece)
+  def clearLines(): (Int,Int) = {
 
-  private def placePiece(piece:Piece):Boolean = {
+
+    // TODO: there has got to be a way to remove this duplication
+    def clearRow(line:Array[Cell]):Unit = { for (i <-line.indices) line(i) = new Cell(false,this.color) }
+    def clearCol(col:Int):Unit = {for ( i <- layout.indices) layout(i)(col) = new Cell(false,this.color) }
+
+    def fullLine(line: Array[Cell]): Boolean = line.forall(cell=>cell.occupied)
+
+    def fullLines(piece:Piece):Seq[Int] = {
+      for {i <- piece.layout.indices
+        if fullLine(piece.layout(i))}
+        yield i
+    }
+
+    val clearable = fullLines(this)
+
+
+    val rotated = Piece.rotate90("Board", this)
+    val rotatedClearable = fullLines(rotated)
+
+    clearable.foreach(i => clearRow(this.layout(i)))
+    rotatedClearable.foreach(clearCol)
+
+    (clearable.length,rotatedClearable.length)
+
+
+  }
+
+  def placePiece(piece:Piece):Boolean = {
     val legal = legalPlacements(piece)
     if (legal.isEmpty)
       false
@@ -65,7 +92,7 @@ class Board(size: Int) extends Piece {
     // this for comprehension will find all instances
     // where the piece has an occupied value and the board has an unoccupied value
     // to yield the unoccupied status of each corresponding position on the board
-    val boardOccupiedVector: Seq[Boolean] = for {
+    val boardCellUnoccupied: Seq[Boolean] = for {
       
       r <- piece.layout.indices
       c <- piece.layout(0).indices
@@ -77,8 +104,7 @@ class Board(size: Int) extends Piece {
     } yield boardUnoccupied
 
     // basically, this vector will have a bunch of true values because each possible position on the board is unoccupied
-    // being !empty is good enough here
-    boardOccupiedVector.nonEmpty
+    boardCellUnoccupied.size==piece.pointValue
     
 
   }

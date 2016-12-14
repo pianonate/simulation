@@ -15,7 +15,7 @@ object Main extends App {
 
   private def printPossiblePieces(): Unit = {
     for (piece <- Piece.pieces) {
-      println(piece.name + ": " + piece.initialPointValue)
+      println(piece.name + ": " + piece.pointValue)
       println(piece.toString)
     }
     println
@@ -32,7 +32,8 @@ object Main extends App {
 
     for (i <- 90 to 97) {
       val code = i.toString
-      print(f"\u001b[38;5;$code%sm$code%3s")
+      print(f"\u001b" +
+        f"[38;5;$code%sm$code%3s")
     }
 
     println
