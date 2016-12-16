@@ -1,6 +1,6 @@
 /**
  * Created by nathan on 12/9/16.
- * represents pieces to try
+ * represents pieces in the game - also represents the board
  */
 import GameUtil.longIter
 
@@ -9,7 +9,7 @@ abstract  class Piece {
   val color: Ansi
   val layout: Array[Array[Cell]]
 
-  val usage = longIter.buffered
+  val usage: BufferedIterator[Long] = longIter.buffered
 
   lazy val rows: Int = layout.length
   lazy val cols: Int = layout(0).length

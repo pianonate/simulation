@@ -2,9 +2,9 @@
  * Created by nathan on 12/9/16.
  * Board is the game Board plus helper functions.
  * It's like other pieces in that it has a name, and a layout and a color (which is the color when first instantiated)
+ *
  * Boards can be created at will to test out different combinations.
  * THere will always be the main board held by the Game but other Board objects will be created when running algos
- * So a copy method will probably also be needed at some point
  */
 class Board(size: Int, val name: String = "Board") extends Piece {
 
@@ -71,7 +71,7 @@ class Board(size: Int, val name: String = "Board") extends Piece {
 
   def placeKnownLegal(piece:Piece, loc: Option[(Int,Int)]) : Boolean = loc match {
 
-    case Some(loc) => place(piece, loc, this);true
+    case Some(l) => place(piece, l, this);true
     case None => false
 
   }

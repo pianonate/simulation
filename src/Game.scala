@@ -3,6 +3,20 @@
  * Game will hold a reference to the current board and will also invoke simulations
  * algo research - measure of entropy is a decent approach:
  *    http://stats.stackexchange.com/questions/17109/measuring-entropy-information-patterns-of-a-2d-binary-matrix
+ *    Picture D is problematic - want to avoid
+ *
+ *    Kevin suggests maximize largest free space region(s) - and weight free space algo with the entropy calculation
+ *    penalize smaller free space regions - i.e., a 1
+ *
+ *    Kevin also suggests:
+ *    TODO: After selecting the set of boardsets that clear the most rows/cols, filter out any boardsets that don't allow
+ *    Todo: HorizontalLine5, VerticalLine5, BixBox
+ *
+ *    Thanks Kevin :)
+ *
+ *    Todo: save every move in a game so you can replay it if it's awesome
+ *    Todo: persist and display high score to compare this against history
+ *
  *
  */
 import GameUtil._
@@ -10,17 +24,16 @@ import GameUtil._
 object Game {
 
   object GameOver extends Exception
-  object SimulationOver extends Exception
 
-  private val MAX_SIMULATION_ITERATIONS = 10000l
+  private val MAX_SIMULATION_ITERATIONS = 30000l // 2000000000l
   private val CONTINUOUS_MODE = true
 
-  private val board = new Board(10)
-  private var score = 0
-  private val rowsCleared = longIter.buffered
-  private val colsCleared = longIter.buffered
-  private val rounds = longIter.buffered
-  private val placed = longIter.buffered
+  private val board: Board = new Board(10)
+  private var score: Int = 0
+  private val rowsCleared: BufferedIterator[Long] = longIter.buffered
+  private val colsCleared: BufferedIterator[Long] = longIter.buffered
+  private val rounds: BufferedIterator[Long] = longIter.buffered
+  private val placed: BufferedIterator[Long] = longIter.buffered
 
   def run(): Unit = {
 
@@ -28,7 +41,7 @@ object Game {
 
       do {
 
-        println("Round: " + (rounds.next + 1))
+        println("\nRound: " + (rounds.next + 1))
 
         // get 3 random pieces
         val pieces = List.fill(3)(Piece.getRandomPiece)
@@ -38,22 +51,6 @@ object Game {
 
         // show the pieces in the order they were randomly chosen
         showPieces(pieces)
-
-        // the following is the first optimization attempt
-        // attempt all permutations of the random list of pieces (as many as six will be attempted on a list of 3 items)
-        // take the results of the permutations and order by the resultant board that has the lowest occupiedCount
-        // simpleSimulation returns tuples of occupiedCounts and piece lists that drove the occupied count
-        // the lowest occupied count is first (there are almost certainly going to be duplicates
-        val permutations = pieces
-          .permutations
-          .toList
-          .map(simpleSimulation)
-          .sortBy(_._1)
-
-        /*     // currently using the simple variety of doing the simulation
-             // use the piece list at the head of the permutations list
-             // pieces may be placed in a different order than the random choices from above*/
-        // permutations.head._2.foreach(handleThePiece(_, Some(-1,-1), board.naivePlacePiece))
 
         // set up a test of running through all orderings of piece placement
        // and for each orering, trying all combinations of legal locations by trying them all out
@@ -66,8 +63,6 @@ object Game {
 
 
         showBoardFooter()
-true || false
-
 
       } while (CONTINUOUS_MODE || (!CONTINUOUS_MODE && (Console.in.read != 'q')) )
 
@@ -81,12 +76,12 @@ true || false
     }
   }
 
-  private def pieceSequenceSimulation(pieces:List[Piece], maxIters:Long):
-    (Int, List[(Piece, Option[(Int, Int)])])  = {
+  private def pieceSequenceSimulation(pieces:List[Piece], maxIters:Long): (Int, List[(Piece, Option[(Int, Int)])], Board)  = {
 
+    val t1 = System.currentTimeMillis()
     val l = longIter.buffered
 
-    val p1 = pieces(0)
+    val p1 = pieces.head
     val p2 = pieces(1)
     val p3 = pieces(2)
 
@@ -95,43 +90,48 @@ true || false
       boardCopy.simulatePlacement(piece, loc)
     }
 
-    def createOptions:List[(Int, Option[(Int,Int)], Option[(Int,Int)], Option[(Int,Int)])] = {
+    def createOptions: List[(Int, Option[(Int,Int)], Option[(Int,Int)], Option[(Int,Int)], Board)] = {
 
-      val listBuffer1 = new scala.collection.mutable.ListBuffer[(Int, Option[(Int,Int)], Option[(Int,Int)], Option[(Int,Int)])]
-      val listBuffer2 = new scala.collection.mutable.ListBuffer[(Int, Option[(Int,Int)], Option[(Int,Int)], Option[(Int,Int)])]
-      val listBuffer3 = new scala.collection.mutable.ListBuffer[(Int, Option[(Int,Int)], Option[(Int,Int)], Option[(Int,Int)])]
+      val listBuffer1 = new scala.collection.mutable.ListBuffer[(Int, Option[(Int,Int)], Option[(Int,Int)], Option[(Int,Int)], Board)]
+      val listBuffer2 = new scala.collection.mutable.ListBuffer[(Int, Option[(Int,Int)], Option[(Int,Int)], Option[(Int,Int)], Board)]
+      val listBuffer3 = new scala.collection.mutable.ListBuffer[(Int, Option[(Int,Int)], Option[(Int,Int)], Option[(Int,Int)], Board)]
 
-      try {
-        for (loc1 <- this.board.legalPlacements(p1)) {
+      for (loc1 <- this.board.legalPlacements(p1).par) {
+        if (l.head < maxIters) {
           val board1Copy = placeMe(p1, this.board, loc1)
-          listBuffer1 append ((board1Copy.occupiedCount, Some(loc1), None, None))
+          synchronized {
+            listBuffer1 append ((board1Copy.occupiedCount, Some(loc1), None, None, board1Copy))
+          }
 
-          for (loc2 <- board1Copy.legalPlacements(p2)) {
-            val board2Copy = placeMe(p2, board1Copy, loc2)
-            listBuffer2 append ((board2Copy.occupiedCount, Some(loc1), Some(loc2), None))
+          for (loc2 <- board1Copy.legalPlacements(p2).par) {
+            if (l.head < maxIters) {
 
-            for (loc3 <- board2Copy.legalPlacements(p3)) {
+              val board2Copy = placeMe(p2, board1Copy, loc2)
+              synchronized {
+                listBuffer2 append ((board2Copy.occupiedCount, Some(loc1), Some(loc2), None, board2Copy))
+              }
 
-              val board3Copy = placeMe(p3, board2Copy, loc3)
-              listBuffer3 append ((board3Copy.occupiedCount, Some(loc1), Some(loc2), Some(loc3)))
+              for (loc3 <- board2Copy.legalPlacements(p3).par) {
+                if (l.head < maxIters)  {
 
-              // we are limiting the maximum number of tries with this code as right now it is not very performant
-              // todo: Make this performant
-              // todo: make this recursive...
-              if ((l.head)==maxIters) throw SimulationOver
-              l.next()
-             /* if ((l.head % 1000) == 0)
-                println(l.head + ": " + loc1 + " " + loc2 + " " + loc3 + " " + board3Copy.occupiedCount)*/
+                  val board3Copy = placeMe(p3, board2Copy, loc3)
+                  synchronized {
+                    listBuffer3 append ((board3Copy.occupiedCount, Some(loc1), Some(loc2), Some(loc3), board3Copy))
+                  }
 
+                  // we are limiting the maximum number of tries with this code as right now it is not very performant
+                  // todo: Make this performant
+                  // todo: make this recursive...
+                  /*if ((l.head)==maxIters) throw SimulationOver*/
+                  l.next()
+
+                }
+              }
             }
           }
         }
-      } catch {
-
-        case SimulationOver => // normal game over
-        case e: Exception => throw e
-
       }
+
 
       // if we have a 3 piece solution we should use it as two piece and one piece solutions mean the game is over
       // at least along this particular simulation path
@@ -144,17 +144,28 @@ true || false
       else
         // arbitrary large number so that this option will never wih against
         // options that are still viable
-        List((100000,None,None,None))
+        List((100000,None,None,None, this.board))
 
     }
 
-    val a = createOptions.minBy(_._1)
-    val b = createOptions.maxBy(_._1)
+    val options = createOptions
+    val a = options.minBy(_._1)
+    val b = options.maxBy(_._1)
 
-    println("simulations:" + l.head + " min: " + a._1 + " max: " + b._1)
+    val simulCount = "%,7d".format(l.head)
+
+    val t2 = System.currentTimeMillis
+
+    val duration = t2 - t1
+    val durationString = "%,7d".format(duration)
+
+    println("simulations:" + simulCount
+      + " min: " + a._1 + " max: " + b._1
+      + " for pieces: " + pieces.map(_.name).mkString(", ")
+      + " and it took:" + durationString + "ms" )
 
 
-    (a._1, List((p1, a._2), (p2, a._3), (p3, a._4)) )
+    (a._1, List((p1, a._2), (p2, a._3), (p3, a._4)), a._5 )
 
   }
 
@@ -225,29 +236,10 @@ true || false
 
   private def copyBoard(pieces: List[Piece], aBoard: Board): Board = Board.copy("board: " + pieces.map(_.name).mkString(", "), aBoard)
 
-  
-  private def simpleSimulation(pieces: List[Piece]): (Int, List[Piece]) = {
-
-    // make a copy of the board
-    // try place pieces and clearing lines
-    // return board occupied count
-    // the caller will look at the board with the lowest occupied count as a good simulation
-    // of this particular permutation of pieces
-    val boardCopy = copyBoard(pieces, board)
-
-    pieces foreach { piece =>
-
-      if (boardCopy.naivePlacePiece(piece, None))
-        boardCopy.clearLines() // no need to call clearlines if you couldn't place a piece...
-    }
-
-    (boardCopy.occupiedCount, pieces)
-
-  }
 
   private def handleThePiece(piece: Piece, loc: Option[(Int, Int)], f: (Piece, Option[(Int,Int)]) => Boolean ): Unit = {
 
-    println("Attempting piece: " + ((placed.next % 3) + 1) + "\n" + piece.toString)
+    println("\nAttempting piece: " + ((placed.next % 3) + 1) + "\n" + piece.toString)
 
     if (!f(piece, loc)) throw GameOver // this will be caught by the run method do loop otherwise start aggregating...
 
@@ -263,13 +255,13 @@ true || false
     // Todo: potential operation
     clearPieceUnderlines()
 
-    handleLineClearing
+    handleLineClearing()
 
     println("Score: " + score)
     println
   }
 
-  private def handleLineClearing = {
+  private def handleLineClearing() = {
 
     val result = board.clearLines()
 
@@ -283,10 +275,11 @@ true || false
       // show an updated board reflecting the cleared lines
       println("\n" + board)
 
+      def incrementCleared(count: Int, it: Iterator[Long]):Unit = for (i <- 0 until count) it.next
+      incrementCleared(result._1, rowsCleared)
+      incrementCleared(result._2, colsCleared)
+
     }
-    Range(0, result._1) foreach (x => rowsCleared.next)
-    Range(0, result._2)
-      .foreach(x => colsCleared.next)
 
     score += (result._1 + result._2) * board.layout.length
   }
@@ -302,7 +295,7 @@ true || false
   private def showEndGame() = {
 
     println
-    val sFormat = ("%18s: %,6d")
+    val sFormat = "%18s: %,6d"
 
     Piece.pieces.sortBy(piece => (piece.usage.head, piece.name))
       .foreach { piece => println(sFormat.format(piece.name, piece.usage.next)) }
@@ -311,18 +304,17 @@ true || false
 
     println(sFormat.format("Final Score", score))
     println(sFormat.format("Pieces Used", placed.head))
-    println(sFormat.format("Rows Cleared", (rowsCleared.head)))
-    println(sFormat.format("Cols Cleared", (colsCleared.head)))
+    println(sFormat.format("Rows Cleared", rowsCleared.head))
+    println(sFormat.format("Cols Cleared", colsCleared.head))
     println(sFormat.format("Rounds", rounds.head))
 
   }
 
   private def showBoardFooter() = {
-    println("Occupied positions: "
-      + board.occupiedCount
-      + "\nafter " + rounds.head + " rounds"
+    println("\nAfter " + rounds.head + " rounds"
       + " - rows cleared: " + rowsCleared.head
-      + " - columns cleared: " + colsCleared.head)
+      + " - columns cleared: " + colsCleared.head
+      + " - positions occupied: " + board.occupiedCount  )
     if (!CONTINUOUS_MODE)
       println("type enter to place another piece and 'q' to quit")
   }
@@ -350,7 +342,7 @@ true || false
 
     // turn arrays into a list so you can transpose them
     // transpose will create a list of 1st rows, a list of 2nd rows, etc.
-    // then print them out - accross and then newline delimit
+    // then print them out - across and then newline delimit
     piecesToStrings.map(a => a.toList)
       .transpose
       .foreach { l => print(l.mkString); println }
