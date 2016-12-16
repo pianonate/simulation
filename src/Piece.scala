@@ -6,7 +6,7 @@ import GameUtil.longIter
 
 abstract  class Piece {
   val name: String
-  val color: Ansi
+  val color: String
   val layout: Array[Array[Cell]]
 
   val usage: BufferedIterator[Long] = longIter.buffered
@@ -53,7 +53,7 @@ abstract  class Piece {
 
 // generic line class - let's you create a bunch of different lines
 // length is not marked as val because it is not a field we retain
-class Line(val name: String, val color: Ansi, length: Int) extends Piece {
+class Line(val name: String, val color: String, length: Int) extends Piece {
   private val a = Array.fill(length)(true)
   val layout: Array[Array[Cell]] = Piece.getLayout(color, Array(a))
 }
@@ -61,13 +61,13 @@ class Line(val name: String, val color: Ansi, length: Int) extends Piece {
 // generic box class - let's you create boxes of different sizes
 // size is not marked as val because it is not a field we retain
 // although size does matter
-class Box(val name: String, val color: Ansi, size: Int) extends Piece {
+class Box(val name: String, val color: String, size: Int) extends Piece {
   val layout: Array[Array[Cell]] = Piece.getLayout(color, Piece.getBoxTemplateOfSize(size))
 }
 
 // generic El class - let's you create L's of different sizes
 // size is not marked as val because it is not a field we retain
-class El(val name: String, val color: Ansi, size: Int) extends Piece {
+class El(val name: String, val color: String, size: Int) extends Piece {
   private val a = Piece.getBoxTemplateOfSize(size)
 
   for {
@@ -119,29 +119,29 @@ class El(val name: String, val color: Ansi, size: Int) extends Piece {
 
 object Piece {
 
-  private val singleton = new Line("Singleton", Ansi.Black, 1)
+  private val singleton = new Line("Singleton", GameUtil.BLACK, 1)
 
-  private val h2line = new Line("HorizontalLine2", Ansi.BrightYellow, 2)
+  private val h2line = new Line("HorizontalLine2", GameUtil.BRIGHT_YELLOW, 2)
   private val v2line = Piece.rotate90("VerticalLine2", h2line)
 
-  private val h3line = new Line("HorizontalLine3", Ansi.Yellow, 3)
+  private val h3line = new Line("HorizontalLine3", GameUtil.YELLOW, 3)
   private val v3line = Piece.rotate90("VerticalLine3", h3line)
 
-  private val h4line = new Line("HorizontalLine4", Ansi.BrightRed, 4)
+  private val h4line = new Line("HorizontalLine4", GameUtil.BRIGHT_RED, 4)
   private val v4line = Piece.rotate90("VerticalLine4", h4line)
 
-  private val h5line = new Line("HorizontalLine5", Ansi.Red, 5)
+  private val h5line = new Line("HorizontalLine5", GameUtil.RED, 5)
   private val v5line = Piece.rotate90("VerticalLine5", h5line)
 
-  private val box = new Box("Box", Ansi.Green, 2)
-  private val bigbox = new Box("BigBox", Ansi.Cyan, 3)
+  private val box = new Box("Box", GameUtil.GREEN, 2)
+  private val bigbox = new Box("BigBox", GameUtil.CYAN, 3)
 
-  private val lowerLeftEl = new El("LowerLeftEl", Ansi.BrightCyan, 2)
+  private val lowerLeftEl = new El("LowerLeftEl", GameUtil.BRIGHT_CYAN, 2)
   private val upperLeftEl = Piece.rotate90("UpperLeftEl", lowerLeftEl)
   private val upperRightEl = Piece.rotate90("UpperRightEl", upperLeftEl)
   private val lowerRightEl = Piece.rotate90("LowerRightEl", upperRightEl)
 
-  private val bigLowerLeftEl = new El("BigLowerLeftEl", Ansi.Blue, 3)
+  private val bigLowerLeftEl = new El("BigLowerLeftEl", GameUtil.BLUE, 3)
   private val bigUpperLeftEl = Piece.rotate90("BigUpperLeftEl", bigLowerLeftEl)
   private val bigUpperRightEl = Piece.rotate90("BigUpperRightEl", bigUpperLeftEl)
   private val bigLowerRightEl = Piece.rotate90("BigLowerRightEl", bigUpperRightEl)
@@ -184,18 +184,18 @@ object Piece {
   }
 
   // this is called by board piece constructors to get their layout
-  def getLayout(color: Ansi, template: Array[Array[Boolean]]): Array[Array[Cell]] = {
+  def getLayout(color: String, template: Array[Array[Boolean]]): Array[Array[Cell]] = {
     getLayoutImpl(color, template)
   }
 
-  def getBoardLayout(color: Ansi, size:Int ): Array[Array[Cell]] = {
+  def getBoardLayout(color: String, size:Int ): Array[Array[Cell]] = {
     // this special getLayout is only called to construct the board - so the layout is always going to be
     // everything off - the layout template is going to be the default of Boolean - which is false at every position
     // generated 2D array
     getLayoutImpl(color, Array.ofDim[Boolean](size, size))
   }
 
-  private def getLayoutImpl(color: Ansi, template: Array[Array[Boolean]]): Array[Array[Cell]] = {
+  private def getLayoutImpl(color: String, template: Array[Array[Boolean]]): Array[Array[Cell]] = {
 
     // a layout is an array of Cell objects that conform to a template defined by a 2D array of booleans indicating
     // whether a particular cell is occupied or not.  In this implementation, the color is the same for the entire piece
@@ -207,7 +207,7 @@ object Piece {
   // take a piece, and create a new piece, rotated 90 degrees
   def rotate90(newName: String, pieceToCopy: Piece): Piece = {
 
-    class Rotated(val name: String, val color: Ansi, val layout: Array[Array[Cell]]) extends Piece
+    class Rotated(val name: String, val color: String, val layout: Array[Array[Cell]]) extends Piece
 
     val rotatedLayout = pieceToCopy.layout.transpose.map(_.reverse).map(_.toArray)
     new Rotated(newName, pieceToCopy.color, rotatedLayout)

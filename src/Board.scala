@@ -8,7 +8,7 @@
  */
 class Board(size: Int, val name: String = "Board") extends Piece {
 
-  val color = Ansi.BrightBlack
+  val color = GameUtil.BRIGHT_BLACK
   val layout: Array[Array[Cell]] = Piece.getBoardLayout(color, size)
 
   // the board outputs unoccupied cells so just call toString on every piece
