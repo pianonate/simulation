@@ -6,8 +6,49 @@
 
 object Main extends App {
 
+  // different than game continuous mode which simply
+  // controls whether you hit enter to place the next piece
+  // Main continuous mode means continuous play - you have to ctrl-c out of it
+  val CONTINUOUS_MODE = true
+
+  val scores = new scala.collection.mutable.ListBuffer[Int]
+  val rounds = new scala.collection.mutable.ListBuffer[Long]
+
   // run the game, my friend
-  Game.run()
+  do {
+    val game = new Game()
+    val score = game.run
+    scores.append(score._1)
+    rounds.append(score._2)
+
+
+    if (CONTINUOUS_MODE) {
+        val highScore = scores.max
+        val mostRounds = rounds.max
+        println
+        println
+        println("High Score:   " + "%,7d".format(highScore))
+        println("Games Played: " + "%,7d".format(scores.size))
+        println("Most Rounds:  " + "%,7d".format(mostRounds))
+
+      // todo: make it idiomatic
+        println
+        print("Starting new game in 5...")
+        Thread.sleep(1000)
+        print("4..")
+        Thread.sleep(1000)
+        print("3..")
+        Thread.sleep(1000)
+        print("2..")
+        Thread.sleep(1000)
+        print("1..")
+        Thread.sleep(1000)
+        println
+        println("Go!")
+        println
+      }
+
+  } while (CONTINUOUS_MODE)
 
 //  printPossiblePieces
 //  printPossibleColors

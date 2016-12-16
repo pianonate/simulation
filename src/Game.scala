@@ -21,12 +21,16 @@
  */
 import GameUtil._
 
-object Game {
+object GameOver extends Exception
 
-  object GameOver extends Exception
+
+// TODO: turn game into a class so that all of the information about the board
+class Game {
+
 
   private val MAX_SIMULATION_ITERATIONS =  2000000000l
-  private val CONTINUOUS_MODE = true
+
+  val CONTINUOUS_MODE = true
 
   private val board: Board = new Board(10)
   private var score: Int = 0
@@ -35,11 +39,15 @@ object Game {
   private val rounds: BufferedIterator[Long] = longIter.buffered
   private val placed: BufferedIterator[Long] = longIter.buffered
 
-  def run(): Unit = {
+  def run(): (Int, Long) = {
+
+    val t1 = System.currentTimeMillis()
 
     try {
 
+
       do {
+
 
         println("\nRound: " + (rounds.next + 1))
 
@@ -71,9 +79,13 @@ object Game {
       case GameOver => // normal game over
       case e: Throwable => println("abnormal run termination:\n" + e.toString)
 
-    } finally {
-      showEndGame()
     }
+
+    val t2 = System.currentTimeMillis()
+    showGameOver(t2 - t1)
+
+    (score, rounds.head)
+
   }
 
   private def pieceSequenceSimulation(pieces:List[Piece], maxIters:Long): (Int, List[(Piece, Option[(Int, Int)])], Board)  = {
@@ -149,8 +161,8 @@ object Game {
     }
 
 
-    if (board.occupiedCount == 0) {
-      println("bypassing simulation for empty grid")
+    if (board.occupiedCount < 10) {
+      println("bypassing simulation for grid with occupied count < 10")
       val legal1 = board.legalPlacements(p1)
       val board1 = placeMe(p1, board, legal1(0))
       val legal2 = board1.legalPlacements(p2)
@@ -172,10 +184,15 @@ object Game {
       val duration = t2 - t1
       val durationString = "%,7d".format(duration)
 
+
+      val perSecond = if (duration > 0 ) (l.head / duration * 1000) else 0
+      val sPerSecond = "%,d".format(perSecond)
+
       println("simulations: " + simulCount
         + " min: " + a._1 + " max: " + b._1
         + " - pieces: " + pieces.map(_.name).mkString(", ")
-        + ":" + durationString + "ms" )
+        + ":" + durationString + "ms"
+        + " (" + sPerSecond + "/second" + (if (perSecond > 100000) " b-yatch" else "" ) + ")")
 
 
       (a._1, List((p1, a._2), (p2, a._3), (p3, a._4)), a._5 )
@@ -305,7 +322,7 @@ object Game {
     } cell.underline = false
   }
 
-  private def showEndGame() = {
+  private def showGameOver(durationMS: Long) = {
 
     println
     val sFormat = "%18s: %,6d"
@@ -320,6 +337,7 @@ object Game {
     println(sFormat.format("Rows Cleared", rowsCleared.head))
     println(sFormat.format("Cols Cleared", colsCleared.head))
     println(sFormat.format("Rounds", rounds.head))
+    println(sFormat.format("Time in ms", durationMS))
 
   }
 
