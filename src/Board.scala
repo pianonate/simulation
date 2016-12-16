@@ -6,10 +6,18 @@
  * Boards can be created at will to test out different combinations.
  * THere will always be the main board held by the Game but other Board objects will be created when running algos
  */
-class Board(size: Int, val name: String = "Board") extends Piece {
+class Board(val layout:Array[Array[Cell]], val name: String, val color:String) extends Piece {
 
-  val color = GameUtil.BRIGHT_BLACK
-  val layout: Array[Array[Cell]] = Piece.getBoardLayout(color, size)
+  def this(size:Int, name:String) {
+    this(Piece.getBoardLayout(GameUtil.BRIGHT_BLACK, size), name, GameUtil.BRIGHT_BLACK)
+  }
+  def this(size: Int) {
+     this(size,"Board")
+  }
+  def this(layout:Array[Array[Cell]], name:String) {
+    this(layout,name,GameUtil.BRIGHT_BLACK)
+  }
+
 
   // the board outputs unoccupied cells so just call toString on every piece
   // different than the Piece.toString which will not output unoccupied Cell's in other pieces
@@ -170,16 +178,23 @@ class Board(size: Int, val name: String = "Board") extends Piece {
 object Board {
   def copy(newName: String, boardToCopy: Board):Board = {
 
-    val newBoard = new Board(boardToCopy.layout.length, newName)
+    val rows = boardToCopy.layout.indices
+    // mapping the clones gives a new array
+    // it holds all of the same references but it you change a cell the original board's layout doesn't change
+    // so this is the goods - it will work
+    // oh - and by the way - simulations got about 5 times faster
+    val layout = boardToCopy.layout.map(_.clone)
+    new Board(layout, newName)
+
+
+/*    val newBoard = new Board(boardToCopy.layout.length, newName)
+
 
     for {
-      i <- boardToCopy.layout.indices
+      i <- rows
       j<-boardToCopy.layout(i).indices
       cell = boardToCopy.layout(i)(j)
-    } {
-      newBoard.layout(i)(j) = Cell.copy(cell)
-    }
-
-    newBoard
+    }  newBoard.layout(i)(j) = Cell.copy(cell)
+    newBoard */
   }
 }

@@ -25,7 +25,7 @@ object Game {
 
   object GameOver extends Exception
 
-  private val MAX_SIMULATION_ITERATIONS = 30000l // 2000000000l
+  private val MAX_SIMULATION_ITERATIONS =  2000000000l
   private val CONTINUOUS_MODE = true
 
   private val board: Board = new Board(10)
@@ -148,25 +148,38 @@ object Game {
 
     }
 
-    val options = createOptions
-    val a = options.minBy(_._1)
-    val b = options.maxBy(_._1)
 
-    val simulCount = "%,7d".format(l.head)
+    if (board.occupiedCount == 0) {
+      println("bypassing simulation for empty grid")
+      val legal1 = board.legalPlacements(p1)
+      val board1 = placeMe(p1, board, legal1(0))
+      val legal2 = board1.legalPlacements(p2)
+      val board2 = placeMe(p2, board1, legal2(0))
+      val legal3 = board2.legalPlacements(p3)
+      val board3 = placeMe(p3, board2, legal3(0))
+      (board3.occupiedCount, List((p1, Some(legal1(0))), (p2, Some(legal2(0))), (p3, Some(legal3(0)))), board3)
+    }
+    else {
 
-    val t2 = System.currentTimeMillis
+      val options = createOptions
+      val a = options.minBy(_._1)
+      val b = options.maxBy(_._1)
 
-    val duration = t2 - t1
-    val durationString = "%,7d".format(duration)
+      val simulCount = "%,7d".format(l.head)
 
-    println("simulations:" + simulCount
-      + " min: " + a._1 + " max: " + b._1
-      + " for pieces: " + pieces.map(_.name).mkString(", ")
-      + " and it took:" + durationString + "ms" )
+      val t2 = System.currentTimeMillis
+
+      val duration = t2 - t1
+      val durationString = "%,7d".format(duration)
+
+      println("simulations: " + simulCount
+        + " min: " + a._1 + " max: " + b._1
+        + " - pieces: " + pieces.map(_.name).mkString(", ")
+        + ":" + durationString + "ms" )
 
 
-    (a._1, List((p1, a._2), (p2, a._3), (p3, a._4)), a._5 )
-
+      (a._1, List((p1, a._2), (p2, a._3), (p3, a._4)), a._5 )
+    }
   }
 
 /*  // this is an attemp to make a recursive solution, but I couldn't make it go
