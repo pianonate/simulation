@@ -2,13 +2,14 @@
  * Created by nathan on 12/9/16.
  * represents pieces to try
  */
+import GameUtil.longIter
 
-abstract class Piece {
+abstract  class Piece {
   val name: String
   val color: Ansi
   val layout: Array[Array[Cell]]
 
-  var usage: Int = 0
+  val usage = longIter.buffered
 
   lazy val rows: Int = layout.length
   lazy val cols: Int = layout(0).length
@@ -187,7 +188,7 @@ object Piece {
     getLayoutImpl(color, template)
   }
 
-  def getBoardLayout(size: Int, color: Ansi): Array[Array[Cell]] = {
+  def getBoardLayout(color: Ansi, size:Int ): Array[Array[Cell]] = {
     // this special getLayout is only called to construct the board - so the layout is always going to be
     // everything off - the layout template is going to be the default of Boolean - which is false at every position
     // generated 2D array
