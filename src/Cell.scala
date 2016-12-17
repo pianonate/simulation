@@ -8,6 +8,7 @@ case class Cell(occupied: Boolean = false, color: String, var underline:Boolean 
   // Todo: get rid of val - i think you could just create a copy of the cell.
   val underLineColor = GameUtil.UNDERLINE + color
 
+
   override def toString: String = {
     if (occupied)
       if (underline) underLineColor + Cell.BOX_CHAR else color + Cell.BOX_CHAR

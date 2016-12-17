@@ -31,9 +31,10 @@ class Game {
   private val BYATCH_THRESHOLD = 200000 // your system has some cred if it is doing more than this number of simulations / second
 
   val CONTINUOUS_MODE = true  // set to false to have the user advance through each board placement by hitting enter
+  val SLOW_COMPUTER = false
 
   private val board: Board = new Board(10)
-  private var score: Int = 0
+  private var score: Int = 0 //Todo: output score and high score in red or something so it's easy to spot
   private val rowsCleared: BufferedIterator[Long] = longIter.buffered
   private val colsCleared: BufferedIterator[Long] = longIter.buffered
   private val rounds: BufferedIterator[Long] = longIter.buffered
@@ -46,47 +47,28 @@ class Game {
     try {
 
 
-      // use this method to return specific pieces under specific circumstances
-      def getPiecesForPermutations(pieces: List[Piece]) = {
-
-        val permPieces = {
-          // this code provides specific pieces for the (probable) last iteration
-          // set this to false
-          if (false /*board.occupiedCount > 50*/) {
-            Piece.getNamedPieces("BigBox", "BigUpperLeftEl", "Singleton")
-          } else {
-            pieces
-          }
-        }
-        permPieces
-      }
-
       do {
-
 
         println("\nRound: " + (rounds.next + 1))
 
+
         // get 3 random pieces
-        val pieces = List.fill(3)(Piece.getRandomPiece)
-
-        // val pieces = Piece.getNamedPieces("Box","BigLowerRightEl","HorizontalLine3")
-
+        val pieces = getPieces()
 
         // show the pieces in the order they were randomly chosen
         showPieces(pieces)
 
-        val permPieces: List[Piece] = getPiecesForPermutations(pieces)
 
-
-        // set up a test of running through all orderings of piece placement
-        // and for each orering, trying all combinations of legal locations by trying them all out
-        val permutations = permPieces
+        // set up a test of running through all orderings of piece placement (permutations)
+        // and for each ordering, try all combinations of legal locations
+        // the lowest board score after trying all legal locations will what is chosen
+        // right now this is kind of stupid and the game doesn't play very well...but we can make it better
+        val permutations = pieces
          .permutations
          .toList
          .map(pieceSequenceSimulation(_,MAX_SIMULATION_ITERATIONS)).minBy(_._1)
 
         permutations._2.foreach(tup => handleThePiece(tup._1, tup._2, board.placeKnownLegal) )
-
 
         showBoardFooter()
 
@@ -102,8 +84,32 @@ class Game {
     val t2 = System.currentTimeMillis()
     showGameOver(t2 - t1)
 
+    // return the score and the number of rounds to Main - where such things are tracked across game instances
+    // Todo:  Maybe a GameRunner class should be introduced so that Main is simply a handoff to GameRunner
+    // this would be more clear - then Main's only purpose is to be the application entry point
     (score, rounds.head)
 
+  }
+
+  // use this method to return specific pieces under specific circumstances
+  // under normal conditions if (false
+  // just return a random set of 3 pieces
+  private def getPieces():List[Piece] = {
+
+    val pieces = {
+      // this code provides specific pieces for the (probable) last iteration
+      // set this to false if you want to just return the default set
+      // otherwise provide a conditional value - for example,
+      // board.occupiedCount > 50
+      // was used as a condition to debug a situation in the end game
+      // there are probably other situations when you want to substitute a specific piece set
+      if (false) {
+        Piece.getNamedPieces("BigBox", "BigUpperLeftEl", "Singleton")
+      } else {
+        List.fill(3)(Piece.getRandomPiece)
+      }
+    }
+    pieces
   }
 
   private def pieceSequenceSimulation(pieces:List[Piece], maxIters:Long): (Int, List[(Piece, Option[(Int, Int)])], Board)  = {
@@ -119,6 +125,7 @@ class Game {
       simulations.next() // simulation counter increased
       val boardCopy = copyBoard(List(piece), theBoard)
       boardCopy.simulatePlacement(piece, loc)
+      boardCopy
     }
 
     def createOptions: List[(Int, Option[(Int,Int)], Option[(Int,Int)], Option[(Int,Int)], Board)] = {
@@ -184,7 +191,7 @@ class Game {
     // create a conditional debug point and step through it.  you've seen an example that doesn't
     // look as if it's doing all possible simulations correctly
 
-/*    if (board.occupiedCount < 10) {
+    if (SLOW_COMPUTER && board.occupiedCount < 10) {
       println("bypassing simulation for grid with occupied count < 10")
       val legal1 = board.legalPlacements(p1)
       val board1 = placeMe(p1, board, legal1(0))
@@ -194,7 +201,7 @@ class Game {
       val board3 = placeMe(p3, board2, legal3(0))
       (board3.occupiedCount, List((p1, Some(legal1(0))), (p2, Some(legal2(0))), (p3, Some(legal3(0)))), board3)
     }
-    else {*/
+    else {
 
       val options = createOptions
       val a = options.minBy(_._1)
@@ -219,7 +226,7 @@ class Game {
 
 
       (a._1, List((p1, a._2), (p2, a._3), (p3, a._4)), a._5 )
-    /*}*/
+    }
   }
 
 /*  // this is an attemp to make a recursive solution, but I couldn't make it go
@@ -292,9 +299,12 @@ class Game {
 
   private def handleThePiece(piece: Piece, loc: Option[(Int, Int)], f: (Piece, Option[(Int,Int)]) => Boolean ): Unit = {
 
+
     println("\nAttempting piece: " + ((placed.next % 3) + 1) + "\n" + piece.toString)
 
-    if (!f(piece, loc)) throw GameOver // this will be caught by the run method do loop otherwise start aggregating...
+    // passed in a handler function when i was trying out various simulations.
+    // but right now there is only one handler so I don't know if need to keep this nicety around
+    if (!f(piece, loc)) throw GameOver // GameOver will be caught by the run method do loop otherwise start aggregating...
 
     piece.usage.next
     score += piece.pointValue
