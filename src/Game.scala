@@ -28,19 +28,28 @@ class Game {
 
   // TODO: the math right now says we will never be in long territory so switch this bad boy to an int
   private val MAX_SIMULATION_ITERATIONS = 1000000l //  100l - 100 speeds up the game significantly
-  private val BYATCH_THRESHOLD = 200000 // your system has some cred if it is doing more than this number of simulations / second
+  private val BYATCH_THRESHOLD = 250000 // your system has some cred if it is doing more than this number of simulations / second
 
   val CONTINUOUS_MODE = true  // set to false to have the user advance through each board placement by hitting enter
   val SLOW_COMPUTER = false
 
-  private val board: Board = new Board(10)
-  private var score: Int = 0 //Todo: output score and high score in red or something so it's easy to spot
-  private val rowsCleared: BufferedIterator[Long] = longIter.buffered
-  private val colsCleared: BufferedIterator[Long] = longIter.buffered
-  private val rounds: BufferedIterator[Long] = longIter.buffered
-  private val placed: BufferedIterator[Long] = longIter.buffered
 
-  def run(): (Int, Long) = {
+  private val board: Board = new Board(10)
+  //Todo: create a counter class that has the ability to increment itself
+  //      it can maintain it's own internal representation of things to count
+  //      you can get the current count just by asking for it - right now we're asking the longIter (buffered) for it's .head
+  //      you can make the code a lot more clear by just asking this counter class for the current count and hide
+  //      the Iterator used to maintain the count
+  //Todo: output score and high score in red or something so it's easy to spot
+  private val score       : BufferedIterator[Long] = longIter.buffered
+  private val rowsCleared : BufferedIterator[Long] = longIter.buffered
+  private val colsCleared : BufferedIterator[Long] = longIter.buffered
+  private val rounds      : BufferedIterator[Long] = longIter.buffered
+  private val placed      : BufferedIterator[Long] = longIter.buffered
+  private def incrementCounter(count: Int, it: Iterator[Long]):Unit = for (i <- 0 until count) it.next
+
+
+  def run(): (Long, Long) = {
 
     val t1 = System.currentTimeMillis()
 
@@ -87,7 +96,7 @@ class Game {
     // return the score and the number of rounds to Main - where such things are tracked across game instances
     // Todo:  Maybe a GameRunner class should be introduced so that Main is simply a handoff to GameRunner
     // this would be more clear - then Main's only purpose is to be the application entry point
-    (score, rounds.head)
+    (score.head, rounds.head)
 
   }
 
@@ -307,7 +316,7 @@ class Game {
     if (!f(piece, loc)) throw GameOver // GameOver will be caught by the run method do loop otherwise start aggregating...
 
     piece.usage.next
-    score += piece.pointValue
+    incrementCounter(piece.pointValue,score)
 
     // placing a piece puts underlines on it to highlight it
     println(board)
@@ -320,7 +329,7 @@ class Game {
 
     handleLineClearing()
 
-    println("Score: " + score)
+    println("Score: " + score.head)
     println
   }
 
@@ -338,13 +347,12 @@ class Game {
       // show an updated board reflecting the cleared lines
       println("\n" + board)
 
-      def incrementCleared(count: Int, it: Iterator[Long]):Unit = for (i <- 0 until count) it.next
-      incrementCleared(result._1, rowsCleared)
-      incrementCleared(result._2, colsCleared)
+      incrementCounter(result._1, rowsCleared)
+      incrementCounter(result._2, colsCleared)
 
     }
 
-    score += (result._1 + result._2) * board.layout.length
+    incrementCounter( ( (result._1 + result._2) * board.layout.length), score)
   }
 
   private def clearPieceUnderlines() = {
@@ -365,7 +373,7 @@ class Game {
 
     println("\nGAME OVER!!\n")
 
-    println(sFormat.format("Final Score", score))
+    println(sFormat.format("Final Score", score.head))
     println(sFormat.format("Pieces Used", placed.head))
     println(sFormat.format("Rows Cleared", rowsCleared.head))
     println(sFormat.format("Cols Cleared", colsCleared.head))

@@ -6,12 +6,15 @@
 
 object Main extends App {
 
+  // todo - stash high scores in a file you can read at startup of the game
+  // high score to date is 2,2656
+
   // different than game continuous mode which simply
   // controls whether you hit enter to place the next piece
   // Main continuous mode means continuous play - you have to ctrl-c out of it
   val CONTINUOUS_MODE = true
 
-  val scores = new scala.collection.mutable.ListBuffer[Int]
+  val scores = new scala.collection.mutable.ListBuffer[Long]
   val rounds = new scala.collection.mutable.ListBuffer[Long]
 
   // run the game, my friend

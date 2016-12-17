@@ -11,6 +11,7 @@ object GameUtil {
   // you could also implement a stepBy if you wanted...
   def longIterFrom(start:Long):Iterator[Long] = Iterator.iterate[Long](start)(l => l + 1)
 
+
   // Color code strings from:
   // http://www.topmudsites.com/forums/mud-coding/413-java-ansi.html
   val SANE = "\u001B[0m"
