@@ -23,14 +23,14 @@ import GameUtil._
 
 object GameOver extends Exception
 
-
-// TODO: turn game into a class so that all of the information about the board
 class Game {
 
 
-  private val MAX_SIMULATION_ITERATIONS =  2000000000l
+  // TODO: the math right now says we will never be in long territory so switch this bad boy to an int
+  private val MAX_SIMULATION_ITERATIONS = 1000000l //  100l - 100 speeds up the game significantly
+  private val BYATCH_THRESHOLD = 200000 // your system has some cred if it is doing more than this number of simulations / second
 
-  val CONTINUOUS_MODE = true
+  val CONTINUOUS_MODE = true  // set to false to have the user advance through each board placement by hitting enter
 
   private val board: Board = new Board(10)
   private var score: Int = 0
@@ -46,6 +46,21 @@ class Game {
     try {
 
 
+      // use this method to return specific pieces under specific circumstances
+      def getPiecesForPermutations(pieces: List[Piece]) = {
+
+        val permPieces = {
+          // this code provides specific pieces for the (probable) last iteration
+          // set this to false
+          if (false /*board.occupiedCount > 50*/) {
+            Piece.getNamedPieces("BigBox", "BigUpperLeftEl", "Singleton")
+          } else {
+            pieces
+          }
+        }
+        permPieces
+      }
+
       do {
 
 
@@ -60,14 +75,17 @@ class Game {
         // show the pieces in the order they were randomly chosen
         showPieces(pieces)
 
+        val permPieces: List[Piece] = getPiecesForPermutations(pieces)
+
+
         // set up a test of running through all orderings of piece placement
-       // and for each orering, trying all combinations of legal locations by trying them all out
-       val permutations2 = pieces
+        // and for each orering, trying all combinations of legal locations by trying them all out
+        val permutations = permPieces
          .permutations
          .toList
          .map(pieceSequenceSimulation(_,MAX_SIMULATION_ITERATIONS)).minBy(_._1)
 
-       permutations2._2.foreach(tup => handleThePiece(tup._1, tup._2, board.placeKnownLegal) )
+        permutations._2.foreach(tup => handleThePiece(tup._1, tup._2, board.placeKnownLegal) )
 
 
         showBoardFooter()
@@ -91,13 +109,14 @@ class Game {
   private def pieceSequenceSimulation(pieces:List[Piece], maxIters:Long): (Int, List[(Piece, Option[(Int, Int)])], Board)  = {
 
     val t1 = System.currentTimeMillis()
-    val l = longIter.buffered
+    val simulations = longIter.buffered
 
     val p1 = pieces.head
     val p2 = pieces(1)
     val p3 = pieces(2)
 
     def placeMe(piece: Piece, theBoard: Board, loc: (Int, Int)): Board = {
+      simulations.next() // simulation counter increased
       val boardCopy = copyBoard(List(piece), theBoard)
       boardCopy.simulatePlacement(piece, loc)
     }
@@ -109,14 +128,14 @@ class Game {
       val listBuffer3 = new scala.collection.mutable.ListBuffer[(Int, Option[(Int,Int)], Option[(Int,Int)], Option[(Int,Int)], Board)]
 
       for (loc1 <- this.board.legalPlacements(p1).par) {
-        if (l.head < maxIters) {
+        if (simulations.head < maxIters) {
           val board1Copy = placeMe(p1, this.board, loc1)
           synchronized {
             listBuffer1 append ((board1Copy.occupiedCount, Some(loc1), None, None, board1Copy))
           }
 
           for (loc2 <- board1Copy.legalPlacements(p2).par) {
-            if (l.head < maxIters) {
+            if (simulations.head < maxIters) {
 
               val board2Copy = placeMe(p2, board1Copy, loc2)
               synchronized {
@@ -124,18 +143,17 @@ class Game {
               }
 
               for (loc3 <- board2Copy.legalPlacements(p3).par) {
-                if (l.head < maxIters)  {
+                if (simulations.head < maxIters)  {
 
                   val board3Copy = placeMe(p3, board2Copy, loc3)
                   synchronized {
                     listBuffer3 append ((board3Copy.occupiedCount, Some(loc1), Some(loc2), Some(loc3), board3Copy))
                   }
 
-                  // we are limiting the maximum number of tries with this code as right now it is not very performant
                   // todo: Make this performant
                   // todo: make this recursive...
-                  /*if ((l.head)==maxIters) throw SimulationOver*/
-                  l.next()
+
+
 
                 }
               }
@@ -161,7 +179,12 @@ class Game {
     }
 
 
-    if (board.occupiedCount < 10) {
+    // todo - find out what happens when you end up with bigbox as one of the last pieces
+    // make sure the simulation is figuring out the right thing in this case
+    // create a conditional debug point and step through it.  you've seen an example that doesn't
+    // look as if it's doing all possible simulations correctly
+
+/*    if (board.occupiedCount < 10) {
       println("bypassing simulation for grid with occupied count < 10")
       val legal1 = board.legalPlacements(p1)
       val board1 = placeMe(p1, board, legal1(0))
@@ -171,13 +194,13 @@ class Game {
       val board3 = placeMe(p3, board2, legal3(0))
       (board3.occupiedCount, List((p1, Some(legal1(0))), (p2, Some(legal2(0))), (p3, Some(legal3(0)))), board3)
     }
-    else {
+    else {*/
 
       val options = createOptions
       val a = options.minBy(_._1)
       val b = options.maxBy(_._1)
 
-      val simulCount = "%,7d".format(l.head)
+      val simulCount = "%,7d".format(simulations.head)
 
       val t2 = System.currentTimeMillis
 
@@ -185,18 +208,18 @@ class Game {
       val durationString = "%,7d".format(duration)
 
 
-      val perSecond = if (duration > 0 ) (l.head / duration * 1000) else 0
+      val perSecond = if (duration > 0 ) (simulations.head / duration * 1000) else 0
       val sPerSecond = "%,d".format(perSecond)
 
       println("simulations: " + simulCount
         + " min: " + a._1 + " max: " + b._1
         + " - pieces: " + pieces.map(_.name).mkString(", ")
         + ":" + durationString + "ms"
-        + " (" + sPerSecond + "/second" + (if (perSecond > 100000) " b-yatch" else "" ) + ")")
+        + " (" + sPerSecond + "/second" + (if (perSecond > BYATCH_THRESHOLD) " b-yatch" else "" ) + ")")
 
 
       (a._1, List((p1, a._2), (p2, a._3), (p3, a._4)), a._5 )
-    }
+    /*}*/
   }
 
 /*  // this is an attemp to make a recursive solution, but I couldn't make it go

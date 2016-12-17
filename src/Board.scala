@@ -28,6 +28,8 @@ class Board(val layout:Array[Array[Cell]], val name: String, val color:String) e
 
 
     // TODO: there has got to be a way to remove this duplication
+    // Todo: turns out clearlines is taking up a lot of the overall time so you should refactor this anyway
+
     def clearRow(line:Array[Cell]):Unit = { for (i <-line.indices) line(i) = new Cell(false,this.color) }
     def clearCol(col:Int):Unit = {for ( i <- layout.indices) layout(i)(col) = new Cell(false,this.color) }
 
@@ -48,6 +50,7 @@ class Board(val layout:Array[Array[Cell]], val name: String, val color:String) e
     clearable.foreach(i => clearRow(this.layout(i)))
     rotatedClearable.foreach(clearCol)
 
+    // rows cleared and cols cleared
     (clearable.length,rotatedClearable.length)
 
 
