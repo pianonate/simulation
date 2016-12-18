@@ -179,6 +179,8 @@ object Piece {
 
   }
 
+  def getNamedPiece(name: String): Piece = pieceMap(name)
+
   def getNamedPieces(names: String*): List[Piece]= {
     names.map(name => pieceMap(name)).toList
   }

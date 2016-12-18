@@ -42,6 +42,7 @@ class Game {
   //      you can get the current count just by asking for it - right now we're asking the longIter (buffered) for it's .head
   //      you can make the code a lot more clear by just asking this counter class for the current count and hide
   //      the Iterator used to maintain the count
+
   //Todo: output score and high score in red or something so it's easy to spot
   private val score       : BufferedIterator[Long] = longIter.buffered
   private val rowsCleared : BufferedIterator[Long] = longIter.buffered
@@ -57,19 +58,15 @@ class Game {
 
     try {
 
-
       do {
 
-
         println("\nRound: " + (rounds.next + 1))
-
 
         // get 3 random pieces
         val pieces = getPieces()
 
         // show the pieces in the order they were randomly chosen
         showPieces(pieces)
-
 
         // set up a test of running through all orderings of piece placement (permutations)
         // and for each ordering, try all combinations of legal locations
@@ -78,9 +75,10 @@ class Game {
         val permutations = pieces
          .permutations
          .toList
-         .map(pieceSequenceSimulation(_,MAX_SIMULATION_ITERATIONS)).minBy(_._1)
+          // sort by the occupied count, then max by the number of places that can accept a 3x3 box
+         .map(pieceSequenceSimulation(_,MAX_SIMULATION_ITERATIONS)).sortBy(_._1).maxBy(_._1)
 
-        permutations._2.foreach(tup => handleThePiece(tup._1, tup._2, board.placeKnownLegal) )
+        permutations._3.foreach(tup => handleThePiece(tup._1, tup._2, board.placeKnownLegal) )
 
         showBoardFooter()
 
@@ -117,6 +115,7 @@ class Game {
       // board.occupiedCount > 50
       // was used as a condition to debug a situation in the end game
       // there are probably other situations when you want to substitute a specific piece set
+
      /* if (rounds.head ==1)
         Piece.getNamedPieces("VerticalLine5", "LowerLeftEl", "HorizontalLine3")
       else if (rounds.head == 2)
@@ -130,7 +129,7 @@ class Game {
     pieces
   }
 
-  private def pieceSequenceSimulation(pieces:List[Piece], maxIters:Long): (Int, List[(Piece, Option[(Int, Int)])], Board)  = {
+  private def pieceSequenceSimulation(pieces:List[Piece], maxIters:Long): (Int, Int, List[(Piece, Option[(Int, Int)])], Board)  = {
 
     val t1 = System.currentTimeMillis()
     val simulations = longIter.buffered
@@ -139,6 +138,12 @@ class Game {
     val p2 = pieces(1)
     val p3 = pieces(2)
 
+  /*  val t3 =System.currentTimeMillis()*/
+    val maximizer =  new Box("Maximizer", GameUtil.CYAN, 5)
+ /*   val legal = this.board.legalPlacements(maximizer)
+    val t4 = System.currentTimeMillis()
+    println("find legal for maximizer on big board - time: " + (t4-t3) + " length: " + legal.length)
+*/
     def placeMe(piece: Piece, theBoard: Board, loc: (Int, Int)): Board = {
       simulations.next() // simulation counter increased
       val boardCopy = copyBoard(List(piece), theBoard)
@@ -146,17 +151,17 @@ class Game {
       boardCopy
     }
 
-    def createOptions: List[(Int, Option[(Int,Int)], Option[(Int,Int)], Option[(Int,Int)], Board)] = {
+    def createOptions: List[(Int, Int, Option[(Int,Int)], Option[(Int,Int)], Option[(Int,Int)], Board)] = {
 
-      val listBuffer1 = new scala.collection.mutable.ListBuffer[(Int, Option[(Int,Int)], Option[(Int,Int)], Option[(Int,Int)], Board)]
-      val listBuffer2 = new scala.collection.mutable.ListBuffer[(Int, Option[(Int,Int)], Option[(Int,Int)], Option[(Int,Int)], Board)]
-      val listBuffer3 = new scala.collection.mutable.ListBuffer[(Int, Option[(Int,Int)], Option[(Int,Int)], Option[(Int,Int)], Board)]
+      val listBuffer1 = new scala.collection.mutable.ListBuffer[(Int, Int, Option[(Int,Int)], Option[(Int,Int)], Option[(Int,Int)], Board)]
+      val listBuffer2 = new scala.collection.mutable.ListBuffer[(Int, Int, Option[(Int,Int)], Option[(Int,Int)], Option[(Int,Int)], Board)]
+      val listBuffer3 = new scala.collection.mutable.ListBuffer[(Int, Int, Option[(Int,Int)], Option[(Int,Int)], Option[(Int,Int)], Board)]
 
       for (loc1 <- this.board.legalPlacements(p1).par) {
         if (simulations.head < maxIters) {
           val board1Copy = placeMe(p1, this.board, loc1)
           synchronized {
-            listBuffer1 append ((board1Copy.occupiedCount, Some(loc1), None, None, board1Copy))
+            listBuffer1 append ((board1Copy.occupiedCount, board1Copy.legalPlacements(maximizer).length, Some(loc1), None, None, board1Copy))
           }
 
           for (loc2 <- board1Copy.legalPlacements(p2).par) {
@@ -164,7 +169,7 @@ class Game {
 
               val board2Copy = placeMe(p2, board1Copy, loc2)
               synchronized {
-                listBuffer2 append ((board2Copy.occupiedCount, Some(loc1), Some(loc2), None, board2Copy))
+                listBuffer2 append ((board2Copy.occupiedCount, board2Copy.legalPlacements(maximizer).length, Some(loc1), Some(loc2), None, board2Copy))
               }
 
               for (loc3 <- board2Copy.legalPlacements(p3).par) {
@@ -172,7 +177,7 @@ class Game {
 
                   val board3Copy = placeMe(p3, board2Copy, loc3)
                   synchronized {
-                    listBuffer3 append ((board3Copy.occupiedCount, Some(loc1), Some(loc2), Some(loc3), board3Copy))
+                    listBuffer3 append ((board3Copy.occupiedCount, board3Copy.legalPlacements(maximizer).length, Some(loc1), Some(loc2), Some(loc3), board3Copy))
                   }
 
                   // todo: Make this performant
@@ -188,7 +193,7 @@ class Game {
       }
 
 
-      // if we have a 3 piece solution we should use it as two piece and one piece solutions mean the game is over
+      // if we have a 3 piece solution we should use it as two piece and one piece solutions mean GameOver
       // at least along this particular simulation path
       if (listBuffer3.nonEmpty)
         listBuffer3.toList
@@ -199,16 +204,11 @@ class Game {
       else
         // arbitrary large number so that this option will never wih against
         // options that are still viable
-        List((100000,None,None,None, this.board))
+        List((100000, 0, None,None,None, this.board))
 
     }
 
-
-    // todo - find out what happens when you end up with bigbox as one of the last pieces
-    // make sure the simulation is figuring out the right thing in this case
-    // create a conditional debug point and step through it.  you've seen an example that doesn't
-    // look as if it's doing all possible simulations correctly
-
+    // on a slow computer no point in simulating the first round as there are too many combinations of legal moves
     if (SLOW_COMPUTER && board.occupiedCount < 10) {
       println("bypassing simulation for grid with occupied count < 10")
       val legal1 = board.legalPlacements(p1)
@@ -217,13 +217,13 @@ class Game {
       val board2 = placeMe(p2, board1, legal2(0))
       val legal3 = board2.legalPlacements(p3)
       val board3 = placeMe(p3, board2, legal3(0))
-      (board3.occupiedCount, List((p1, Some(legal1(0))), (p2, Some(legal2(0))), (p3, Some(legal3(0)))), board3)
+      (board3.occupiedCount, 0, List((p1, Some(legal1(0))), (p2, Some(legal2(0))), (p3, Some(legal3(0)))), board3)
     }
     else {
 
       val options = createOptions
-      val a = options.minBy(_._1)
-      val b = options.maxBy(_._1)
+      val minOccupied = options.sortBy(_._1).maxBy(_._2)
+      val maxOccupied = options.sortWith(_._1 > _._1).minBy(_._2)
 
       val simulCount = "%,7d".format(simulations.head)
 
@@ -237,13 +237,14 @@ class Game {
       val sPerSecond = "%,d".format(perSecond)
 
       println("simulations: " + simulCount
-        + " min: " + a._1 + " max: " + b._1
+        + " - Best(occ: " + minOccupied._1 + ", maximizer: " + minOccupied._2 + ")"
+        + " - Worst(occ: " + maxOccupied._1 + ", maximizer: " + maxOccupied._2 + ")"
         + " - pieces: " + pieces.map(_.name).mkString(", ")
         + ":" + durationString + "ms"
         + " (" + sPerSecond + "/second" + (if (perSecond > BYATCH_THRESHOLD) " b-yatch" else "" ) + ")")
 
 
-      (a._1, List((p1, a._2), (p2, a._3), (p3, a._4)), a._5 )
+      (minOccupied._1, minOccupied._2, List((p1, minOccupied._3), (p2, minOccupied._4), (p3, minOccupied._5)), minOccupied._6 )
     }
   }
 
