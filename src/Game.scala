@@ -32,8 +32,16 @@ class Game {
   // todo - create something to stash the high score of simulations per second
   private val BYATCH_THRESHOLD = 250000 // your system has some cred if it is doing more than this number of simulations / second
 
-  val CONTINUOUS_MODE = true  // set to false to have the user advance through each board placement by hitting enter
-  val SLOW_COMPUTER = false
+  private val CONTINUOUS_MODE = true  // set to false to have the user advance through each board placement by hitting enter
+  private val SLOW_COMPUTER = true
+
+  /*  val t3 =System.currentTimeMillis()*/
+  private val maximizer =  new Box("Maximizer", GameUtil.CYAN, 3)
+  /*   val legal = this.board.legalPlacements(maximizer)
+     val t4 = System.currentTimeMillis()
+     println("find legal for maximizer on big board - time: " + (t4-t3) + " length: " + legal.length)
+ */
+
 
 
   private val board: Board = new Board(10)
@@ -76,9 +84,9 @@ class Game {
          .permutations
          .toList
           // sort by the occupied count, then max by the number of places that can accept a 3x3 box
-         .map(pieceSequenceSimulation(_,MAX_SIMULATION_ITERATIONS)).sortBy(_._1).maxBy(_._1)
+         .map(pieceSequenceSimulation(_,MAX_SIMULATION_ITERATIONS)).sortBy(_.boardCount).maxBy(_.maximumCount)
 
-        permutations._3.foreach(tup => handleThePiece(tup._1, tup._2, board.placeKnownLegal) )
+        permutations.pieceLocation.foreach(tup => handleThePiece(tup._1, tup._2, board.placeKnownLegal) )
 
         showBoardFooter()
 
@@ -129,7 +137,9 @@ class Game {
     pieces
   }
 
-  private def pieceSequenceSimulation(pieces:List[Piece], maxIters:Long): (Int, Int, List[(Piece, Option[(Int, Int)])], Board)  = {
+  case class Simulation(boardCount:Int, maximumCount:Int, pieceLocation: List[(Piece, Option[(Int, Int)])], board: Board)
+
+  private def pieceSequenceSimulation(pieces:List[Piece], maxIters:Long): Simulation  = {
 
     val t1 = System.currentTimeMillis()
     val simulations = longIter.buffered
@@ -138,12 +148,6 @@ class Game {
     val p2 = pieces(1)
     val p3 = pieces(2)
 
-  /*  val t3 =System.currentTimeMillis()*/
-    val maximizer =  new Box("Maximizer", GameUtil.CYAN, 5)
- /*   val legal = this.board.legalPlacements(maximizer)
-    val t4 = System.currentTimeMillis()
-    println("find legal for maximizer on big board - time: " + (t4-t3) + " length: " + legal.length)
-*/
     def placeMe(piece: Piece, theBoard: Board, loc: (Int, Int)): Board = {
       simulations.next() // simulation counter increased
       val boardCopy = copyBoard(List(piece), theBoard)
@@ -151,17 +155,18 @@ class Game {
       boardCopy
     }
 
-    def createOptions: List[(Int, Int, Option[(Int,Int)], Option[(Int,Int)], Option[(Int,Int)], Board)] = {
+    def createSimulations: List[Simulation] = {
 
-      val listBuffer1 = new scala.collection.mutable.ListBuffer[(Int, Int, Option[(Int,Int)], Option[(Int,Int)], Option[(Int,Int)], Board)]
-      val listBuffer2 = new scala.collection.mutable.ListBuffer[(Int, Int, Option[(Int,Int)], Option[(Int,Int)], Option[(Int,Int)], Board)]
-      val listBuffer3 = new scala.collection.mutable.ListBuffer[(Int, Int, Option[(Int,Int)], Option[(Int,Int)], Option[(Int,Int)], Board)]
+      val listBuffer1 = new scala.collection.mutable.ListBuffer[Simulation]
+      val listBuffer2 = new scala.collection.mutable.ListBuffer[Simulation]
+      val listBuffer3 = new scala.collection.mutable.ListBuffer[Simulation]
 
       for (loc1 <- this.board.legalPlacements(p1).par) {
         if (simulations.head < maxIters) {
           val board1Copy = placeMe(p1, this.board, loc1)
           synchronized {
-            listBuffer1 append ((board1Copy.occupiedCount, board1Copy.legalPlacements(maximizer).length, Some(loc1), None, None, board1Copy))
+            listBuffer1 append
+              new Simulation(board1Copy.occupiedCount, board1Copy.legalPlacements(maximizer).length, List((p1,Some(loc1)), (p2,None), (p3,None)), board1Copy)
           }
 
           for (loc2 <- board1Copy.legalPlacements(p2).par) {
@@ -169,7 +174,8 @@ class Game {
 
               val board2Copy = placeMe(p2, board1Copy, loc2)
               synchronized {
-                listBuffer2 append ((board2Copy.occupiedCount, board2Copy.legalPlacements(maximizer).length, Some(loc1), Some(loc2), None, board2Copy))
+                listBuffer2 append
+                  new Simulation(board2Copy.occupiedCount, board2Copy.legalPlacements(maximizer).length, List((p1,Some(loc1)), (p2,Some(loc2)), (p3,None)), board2Copy)
               }
 
               for (loc3 <- board2Copy.legalPlacements(p3).par) {
@@ -177,13 +183,12 @@ class Game {
 
                   val board3Copy = placeMe(p3, board2Copy, loc3)
                   synchronized {
-                    listBuffer3 append ((board3Copy.occupiedCount, board3Copy.legalPlacements(maximizer).length, Some(loc1), Some(loc2), Some(loc3), board3Copy))
+                    listBuffer3 append
+                      new Simulation(board3Copy.occupiedCount, board3Copy.legalPlacements(maximizer).length, List((p1,Some(loc1)), (p2,Some(loc2)), (p3,Some(loc3))), board3Copy)
                   }
 
                   // todo: Make this performant
                   // todo: make this recursive...
-
-
 
                 }
               }
@@ -204,7 +209,7 @@ class Game {
       else
         // arbitrary large number so that this option will never wih against
         // options that are still viable
-        List((100000, 0, None,None,None, this.board))
+        List(new Simulation(100000, 0, List((p1,None),(p2,None),(p3,None)), this.board))
 
     }
 
@@ -217,13 +222,13 @@ class Game {
       val board2 = placeMe(p2, board1, legal2(0))
       val legal3 = board2.legalPlacements(p3)
       val board3 = placeMe(p3, board2, legal3(0))
-      (board3.occupiedCount, 0, List((p1, Some(legal1(0))), (p2, Some(legal2(0))), (p3, Some(legal3(0)))), board3)
+      new Simulation(board3.occupiedCount, 0, List((p1, Some(legal1(0))), (p2, Some(legal2(0))), (p3, Some(legal3(0)))), board3)
     }
     else {
 
-      val options = createOptions
-      val minOccupied = options.sortBy(_._1).maxBy(_._2)
-      val maxOccupied = options.sortWith(_._1 > _._1).minBy(_._2)
+      val options = createSimulations
+      val best = options.sortBy(_.boardCount).maxBy(_.maximumCount)
+      val worst = options.sortWith(_.boardCount > _.boardCount).minBy(_.maximumCount)
 
       val simulCount = "%,7d".format(simulations.head)
 
@@ -237,16 +242,18 @@ class Game {
       val sPerSecond = "%,d".format(perSecond)
 
       println("simulations: " + simulCount
-        + " - Best(occ: " + minOccupied._1 + ", maximizer: " + minOccupied._2 + ")"
-        + " - Worst(occ: " + maxOccupied._1 + ", maximizer: " + maxOccupied._2 + ")"
+        + " - Best(occ: " + best.boardCount + ", maximizer: " + best.maximumCount + ")"
+        + " - Worst(occ: " + worst.boardCount + ", maximizer: " + worst.maximumCount + ")"
         + " - pieces: " + pieces.map(_.name).mkString(", ")
         + ":" + durationString + "ms"
         + " (" + sPerSecond + "/second" + (if (perSecond > BYATCH_THRESHOLD) " b-yatch" else "" ) + ")")
 
 
-      (minOccupied._1, minOccupied._2, List((p1, minOccupied._3), (p2, minOccupied._4), (p3, minOccupied._5)), minOccupied._6 )
+      best
     }
   }
+
+
 
 /*  // this is an attemp to make a recursive solution, but I couldn't make it go
   // also tried one like the findQueens example, but still no go.  
@@ -352,7 +359,9 @@ class Game {
 
     assert(expectedOccupiedCount==board.occupiedCount, "Expected occupied: " + expectedOccupiedCount + " actual occupied: " + board.occupiedCount)
 
-    println("Score: " + score.head + " - Positions Occupied: " + board.occupiedCount)
+    println("Score: " + score.head
+      + " - positions occupied: " + board.occupiedCount
+      + " - maximizer positions available: " + board.legalPlacements(maximizer).length)
     println
   }
 
