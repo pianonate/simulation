@@ -60,9 +60,6 @@ class Game {
 
       do {
 
-        val currentOccupied = board.occupiedCount
-        val curRowsCleared = rowsCleared.head
-        val curColsCleared = colsCleared.head
 
         println("\nRound: " + (rounds.next + 1))
 
@@ -87,19 +84,7 @@ class Game {
 
         showBoardFooter()
 
-        val rowsClearedThisRun = rowsCleared.head-curRowsCleared
-        val colsClearedThisRun = colsCleared.head - curColsCleared
-        val positionsCleared = (((rowsClearedThisRun + colsClearedThisRun) * 10) - (rowsClearedThisRun * colsClearedThisRun))
-
-
-        val expectedOccupiedCount = (currentOccupied +
-            (pieces(0).pointValue + pieces(1).pointValue + pieces(2).pointValue)
-            - positionsCleared)
-
-
-        assert(expectedOccupiedCount==board.occupiedCount, "Expected occupied: " + expectedOccupiedCount + " actual occupied: " + board.occupiedCount)
-
-      } while (CONTINUOUS_MODE || (!CONTINUOUS_MODE && (Console.in.read != 'q')) )
+       } while (CONTINUOUS_MODE || (!CONTINUOUS_MODE && (Console.in.read != 'q')) )
 
     } catch {
 
@@ -332,6 +317,9 @@ class Game {
 
   private def handleThePiece(piece: Piece, loc: Option[(Int, Int)], f: (Piece, Option[(Int,Int)]) => Boolean ): Unit = {
 
+    val currentOccupied = board.occupiedCount
+    val curRowsCleared = rowsCleared.head
+    val curColsCleared = colsCleared.head
 
     println("\nAttempting piece: " + ((placed.next % 3) + 1) + "\n" + piece.toString)
 
@@ -353,6 +341,15 @@ class Game {
     clearPieceUnderlines()
 
     handleLineClearing()
+
+    val rowsClearedThisRun = rowsCleared.head-curRowsCleared
+    val colsClearedThisRun = colsCleared.head - curColsCleared
+    val positionsCleared = (((rowsClearedThisRun + colsClearedThisRun) * 10) - (rowsClearedThisRun * colsClearedThisRun))
+
+
+    val expectedOccupiedCount = (currentOccupied + piece.pointValue - positionsCleared)
+
+    assert(expectedOccupiedCount==board.occupiedCount, "Expected occupied: " + expectedOccupiedCount + " actual occupied: " + board.occupiedCount)
 
     println("Score: " + score.head + " - Positions Occupied: " + board.occupiedCount)
     println
