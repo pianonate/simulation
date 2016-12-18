@@ -28,6 +28,8 @@ class Game {
 
   // TODO: the math right now says we will never be in long territory so switch this bad boy to an int
   private val MAX_SIMULATION_ITERATIONS = 1000000l //  100l - 100 speeds up the game significantly
+
+  // todo - create something to stash the high score of simulations per second
   private val BYATCH_THRESHOLD = 250000 // your system has some cred if it is doing more than this number of simulations / second
 
   val CONTINUOUS_MODE = true  // set to false to have the user advance through each board placement by hitting enter
@@ -58,6 +60,10 @@ class Game {
 
       do {
 
+        val currentOccupied = board.occupiedCount
+        val curRowsCleared = rowsCleared.head
+        val curColsCleared = colsCleared.head
+
         println("\nRound: " + (rounds.next + 1))
 
 
@@ -81,12 +87,26 @@ class Game {
 
         showBoardFooter()
 
+        val rowsClearedThisRun = rowsCleared.head-curRowsCleared
+        val colsClearedThisRun = colsCleared.head - curColsCleared
+        val positionsCleared = (((rowsClearedThisRun + colsClearedThisRun) * 10) - (rowsClearedThisRun * colsClearedThisRun))
+
+
+        val expectedOccupiedCount = (currentOccupied +
+            (pieces(0).pointValue + pieces(1).pointValue + pieces(2).pointValue)
+            - positionsCleared)
+
+
+        assert(expectedOccupiedCount==board.occupiedCount, "Expected occupied: " + expectedOccupiedCount + " actual occupied: " + board.occupiedCount)
+
       } while (CONTINUOUS_MODE || (!CONTINUOUS_MODE && (Console.in.read != 'q')) )
 
     } catch {
 
       case GameOver => // normal game over
-      case e: Throwable => println("abnormal run termination:\n" + e.toString)
+      case e: Throwable => {println("abnormal run termination:\n" + e.toString)
+        // todo: find out what type of error assert is throwing and match it
+        throw new IllegalStateException()}
 
     }
 
@@ -112,11 +132,15 @@ class Game {
       // board.occupiedCount > 50
       // was used as a condition to debug a situation in the end game
       // there are probably other situations when you want to substitute a specific piece set
-      if (false) {
-        Piece.getNamedPieces("BigBox", "BigUpperLeftEl", "Singleton")
-      } else {
+     /* if (rounds.head ==1)
+        Piece.getNamedPieces("VerticalLine5", "LowerLeftEl", "HorizontalLine3")
+      else if (rounds.head == 2)
+        Piece.getNamedPieces("Box", "VerticalLine3", "BigUpperRightEl")
+      else if (rounds.head == 3)
+       Piece.getNamedPieces("BigUpperLeftEl", "BigBox", "VerticalLine5")
+      else*/
         List.fill(3)(Piece.getRandomPiece)
-      }
+
     }
     pieces
   }
@@ -316,6 +340,7 @@ class Game {
     if (!f(piece, loc)) throw GameOver // GameOver will be caught by the run method do loop otherwise start aggregating...
 
     piece.usage.next
+
     incrementCounter(piece.pointValue,score)
 
     // placing a piece puts underlines on it to highlight it
@@ -329,7 +354,7 @@ class Game {
 
     handleLineClearing()
 
-    println("Score: " + score.head)
+    println("Score: " + score.head + " - Positions Occupied: " + board.occupiedCount)
     println
   }
 

@@ -25,9 +25,6 @@ class Board(val layout:Array[Array[Cell]], val name: String, val color:String) e
   // this method is mapped in from Piece.toString
   override def cellToStringMapFunction(cell:Cell): String = cell.toString
 
-  // used when clearing lines - a row is a row
-  lazy val emptyRow = Array.fill(layout.length)(new Cell(false, Board.BOARD_COLOR, true))
-
 
   // changed clearlines to not use a rotated copy of the board
   // slight increase in LOC but definite decrease in % of code execution time
@@ -36,6 +33,8 @@ class Board(val layout:Array[Array[Cell]], val name: String, val color:String) e
   def clearLines(): (Int, Int) = {
 
     def clearCol(col:Int):Unit = {for ( i <- layout.indices) layout(i)(col) = new Cell(false,this.color, true) }
+
+    def clearRow(row: Array[Cell]):Unit = { for (i<-row.indices) row(i) = new Cell(false,this.color, true) }
 
     def fullRow(row: Array[Cell]): Boolean = row.forall(cell=>cell.occupied)
     def fullCol(col:Int): Boolean = layout.forall(row=>row(col).occupied)
@@ -56,7 +55,8 @@ class Board(val layout:Array[Array[Cell]], val name: String, val color:String) e
     val clearableCols = fullCols()
 
     // an empty line is an empty line stash the precalculated version in there
-    clearableRows.foreach(i => this.layout(i) = emptyRow)
+    // it almost seems as if the re-using empty row
+    clearableRows.foreach(i => clearRow(this.layout(i))/*this.layout(i) = emptyRow*/)
     clearableCols.foreach(i => clearCol(i))
 
         // rows cleared and cols cleared
