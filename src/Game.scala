@@ -6,20 +6,7 @@
  *    Picture D is problematic - want to avoid
  *
  *
- *
- *  todo - the above is implemented by cosmoharrigan in python - just translate it into scala
- *  what you can do is try this:  create moving neighborhood sums at 3x3 (which is probably good for this game)
- *  the sum will be the distribution of 1's in that neighborhood - basically if false=0, true = 1, then
- *  take the average of the neighborhood, n'est-ce pas?
- *  then get the distribution of values in the resultant matrix
- *  and run that through the entropy calculator
- *  it should be pretty straightforward
- *  create a separate class to manage the entropy stuff and have Board use it
- *
- *    https://github.com/cosmoharrigan/matrix-entropy/blob/master/calculate_profile.py
- *  trnaslate from this code...
- *
- *    Kevin suggests maximize largest free space region(s) - and weight free space algo with the entropy calculation
+ * Todo: Why do best and worst cases have the same entropy?
  *
  *    Todo: save every move in a game so you can replay it if it's awesome
  *
@@ -309,7 +296,7 @@ class Game {
 
       println("permutation: " + piecesToString(pieces)
         + " - Best(occ: " + best.boardCount + ", maximizer: " + best.maximizerCount + ", entropy: %1.4f".format(best.entropy) + ")"
-        + ", Worst(occ: " + worst.boardCount + ", maximizer: " + worst.maximizerCount + ", entropy: %1.4f".format(best.entropy) + ")"
+        + ", Worst(occ: " + worst.boardCount + ", maximizer: " + worst.maximizerCount + ", entropy: %1.4f".format(worst.entropy) + ")"
         + " - simulations: " + simulCount
         + " in " + durationString
         + " (" + sPerSecond + "/second" + (if (perSecond > BYATCH_THRESHOLD) " b-yatch" else "") + ")")
