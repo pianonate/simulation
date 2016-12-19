@@ -44,30 +44,30 @@ class Pieces {
 
   private val singleton = new Line("Singleton", GameUtil.BLACK, 1)
 
-  private val h2line = new Line("HorizontalLine2", GameUtil.BRIGHT_YELLOW, 2)
-  private val v2line = Piece.rotate90("VerticalLine2", h2line)
+  private val h2line = new Line("HLine2", GameUtil.BRIGHT_YELLOW, 2)
+  private val v2line = Piece.rotate90("VLine2", h2line)
 
-  private val h3line = new Line("HorizontalLine3", GameUtil.YELLOW, 3)
-  private val v3line = Piece.rotate90("VerticalLine3", h3line)
+  private val h3line = new Line("HLine3", GameUtil.YELLOW, 3)
+  private val v3line = Piece.rotate90("VLine3", h3line)
 
-  private val h4line = new Line("HorizontalLine4", GameUtil.BRIGHT_RED, 4)
-  private val v4line = Piece.rotate90("VerticalLine4", h4line)
+  private val h4line = new Line("HLine4", GameUtil.BRIGHT_RED, 4)
+  private val v4line = Piece.rotate90("VLine4", h4line)
 
-  private val h5line = new Line("HorizontalLine5", GameUtil.RED, 5)
-  private val v5line = Piece.rotate90("VerticalLine5", h5line)
+  private val h5line = new Line("HLine5", GameUtil.RED, 5)
+  private val v5line = Piece.rotate90("VLine5", h5line)
 
   private val box = new Box("Box", GameUtil.GREEN, 2)
   private val bigBox = new Box("BigBox", GameUtil.CYAN, 3)
 
-  private val lowerLeftEl = new El("LowerLeftEl", GameUtil.BRIGHT_CYAN, 2)
-  private val upperLeftEl = Piece.rotate90("UpperLeftEl", lowerLeftEl)
-  private val upperRightEl = Piece.rotate90("UpperRightEl", upperLeftEl)
-  private val lowerRightEl = Piece.rotate90("LowerRightEl", upperRightEl)
+  private val lowerLeftEl = new El("LowerLL", GameUtil.BRIGHT_CYAN, 2)
+  private val upperLeftEl = Piece.rotate90("UpperLL", lowerLeftEl)
+  private val upperRightEl = Piece.rotate90("UpperRL", upperLeftEl)
+  private val lowerRightEl = Piece.rotate90("LowerRL", upperRightEl)
 
-  private val bigLowerLeftEl = new El("BigLowerLeftEl", GameUtil.BLUE, 3)
-  private val bigUpperLeftEl = Piece.rotate90("BigUpperLeftEl", bigLowerLeftEl)
-  private val bigUpperRightEl = Piece.rotate90("BigUpperRightEl", bigUpperLeftEl)
-  private val bigLowerRightEl = Piece.rotate90("BigLowerRightEl", bigUpperRightEl)
+  private val bigLowerLeftEl = new El("BigLowerLL", GameUtil.BLUE, 3)
+  private val bigUpperLeftEl = Piece.rotate90("BigUpperLL", bigLowerLeftEl)
+  private val bigUpperRightEl = Piece.rotate90("BigUpperRL", bigUpperLeftEl)
+  private val bigLowerRightEl = Piece.rotate90("BigLowerRL", bigUpperRightEl)
 
   // map as a convenience for requesting specific named pieces
   private val pieceMap = Map(

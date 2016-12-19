@@ -6,7 +6,7 @@
 object Main extends App {
 
   // todo - stash high scores in a file you can read at startup of the game
-  // high score to date is 2,2656
+  // high score to date is 6,898
 
   // different than game continuous mode which simply
   // controls whether you hit enter to place the next piece

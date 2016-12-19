@@ -5,17 +5,23 @@
  *    http://stats.stackexchange.com/questions/17109/measuring-entropy-information-patterns-of-a-2d-binary-matrix
  *    Picture D is problematic - want to avoid
  *
+ *
+ *
+ *  todo - the above is implemented by cosmoharrigan in python - just translate it into scala
+ *  what you can do is try this:  create moving neighborhood sums at 3x3 (which is probably good for this game)
+ *  the sum will be the distribution of 1's in that neighborhood - basically if false=0, true = 1, then
+ *  take the average of the neighborhood, n'est-ce pas?
+ *  then get the distribution of values in the resultant matrix
+ *  and run that through the entropy calculator
+ *  it should be pretty straightforward
+ *  create a separate class to manage the entropy stuff and have Board use it
+ *
+ *    https://github.com/cosmoharrigan/matrix-entropy/blob/master/calculate_profile.py
+ *  trnaslate from this code...
+ *
  *    Kevin suggests maximize largest free space region(s) - and weight free space algo with the entropy calculation
- *    penalize smaller free space regions - i.e., a 1
- *
- *    Kevin also suggests:
- *    TODO: After selecting the set of boardsets that clear the most rows/cols, filter out any boardsets that don't allow
- *    Todo: HorizontalLine5, VerticalLine5, BixBox
- *
- *    Thanks Kevin :)
  *
  *    Todo: save every move in a game so you can replay it if it's awesome
- *    Todo: persist and display high score to compare this against history
  *
  *
  */
