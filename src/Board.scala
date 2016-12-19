@@ -29,7 +29,7 @@ class Board(val layout: Array[Array[Cell]], val name: String, val color: String)
     a.toList
   }
 
-  // changed clearlines to not use a rotated copy of the board
+  // changed to not use a rotated copy of the board
   // slight increase in LOC but definite decrease in % of code execution time
   // from ~24% with the original version - now it's 226102 / 1543684 = 0.146469096 = 14.6% of code execution time
   // a substantial improvement
@@ -156,7 +156,6 @@ object Board {
 
   def copy(newName: String, boardToCopy: Board): Board = {
 
-    val rows = boardToCopy.layout.indices
     // mapping the clones gives a new array
     // it holds all of the same references but it you change a cell the original board's layout doesn't change
     // so this is the goods - it will work

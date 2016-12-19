@@ -13,7 +13,7 @@ object GameUtil {
 
   val labelFormat = "%-24s: "
   val numberFormat = "%,7d"
-  val labelNumberFormat = labelFormat + numberFormat
+  val labelNumberFormat: String = labelFormat + numberFormat
 
   // Color code strings from:
   // http://www.topmudsites.com/forums/mud-coding/413-java-ansi.html

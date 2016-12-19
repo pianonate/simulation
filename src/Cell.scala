@@ -6,7 +6,7 @@
 case class Cell(occupied: Boolean = false, color: String, var underline: Boolean = false) {
 
   // Todo: get rid of var for underLine - i think you could just create a copy of the cell.
-  val underLineColor = GameUtil.UNDERLINE + color
+  val underLineColor: String = GameUtil.UNDERLINE + color
 
   override def toString: String = {
     if (occupied)

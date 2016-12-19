@@ -18,12 +18,12 @@ object Main extends App {
   val rounds = new ListBuffer[Long]
   val simulationsPerSecond = new ListBuffer[Long]
 
-  Game.showGameStart
+  Game.showGameStart()
 
   // run the game, my friend
   do {
     val game = new Game()
-    val results = game.run
+    val results = game.run()
 
     scores.append(results._1)
     rounds.append(results._2)
@@ -46,18 +46,15 @@ object Main extends App {
       println(labelFormat.format("Most Rounds") + numberFormat.format(mostRounds))
       println(labelFormat.format("Most Simulations/Second") + numberFormat.format(bestPerSecond))
 
-      // todo: make it idiomatic
       println
-      print("Starting new game in 5...")
-      Thread.sleep(1000)
-      print("4..")
-      Thread.sleep(1000)
-      print("3..")
-      Thread.sleep(1000)
-      print("2..")
-      Thread.sleep(1000)
-      print("1..")
-      Thread.sleep(1000)
+      print("Starting new game in ")
+
+      // countdown timer
+      (1 to 10).reverse.foreach { i =>
+        print(i + "...")
+        Thread.sleep(1000)
+      }
+
       println
       println("Go!")
       println
@@ -68,7 +65,7 @@ object Main extends App {
   //  printPossiblePieces
   //  printPossibleColors
 
-  private def printPossiblePieces(): Unit = {
+  /*private def printPossiblePieces(): Unit = {
     val pieces = (new Pieces).pieceList
     for (piece <- pieces) {
       println(piece.name + ": " + piece.pointValue)
@@ -94,7 +91,7 @@ object Main extends App {
 
     println
 
-  }
+  }*/
 
 }
 

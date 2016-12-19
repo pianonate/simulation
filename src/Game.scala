@@ -27,7 +27,7 @@ object Game {
 
   val maximizer = new Box("Maximizer", GameUtil.CYAN, 3)
 
-  def showGameStart: Unit = {
+  def showGameStart(): Unit = {
 
     println("GAME START")
     println("\nThis game works by first selecting 3 pieces from the set of all possible pieces.")
@@ -55,7 +55,7 @@ class Game {
   import scala.collection.mutable.ListBuffer
 
   // TODO: the math right now says we will never be in long territory so switch this bad boy to an int
-  private val MAX_SIMULATION_ITERATIONS = 1000000l //  100l - 100 speeds up the game significantly
+  private val MAX_SIMULATION_ITERATIONS =  1000000l //  100l - 100 speeds up the game significantly
 
   private val BYATCH_THRESHOLD = 55000 // your system has some cred if it is doing more than this number of simulations / second
 
@@ -82,7 +82,8 @@ class Game {
 
   def run(): (Long, Long, Long) = {
 
-    val t1 = System.currentTimeMillis()
+    // val t1 = System.currentTimeMillis()
+    val duration = new Timer
 
     try {
 
@@ -91,7 +92,7 @@ class Game {
         println("\nRound: " + (rounds.next + 1))
 
         // get 3 random pieces
-        val pieces = getPieces()
+        val pieces = getPieces
 
         // show the pieces in the order they were randomly chosen
         showPieces(pieces)
@@ -117,16 +118,14 @@ class Game {
     } catch {
 
       case GameOver => // normal game over
-      case e: Throwable => {
+      case e: Throwable =>
         println("abnormal run termination:\n" + e.toString)
         // todo: find out what type of error assert is throwing and match it
         throw new IllegalStateException()
-      }
 
     }
 
-    val t2 = System.currentTimeMillis()
-    showGameOver(t2 - t1)
+    showGameOver(duration)
 
     // return the score and the number of rounds to Main - where such things are tracked across game instances
     // Todo:  Maybe a GameRunner class should be introduced so that Main is simply a handoff to GameRunner
@@ -138,7 +137,7 @@ class Game {
   // use this method to return specific pieces under specific circumstances
   // under normal conditions if (false
   // just return a random set of 3 pieces
-  private def getPieces(): List[Piece] = {
+  private def getPieces: List[Piece] = {
 
     val pieces = {
       // this code provides specific pieces for the (probable) last iteration
@@ -165,10 +164,18 @@ class Game {
     // now we're getting somewhere
     // this ordering will ensure that a lower boardcount wins EVEN if the maximizer ends up with a higher number of positions available
     // and if lowest boardcount is the same then maximizer, of course, breaks the tie
-    def compare(that: Simulation): Int = {
-      (boardCount compare that.boardCount) match {
+/*    def compare(that: Simulation): Int = {
+      boardCount compare that.boardCount match {
         case 0 => that.maximizerCount - maximizerCount // when boardCount is the same, then favor the higher maximizerCount
         case differentBoardCount => differentBoardCount // accept default ordering of integers for the boardCount
+      }*/
+
+    // ensure that the maximizeCount is largest
+    // if there is a tie, then order by boardCount
+    def compare(that: Simulation): Int = {
+      maximizerCount compare that.maximizerCount match {
+        case 0 => boardCount - that.boardCount                               // when maximizerCount is the same, then favor the lower boardCount
+        case differentMaximizerCount => that.maximizerCount - maximizerCount // when they are different, favor the larger
       }
 
     }
@@ -204,7 +211,7 @@ class Game {
 
           val board1Copy = placeMe(p1, this.board, loc1)
           val maximizerLength1 = maximizerLength(board1Copy)
-          val simulation1 = new Simulation(board1Copy.occupiedCount, maximizerLength1, List((p1, Some(loc1)), (p2, None), (p3, None)), board1Copy)
+          val simulation1 = Simulation(board1Copy.occupiedCount, maximizerLength1, List((p1, Some(loc1)), (p2, None), (p3, None)), board1Copy)
           synchronized { listBuffer1 append simulation1 }
 
           for (loc2 <- board1Copy.legalPlacements(p2).par) {
@@ -212,7 +219,7 @@ class Game {
 
               val board2Copy = placeMe(p2, board1Copy, loc2)
               val maximizerLength2 = maximizerLength(board2Copy)
-              val simulation2 = new Simulation(board2Copy.occupiedCount, maximizerLength2, List((p1, Some(loc1)), (p2, Some(loc2)), (p3, None)), board2Copy)
+              val simulation2 = Simulation(board2Copy.occupiedCount, maximizerLength2, List((p1, Some(loc1)), (p2, Some(loc2)), (p3, None)), board2Copy)
 
               synchronized { listBuffer2 append simulation2 }
 
@@ -221,7 +228,7 @@ class Game {
 
                   val board3Copy = placeMe(p3, board2Copy, loc3)
                   val maximizerLength3 = maximizerLength(board3Copy)
-                  val simulation3 = new Simulation(board3Copy.occupiedCount, maximizerLength3, List((p1, Some(loc1)), (p2, Some(loc2)), (p3, Some(loc3))), board3Copy)
+                  val simulation3 = Simulation(board3Copy.occupiedCount, maximizerLength3, List((p1, Some(loc1)), (p2, Some(loc2)), (p3, Some(loc3))), board3Copy)
 
                   synchronized { listBuffer3 append simulation3 }
 
@@ -243,7 +250,7 @@ class Game {
       else
         // arbitrary large number so that this option will never wih against
         // options that are still viable
-        List(new Simulation(100000, 0, List((p1, None), (p2, None), (p3, None)), this.board))
+        List(Simulation(100000, 0, List((p1, None), (p2, None), (p3, None)), this.board))
 
     }
 
@@ -251,15 +258,15 @@ class Game {
     if (SLOW_COMPUTER && board.occupiedCount < 10) {
       println("bypassing simulation for grid with occupied count < 10")
       val legal1 = board.legalPlacements(p1)
-      val board1 = placeMe(p1, board, legal1(0))
+      val board1 = placeMe(p1, board, legal1.head)
       val legal2 = board1.legalPlacements(p2)
-      val board2 = placeMe(p2, board1, legal2(0))
+      val board2 = placeMe(p2, board1, legal2.head)
       val legal3 = board2.legalPlacements(p3)
-      val board3 = placeMe(p3, board2, legal3(0))
+      val board3 = placeMe(p3, board2, legal3.head)
 
       // populate this so the max calculation doesn't bust the first time through
       simulationsPerSecond append 0
-      new Simulation(board3.occupiedCount, 0, List((p1, Some(legal1(0))), (p2, Some(legal2(0))), (p3, Some(legal3(0)))), board3)
+      Simulation(board3.occupiedCount, 0, List((p1, Some(legal1.head)), (p2, Some(legal2.head)), (p3, Some(legal3.head))), board3)
     } else {
 
       val options = createSimulations
@@ -276,7 +283,7 @@ class Game {
       val duration = t2 - t1
       val durationString = "%,d".format(duration) + "ms"
 
-      val perSecond = if (duration > 0) ((simulations.head * 1000) / duration) else 0
+      val perSecond = if (duration > 0) (simulations.head * 1000) / duration else 0
       simulationsPerSecond append perSecond
 
       val sPerSecond = "%,d".format(perSecond)
@@ -387,9 +394,9 @@ class Game {
 
     val rowsClearedThisRun = rowsCleared.head - curRowsCleared
     val colsClearedThisRun = colsCleared.head - curColsCleared
-    val positionsCleared = (((rowsClearedThisRun + colsClearedThisRun) * 10) - (rowsClearedThisRun * colsClearedThisRun))
+    val positionsCleared = ((rowsClearedThisRun + colsClearedThisRun) * 10) - (rowsClearedThisRun * colsClearedThisRun)
 
-    val expectedOccupiedCount = (currentOccupied + piece.pointValue - positionsCleared)
+    val expectedOccupiedCount = currentOccupied + piece.pointValue - positionsCleared
 
     assert(expectedOccupiedCount == board.occupiedCount, "Expected occupied: " + expectedOccupiedCount + " actual occupied: " + board.occupiedCount)
 
@@ -417,7 +424,7 @@ class Game {
 
     }
 
-    incrementCounter(((result._1 + result._2) * board.layout.length), score)
+    incrementCounter((result._1 + result._2) * board.layout.length, score)
   }
 
   private def clearPieceUnderlines() = {
@@ -431,7 +438,7 @@ class Game {
     } cell.underline = false
   }
 
-  private def showGameOver(durationMS: Long) = {
+  private def showGameOver(duration: Timer) = {
 
     println
 
@@ -440,12 +447,10 @@ class Game {
     println("\nGAME OVER!!\n")
 
     println(labelFormat.format("Final Score") + GameUtil.RED + numberFormat.format(score.head) + GameUtil.SANE)
-    println(labelNumberFormat.format("Pieces Used", placed.head))
+    println(labelNumberFormat.format("Rounds", rounds.head))
     println(labelNumberFormat.format("Rows Cleared", rowsCleared.head))
     println(labelNumberFormat.format("Cols Cleared", colsCleared.head))
-    println(labelNumberFormat.format("Rounds", rounds.head))
-    println(labelNumberFormat.format("Time in ms", durationMS))
-
+    println(duration.toString) // toString stops the timer
   }
 
   private def showBoardFooter() = {

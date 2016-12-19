@@ -57,7 +57,7 @@ class Pieces {
   private val v5line = Piece.rotate90("VerticalLine5", h5line)
 
   private val box = new Box("Box", GameUtil.GREEN, 2)
-  private val bigbox = new Box("BigBox", GameUtil.CYAN, 3)
+  private val bigBox = new Box("BigBox", GameUtil.CYAN, 3)
 
   private val lowerLeftEl = new El("LowerLeftEl", GameUtil.BRIGHT_CYAN, 2)
   private val upperLeftEl = Piece.rotate90("UpperLeftEl", lowerLeftEl)
@@ -81,7 +81,7 @@ class Pieces {
     h5line.name -> h5line, // 7
     v5line.name -> v5line, // 8
     box.name -> box, // 9
-    bigbox.name -> bigbox, // 10
+    bigBox.name -> bigBox, // 10
     lowerLeftEl.name -> lowerLeftEl, // 11
     upperLeftEl.name -> upperLeftEl, // 12
     upperLeftEl.name -> upperRightEl, // 13
