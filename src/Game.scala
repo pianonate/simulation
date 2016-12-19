@@ -280,11 +280,12 @@ class Game {
       val sPerSecond = "%,d".format(perSecond)
 
       println("permutation: " + piecesToString(pieces)
+        + " - Best(occ: " + best.boardCount + ", maximizer: " + best.maximizerCount + ")"
+        + ", Worst(occ: " + worst.boardCount + ", maximizer: " + worst.maximizerCount + ")"
         + " - simulations: " + simulCount
         + " in " + durationString
         + " (" + sPerSecond + "/second" + (if (perSecond > BYATCH_THRESHOLD) " b-yatch" else "") + ")"
-        + " - Best(occ: " + best.boardCount + ", maximizer: " + best.maximizerCount + ")"
-        + " - Worst(occ: " + worst.boardCount + ", maximizer: " + worst.maximizerCount + ")")
+      )
 
       best
     }
