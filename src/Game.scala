@@ -194,6 +194,7 @@ class Game {
 
     def maximizerLength(theBoard: Board):Int = theBoard.legalPlacements(maximizer).length
 
+    // todo: make this recursive...
     def createSimulations: List[Simulation] = {
 
       val listBuffer1 = new scala.collection.mutable.ListBuffer[Simulation]
@@ -205,36 +206,26 @@ class Game {
 
           val board1Copy = placeMe(p1, this.board, loc1)
           val maximizerLength1 = maximizerLength(board1Copy)
-          synchronized {
-            listBuffer1 append
-              new Simulation(board1Copy.occupiedCount, maximizerLength1, List((p1,Some(loc1)), (p2,None), (p3,None)), board1Copy)
-          }
+          val simulation1 = new Simulation(board1Copy.occupiedCount, maximizerLength1, List((p1,Some(loc1)), (p2,None), (p3,None)), board1Copy)
+          synchronized { listBuffer1 append simulation1 }
 
           for (loc2 <- board1Copy.legalPlacements(p2).par) {
             if (simulations.head < maxIters) {
 
               val board2Copy = placeMe(p2, board1Copy, loc2)
               val maximizerLength2 = maximizerLength(board2Copy)
+              val simulation2 = new Simulation(board2Copy.occupiedCount, maximizerLength2, List((p1,Some(loc1)), (p2,Some(loc2)), (p3,None)), board2Copy)
 
-              synchronized {
-                listBuffer2 append
-                  new Simulation(board2Copy.occupiedCount, maximizerLength2, List((p1,Some(loc1)), (p2,Some(loc2)), (p3,None)), board2Copy)
-
-              }
+              synchronized { listBuffer2 append simulation2}
 
               for (loc3 <- board2Copy.legalPlacements(p3).par) {
                 if (simulations.head < maxIters)  {
 
                   val board3Copy = placeMe(p3, board2Copy, loc3)
                   val maximizerLength3 = maximizerLength(board3Copy)
+                  val simulation3 = new Simulation(board3Copy.occupiedCount, maximizerLength3, List((p1,Some(loc1)), (p2,Some(loc2)), (p3,Some(loc3))), board3Copy)
 
-                  synchronized {
-                    listBuffer3 append
-                      new Simulation(board3Copy.occupiedCount, maximizerLength3, List((p1,Some(loc1)), (p2,Some(loc2)), (p3,Some(loc3))), board3Copy)
-                  }
-
-                  // todo: Make this performant
-                  // todo: make this recursive...
+                  synchronized { listBuffer3 append simulation3 }
 
                 }
               }

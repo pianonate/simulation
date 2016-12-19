@@ -6,8 +6,7 @@
  * Boards can be created at will to test out different combinations.
  * THere will always be the main board held by the Game but other Board objects will be created when running algos
  */
-class Board(val layout:Array[Array[Cell]], val name: String, val color:String) extends Piece {
-
+class Board(val layout: Array[Array[Cell]], val name: String, val color: String) extends Piece {
 
   // initial board creation just requires a size
   def this(size: Int) {
@@ -15,16 +14,20 @@ class Board(val layout:Array[Array[Cell]], val name: String, val color:String) e
   }
 
   // provides ability to name a board copy
-  def this(layout:Array[Array[Cell]], name:String) {
-    this(layout,name,Board.BOARD_COLOR)
+  def this(layout: Array[Array[Cell]], name: String) {
+    this(layout, name, Board.BOARD_COLOR)
   }
-
 
   // the board outputs unoccupied cells so just call toString on every piece
   // different than the Piece.toString which will not output unoccupied Cell's in other pieces
   // this method is mapped in from Piece.toString
-  override def cellToStringMapFunction(cell:Cell): String = cell.toString
+  override def cellToStringMapFunction(cell: Cell): String = cell.toString
 
+  // calculate all locations for a board once - at board creation
+  private val allLocations: List[(Int, Int)] = {
+    val a = for { r <- layout.indices; c <- layout(0).indices } yield (r, c)
+    a.toList
+  }
 
   // changed clearlines to not use a rotated copy of the board
   // slight increase in LOC but definite decrease in % of code execution time
@@ -32,23 +35,25 @@ class Board(val layout:Array[Array[Cell]], val name: String, val color:String) e
   // a substantial improvement
   def clearLines(): (Int, Int) = {
 
-    def clearCol(col:Int):Unit = {for ( i <- layout.indices) layout(i)(col) = new Cell(false,this.color, true) }
+    def clearCol(col: Int): Unit = { for (i <- layout.indices) layout(i)(col) = new Cell(false, this.color, true) }
 
-    def clearRow(row: Array[Cell]):Unit = { for (i<-row.indices) row(i) = new Cell(false,this.color, true) }
+    def clearRow(row: Array[Cell]): Unit = { for (i <- row.indices) row(i) = new Cell(false, this.color, true) }
 
-    def fullRow(row: Array[Cell]): Boolean = row.forall(cell=>cell.occupied)
-    def fullCol(col:Int): Boolean = layout.forall(row=>row(col).occupied)
+    def fullRow(row: Array[Cell]): Boolean = row.forall(cell => cell.occupied)
+    def fullCol(col: Int): Boolean = layout.forall(row => row(col).occupied)
 
-    def fullRows():Seq[Int] = {
-      for {i <- this.layout.indices
-        if fullRow(this.layout(i))}
-        yield i
+    def fullRows(): Seq[Int] = {
+      for {
+        i <- this.layout.indices
+        if fullRow(this.layout(i))
+      } yield i
     }
 
-    def fullCols():Seq[Int] = {
-      for {i <-this.layout.indices
-          if fullCol(i)}
-        yield i
+    def fullCols(): Seq[Int] = {
+      for {
+        i <- this.layout.indices
+        if fullCol(i)
+      } yield i
     }
 
     val clearableRows = fullRows()
@@ -56,39 +61,39 @@ class Board(val layout:Array[Array[Cell]], val name: String, val color:String) e
 
     // an empty line is an empty line stash the precalculated version in there
     // it almost seems as if the re-using empty row
-    clearableRows.foreach(i => clearRow(this.layout(i))/*this.layout(i) = emptyRow*/)
+    clearableRows.foreach(i => clearRow(this.layout(i)) /*this.layout(i) = emptyRow*/ )
     clearableCols.foreach(i => clearCol(i))
 
-        // rows cleared and cols cleared
-    (clearableRows.length,clearableCols.length)
+    // rows cleared and cols cleared
+    (clearableRows.length, clearableCols.length)
   }
 
+  def placeKnownLegal(piece: Piece, loc: Option[(Int, Int)]): Boolean = loc match {
 
-  def placeKnownLegal(piece:Piece, loc: Option[(Int,Int)]) : Boolean = loc match {
-
-    case Some(l) => place(piece, l);true
+    case Some(l) =>
+      place(piece, l); true
     case None => false
 
   }
 
-  def simulatePlacement(piece: Piece, loc:(Int,Int)):Unit = {
+  def simulatePlacement(piece: Piece, loc: (Int, Int)): Unit = {
 
     // place the piece on a copy, clear the lines
     // and return the occupied count and location that results from that occupied count
     // we'll then sort the result of all occupied counts to see which one has the lowest value
     // and from there - we're golden
-    place(piece,loc)
+    place(piece, loc)
     this.clearLines()
   }
-
 
   // todo: this one could go away if we get rid of tryPlacement and all of that - or maybe not
   // instead the Game will be simulating on legal locations so will just use
   // the other definition of place
-  def place(piece: Piece, loc:(Int,Int)):Unit  = {
+  def place(piece: Piece, loc: (Int, Int)): Unit = {
 
     // todo: evaluate using a view here
-    for {r <- piece.layout.indices
+    for {
+      r <- piece.layout.indices
       c <- piece.layout(0).indices
       cell = piece.layout(r)(c)
       if cell.occupied
@@ -98,19 +103,19 @@ class Board(val layout:Array[Array[Cell]], val name: String, val color:String) e
     }
   }
 
-  private def unoccupiedCells():List[(Int,Int)] = {
+  /*  private def unoccupiedCells():List[(Int,Int)] = {
 
     // removed the filter as it didn't work for pieces such as the BigLowerRightEl next to something it could fit around
     // Todo: maybe you can improve the algo but maybe you do have to just evaluate each location.  think about it first - this might be ok
     val a = for {r <- layout.indices;c <-layout(0).indices/*;if !layout(r)(c).occupied*/} yield (r,c)
     a.toList
 
-  }
+  }*/
 
-  def legalPlacements(piece: Piece):List[(Int,Int)] = {
-    // walk through each unoccupied position on the board
+  def legalPlacements(piece: Piece): List[(Int, Int)] = {
+    // walk through each position on the board
     // see if the piece fits at that position, if it does, add that position to the list
-    for { loc <- unoccupiedCells() if legalPlacement(piece, loc) } yield loc
+    for { loc <- allLocations if legalPlacement(piece, loc) } yield loc
 
   }
 
@@ -121,24 +126,25 @@ class Board(val layout:Array[Array[Cell]], val name: String, val color:String) e
 
     if ((piece.rows + locRow) > rows) return false // exceeds the bounds of the board - no point in checking any further
     if ((piece.cols + locCol) > cols) return false // exceeds the bounds of the board - no point in checking any further
-    
+
     // this for comprehension will find all instances
     // where the piece has an occupied value and the board has an unoccupied value
     // to yield the unoccupied status of each corresponding position on the board
-    val boardCellUnoccupied: Seq[Boolean] = for {
-      
+    for {
       r <- piece.layout.indices
       c <- piece.layout(0).indices
       pieceOccupied = piece.layout(r)(c).occupied
-      boardUnoccupied = !layout(r + locRow)(c + locCol).occupied
+      boardOccupied = layout(r + locRow)(c + locCol).occupied
       if pieceOccupied
-      if boardUnoccupied
-      
-    } yield boardUnoccupied
 
-    // basically, this vector will have a bunch of true values because each possible position on the board is unoccupied
-    boardCellUnoccupied.size==piece.pointValue
-    
+    } {
+      // bail immediately if you find an instance where the piece is occupied
+      // and the board is also occupied
+      if (boardOccupied) return false
+    }
+
+    // if we didn't bail, then this place is legal
+    true
 
   }
 
@@ -148,7 +154,7 @@ object Board {
 
   private val BOARD_COLOR = GameUtil.BRIGHT_WHITE
 
-  def copy(newName: String, boardToCopy: Board):Board = {
+  def copy(newName: String, boardToCopy: Board): Board = {
 
     val rows = boardToCopy.layout.indices
     // mapping the clones gives a new array
