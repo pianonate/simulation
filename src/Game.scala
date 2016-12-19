@@ -54,13 +54,14 @@ class Game {
 
   import scala.collection.mutable.ListBuffer
 
+  private val SLOW_COMPUTER = true
+
   // TODO: the math right now says we will never be in long territory so switch this bad boy to an int
-  private val MAX_SIMULATION_ITERATIONS =  1000000l //  100l - 100 speeds up the game significantly
+  private val MAX_SIMULATION_ITERATIONS =  if (SLOW_COMPUTER) 10000l else 1000000l //  100l - 100 speeds up the game significantly
 
   private val BYATCH_THRESHOLD = 55000 // your system has some cred if it is doing more than this number of simulations / second
 
   private val CONTINUOUS_MODE = true // set to false to have the user advance through each board placement by hitting enter
-  private val SLOW_COMPUTER = true
 
   private val board: Board = new Board(10)
   private val gamePieces: Pieces = new Pieces
@@ -170,6 +171,7 @@ class Game {
         case differentBoardCount => differentBoardCount // accept default ordering of integers for the boardCount
       }*/
 
+    // new algo:
     // ensure that the maximizeCount is largest
     // if there is a tie, then order by boardCount
     def compare(that: Simulation): Int = {
@@ -271,9 +273,8 @@ class Game {
 
       val options = createSimulations
       val best = options.sorted.head
-      // todo - this worst is not actually doing the right thing.  it's just simply choosing the lowest maximizer count
-      // need to create an ordering for choosing the wrong thing just as you did for choosing the right thing to get the sorted result
-      val worst = options.sortWith(_.boardCount > _.boardCount).minBy(_.maximizerCount)
+      // invert the default comparison and take that as the result
+      val worst = options.sortWith(_ > _).head
 
       val simulCount = "%,d".format(simulations.head)
 
