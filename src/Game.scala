@@ -57,12 +57,14 @@ class Game {
   // TODO: the math right now says we will never be in long territory so switch this bad boy to an int
   private val MAX_SIMULATION_ITERATIONS = 1000000l //  100l - 100 speeds up the game significantly
 
-  private val BYATCH_THRESHOLD = 50000 // your system has some cred if it is doing more than this number of simulations / second
+  private val BYATCH_THRESHOLD = 55000 // your system has some cred if it is doing more than this number of simulations / second
 
   private val CONTINUOUS_MODE = true // set to false to have the user advance through each board placement by hitting enter
   private val SLOW_COMPUTER = true
 
   private val board: Board = new Board(10)
+  private val gamePieces: Pieces = new Pieces
+
   //Todo: create a counter class that has the ability to increment itself
   //      it can maintain it's own internal representation of things to count
   //      you can get the current count just by asking for it - right now we're asking the longIter (buffered) for it's .head
@@ -153,7 +155,7 @@ class Game {
       else if (rounds.head == 3)
        Piece.getNamedPieces("BigUpperLeftEl", "BigBox", "VerticalLine5")
       else*/
-      List.fill(3)(Piece.getRandomPiece)
+      List.fill(3)(gamePieces.getRandomPiece)
 
     }
     pieces
@@ -284,8 +286,7 @@ class Game {
         + ", Worst(occ: " + worst.boardCount + ", maximizer: " + worst.maximizerCount + ")"
         + " - simulations: " + simulCount
         + " in " + durationString
-        + " (" + sPerSecond + "/second" + (if (perSecond > BYATCH_THRESHOLD) " b-yatch" else "") + ")"
-      )
+        + " (" + sPerSecond + "/second" + (if (perSecond > BYATCH_THRESHOLD) " b-yatch" else "") + ")")
 
       best
     }
@@ -395,7 +396,6 @@ class Game {
     println("Score: " + score.head
       + " - positions occupied: " + board.occupiedCount
       + " - maximizer positions available: " + board.legalPlacements(Game.maximizer).length)
-    println
   }
 
   private def handleLineClearing() = {
@@ -434,19 +434,17 @@ class Game {
   private def showGameOver(durationMS: Long) = {
 
     println
-    val sFormat = "%,7d"
 
-    Piece.pieces.sortBy(piece => (piece.usage.head, piece.name))
-      .foreach { piece => println(sFormat.format(piece.name, piece.usage.next)) }
+    println(gamePieces.toString)
 
     println("\nGAME OVER!!\n")
 
-    println("Final Score  : " + GameUtil.RED + sFormat.format(score.head) + GameUtil.SANE)
-    println("Pieces Used  : " + sFormat.format(placed.head))
-    println("Rows Cleared : " + sFormat.format(rowsCleared.head))
-    println("Cols Cleared : " + sFormat.format(colsCleared.head))
-    println("Rounds       : " + sFormat.format(rounds.head))
-    println("Time in ms   : " + sFormat.format(durationMS))
+    println(labelFormat.format("Final Score") + GameUtil.RED + numberFormat.format(score.head) + GameUtil.SANE)
+    println(labelNumberFormat.format("Pieces Used", placed.head))
+    println(labelNumberFormat.format("Rows Cleared", rowsCleared.head))
+    println(labelNumberFormat.format("Cols Cleared", colsCleared.head))
+    println(labelNumberFormat.format("Rounds", rounds.head))
+    println(labelNumberFormat.format("Time in ms", durationMS))
 
   }
 

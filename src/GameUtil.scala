@@ -5,12 +5,15 @@
 object GameUtil {
 
   // you could also use Stream.from(0
-  def longIter:Iterator[Long] = longIterFrom(0)
+  def longIter: Iterator[Long] = longIterFrom(0)
 
   // creates an infinite iterator on a long value starting at the given and incrementing by 1
   // you could also implement a stepBy if you wanted...
-  def longIterFrom(start:Long):Iterator[Long] = Iterator.iterate[Long](start)(l => l + 1)
+  def longIterFrom(start: Long): Iterator[Long] = Iterator.iterate[Long](start)(l => l + 1)
 
+  val labelFormat = "%-24s: "
+  val numberFormat = "%,7d"
+  val labelNumberFormat = labelFormat + numberFormat
 
   // Color code strings from:
   // http://www.topmudsites.com/forums/mud-coding/413-java-ansi.html

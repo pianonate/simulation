@@ -34,12 +34,17 @@ object Main extends App {
       val mostRounds = rounds.max
       val bestPerSecond = simulationsPerSecond.max
 
+      val labelFormat = GameUtil.labelFormat
+      val numberFormat = GameUtil.numberFormat
+
       println
       println
-      println("Games Played           : " + "%,7d".format(scores.size))
-      println("High Score             : " + GameUtil.RED + "%,7d".format(highScore) + GameUtil.SANE)
-      println("Most Rounds            : " + "%,7d".format(mostRounds))
-      println("Most Simulations/Second: " + "%,7d".format(mostRounds))
+      println("MULTIPLE GAME STATS")
+      println
+      println(labelFormat.format("Games Played") + numberFormat.format(scores.size))
+      println(labelFormat.format("High Score") + GameUtil.RED + numberFormat.format(highScore) + GameUtil.SANE)
+      println(labelFormat.format("Most Rounds") + numberFormat.format(mostRounds))
+      println(labelFormat.format("Most Simulations/Second") + numberFormat.format(bestPerSecond))
 
       // todo: make it idiomatic
       println
@@ -64,7 +69,8 @@ object Main extends App {
   //  printPossibleColors
 
   private def printPossiblePieces(): Unit = {
-    for (piece <- Piece.pieces) {
+    val pieces = (new Pieces).pieceList
+    for (piece <- pieces) {
       println(piece.name + ": " + piece.pointValue)
       println(piece.toString)
     }
