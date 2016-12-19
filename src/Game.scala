@@ -60,9 +60,33 @@ class Game {
   private def incrementCounter(count: Int, it: Iterator[Long]):Unit = for (i <- 0 until count) it.next
 
 
+  private def showGameStart:Unit = {
+
+    println("GAME START")
+    println("\nThis game works by first selecting 3 pieces from the set of all possible pieces.")
+    println("Then it will try all possible orderings (permutations) of placements of those 3 pieces")
+    println("(up to six permutations will be selected depending on whether there are any duplicates).")
+    println("\nThen for each permutation, it will try each position on the board for the first piece")
+    println("and will determine the outcome of clearing lines for that piece piece, then it will place")
+    println("the second piece at all possible locations and check the outcome of clearing lines for the second")
+    println("and finally it will check the third piece at all possible locations and check the outcome")
+    println("of clearing lines for this last piece.")
+    println("\nEach of these combinations of placements will then store the maximum number of legal positions")
+    println("available for this piece (called the maximizer):\n")
+    println(maximizer.toString)
+    println("The game uses the maximizer because it generally is a good choice for making sure there is")
+    println("plenty of space available.")
+    println("\nThe combination of piece placements with the least number of board positions occupied and the most")
+    println("number of legal positions for the maximizer piece is the one that will be selected to play.")
+    println("Each combination for each permutation is called a 'simulation'.")
+
+  }
+
   def run(): (Long, Long) = {
 
     val t1 = System.currentTimeMillis()
+
+    showGameStart
 
     try {
 
@@ -168,6 +192,8 @@ class Game {
       boardCopy
     }
 
+    def maximizerLength(theBoard: Board):Int = theBoard.legalPlacements(maximizer).length
+
     def createSimulations: List[Simulation] = {
 
       val listBuffer1 = new scala.collection.mutable.ListBuffer[Simulation]
@@ -176,28 +202,35 @@ class Game {
 
       for (loc1 <- this.board.legalPlacements(p1).par) {
         if (simulations.head < maxIters) {
+
           val board1Copy = placeMe(p1, this.board, loc1)
+          val maximizerLength1 = maximizerLength(board1Copy)
           synchronized {
             listBuffer1 append
-              new Simulation(board1Copy.occupiedCount, board1Copy.legalPlacements(maximizer).length, List((p1,Some(loc1)), (p2,None), (p3,None)), board1Copy)
+              new Simulation(board1Copy.occupiedCount, maximizerLength1, List((p1,Some(loc1)), (p2,None), (p3,None)), board1Copy)
           }
 
           for (loc2 <- board1Copy.legalPlacements(p2).par) {
             if (simulations.head < maxIters) {
 
               val board2Copy = placeMe(p2, board1Copy, loc2)
+              val maximizerLength2 = maximizerLength(board2Copy)
+
               synchronized {
                 listBuffer2 append
-                  new Simulation(board2Copy.occupiedCount, board2Copy.legalPlacements(maximizer).length, List((p1,Some(loc1)), (p2,Some(loc2)), (p3,None)), board2Copy)
+                  new Simulation(board2Copy.occupiedCount, maximizerLength2, List((p1,Some(loc1)), (p2,Some(loc2)), (p3,None)), board2Copy)
+
               }
 
               for (loc3 <- board2Copy.legalPlacements(p3).par) {
                 if (simulations.head < maxIters)  {
 
                   val board3Copy = placeMe(p3, board2Copy, loc3)
+                  val maximizerLength3 = maximizerLength(board3Copy)
+
                   synchronized {
                     listBuffer3 append
-                      new Simulation(board3Copy.occupiedCount, board3Copy.legalPlacements(maximizer).length, List((p1,Some(loc1)), (p2,Some(loc2)), (p3,Some(loc3))), board3Copy)
+                      new Simulation(board3Copy.occupiedCount, maximizerLength3, List((p1,Some(loc1)), (p2,Some(loc2)), (p3,Some(loc3))), board3Copy)
                   }
 
                   // todo: Make this performant
@@ -249,15 +282,15 @@ class Game {
 
       val t2 = System.currentTimeMillis
 
+      // todo: create a timer class that starts, stops and does a toString
       val duration = t2 - t1
-      val durationString = "%,7d".format(duration)
-
+      val durationString = "%,7d".format(duration)+ "ms"
 
       val perSecond = if (duration > 0 ) (simulations.head / duration * 1000) else 0
       val sPerSecond = "%,d".format(perSecond)
 
       println("simulations: " + simulCount
-        + " -" + durationString + "ms"
+        + " in" + durationString
         + " (" + sPerSecond + "/second" + (if (perSecond > BYATCH_THRESHOLD) " b-yatch" else "" ) + ")"
         + " - Best(occ: " + best.boardCount + ", maximizer: " + best.maximizerCount + ")"
         + " - Worst(occ: " + worst.boardCount + ", maximizer: " + worst.maximizerCount + ")"
