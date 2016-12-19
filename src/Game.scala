@@ -294,9 +294,15 @@ class Game {
 
       val sPerSecond = "%,d".format(perSecond)
 
+      // TODO - CLEANUP DUPLICATION
       println("permutation: " + piecesToString(pieces)
-        + " - Best(occ: " + best.boardCount + ", maximizer: " + best.maximizerCount + ", entropy: %1.4f".format(best.entropy) + ")"
-        + ", Worst(occ: " + worst.boardCount + ", maximizer: " + worst.maximizerCount + ", entropy: %1.4f".format(worst.entropy) + ")"
+        + " - occupied: " + (if (best.boardCount < worst.boardCount) GameUtil.GREEN else "")
+        + best.boardCount + GameUtil.SANE
+        + " (" + worst.boardCount + "), maximizer: " + (if (best.maximizerCount > worst.maximizerCount) GameUtil.GREEN else "")
+        + best.maximizerCount + GameUtil.SANE
+        + " (" + worst.maximizerCount + "), entropy: " + (if (best.entropy < worst.entropy) GameUtil.GREEN else "")
+        + "%1.4f".format(best.entropy) + GameUtil.SANE
+        + " (%1.4f".format(worst.entropy)  + ")"
         + " - simulations: " + simulCount
         + " in " + durationString
         + " (" + sPerSecond + "/second" + (if (perSecond > BYATCH_THRESHOLD) " b-yatch" else "") + ")")
