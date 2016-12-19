@@ -84,9 +84,11 @@ class Game {
          .permutations
          .toList
           // sort by the occupied count, then max by the number of places that can accept a 3x3 box
-         .map(pieceSequenceSimulation(_,MAX_SIMULATION_ITERATIONS)).sortBy(_.boardCount).maxBy(_.maximumCount)
+         .map(pieceSequenceSimulation(_,MAX_SIMULATION_ITERATIONS)).sorted
 
-        permutations.pieceLocation.foreach(tup => handleThePiece(tup._1, tup._2, board.placeKnownLegal) )
+        val best = permutations.head
+        println("Chosen: " + piecesToString(best.pieceLocation.map(pieceLoc => pieceLoc._1)) + " - expected (occ: " + best.boardCount + ", maximizer: " + best.maximizerCount + ")")
+        best.pieceLocation.foreach(tup => handleThePiece(tup._1, tup._2, board.placeKnownLegal) )
 
         showBoardFooter()
 
@@ -137,7 +139,18 @@ class Game {
     pieces
   }
 
-  case class Simulation(boardCount:Int, maximumCount:Int, pieceLocation: List[(Piece, Option[(Int, Int)])], board: Board)
+  case class Simulation(boardCount:Int, maximizerCount:Int, pieceLocation: List[(Piece, Option[(Int, Int)])], board: Board) extends Ordered[Simulation] {
+    // now we're getting somewhere
+    // this ordering will ensure that a lower boardcount wins EVEN if the maximizer ends up with a higher number of positions available
+    // and if lowest boardcount is the same then maximizer, of course, breaks the tie
+    def compare(that: Simulation):Int = {
+      (boardCount compare that.boardCount) match {
+        case 0 => that.maximizerCount - maximizerCount      // when boardCount is the same, then favor the higher maximizerCount
+        case differentBoardCount => differentBoardCount     // accept default ordering of integers for the boardCount
+      }
+
+    }
+  }
 
   private def pieceSequenceSimulation(pieces:List[Piece], maxIters:Long): Simulation  = {
 
@@ -227,8 +240,10 @@ class Game {
     else {
 
       val options = createSimulations
-      val best = options.sortBy(_.boardCount).maxBy(_.maximumCount)
-      val worst = options.sortWith(_.boardCount > _.boardCount).minBy(_.maximumCount)
+      val best = options.sorted.head
+      // todo - this worst is not actually doing the right thing.  it's just simply choosing the lowest maximizer count
+      // need to create an ordering for choosing the wrong thing just as you did for choosing the right thing to get the sorted result
+      val worst = options.sortWith(_.boardCount > _.boardCount).minBy(_.maximizerCount)
 
       val simulCount = "%,7d".format(simulations.head)
 
@@ -242,16 +257,18 @@ class Game {
       val sPerSecond = "%,d".format(perSecond)
 
       println("simulations: " + simulCount
-        + " - Best(occ: " + best.boardCount + ", maximizer: " + best.maximumCount + ")"
-        + " - Worst(occ: " + worst.boardCount + ", maximizer: " + worst.maximumCount + ")"
-        + " - pieces: " + pieces.map(_.name).mkString(", ")
-        + ":" + durationString + "ms"
-        + " (" + sPerSecond + "/second" + (if (perSecond > BYATCH_THRESHOLD) " b-yatch" else "" ) + ")")
-
+        + " -" + durationString + "ms"
+        + " (" + sPerSecond + "/second" + (if (perSecond > BYATCH_THRESHOLD) " b-yatch" else "" ) + ")"
+        + " - Best(occ: " + best.boardCount + ", maximizer: " + best.maximizerCount + ")"
+        + " - Worst(occ: " + worst.boardCount + ", maximizer: " + worst.maximizerCount + ")"
+        + ": " + piecesToString(pieces) )
 
       best
     }
   }
+
+  // todo:  can this be turned into an implicit for a List[Piece].toString call?  if so, that would be nice
+  private def piecesToString(pieces: List[Piece]): String = pieces.map(_.name).mkString(", ")
 
 
 
@@ -417,8 +434,7 @@ class Game {
   private def showBoardFooter() = {
     println("\nAfter " + rounds.head + " rounds"
       + " - rows cleared: " + rowsCleared.head
-      + " - columns cleared: " + colsCleared.head
-      + " - positions occupied: " + board.occupiedCount  )
+      + " - columns cleared: " + colsCleared.head)
     if (!CONTINUOUS_MODE)
       println("type enter to place another piece and 'q' to quit")
   }
