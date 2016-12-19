@@ -29,6 +29,9 @@ class Board(val layout: Array[Array[Cell]], val name: String, val color: String)
     a.toList
   }
 
+  // todo - right now we're using a scale value of 3 - maybe we want to try multiple values such as 3 and 4 and return the sum...
+  def entropy:Double = Entropy.scaledEntropy(3, this.layout)
+
   // changed to not use a rotated copy of the board
   // slight increase in LOC but definite decrease in % of code execution time
   // from ~24% with the original version - now it's 226102 / 1543684 = 0.146469096 = 14.6% of code execution time

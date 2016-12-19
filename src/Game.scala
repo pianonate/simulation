@@ -115,7 +115,10 @@ class Game {
           .map(pieceSequenceSimulation(_, MAX_SIMULATION_ITERATIONS)).sorted
 
         val best = permutations.head
-        println("Chosen: " + piecesToString(best.pieceLocation.map(pieceLoc => pieceLoc._1)) + " - expected (occ: " + best.boardCount + ", maximizer: " + best.maximizerCount + ")")
+        // todo remove println douplication of count, maximizer, entropy
+        println("Chosen: " + piecesToString(best.pieceLocation.map(pieceLoc => pieceLoc._1))
+          + " - expected (occ: " + best.boardCount + ", maximizer: " + best.maximizerCount + " entropy: %1.4f".format(best.entropy) + ")")
+
         best.pieceLocation.foreach(tup => handleThePiece(tup._1, tup._2, board.placeKnownLegal))
 
         showBoardFooter()
@@ -167,8 +170,11 @@ class Game {
     pieces
   }
 
-  case class Simulation(boardCount: Int, maximizerCount: Int, pieceLocation: List[(Piece, Option[(Int, Int)])], board: Board) extends Ordered[Simulation] {
+  case class Simulation(boardCount: Int, maximizerCount: Int, entropy:Double, pieceLocation: List[(Piece, Option[(Int, Int)])], board: Board) extends Ordered[Simulation] {
+
+
     // now we're getting somewhere
+
     // this ordering will ensure that a lower boardcount wins EVEN if the maximizer ends up with a higher number of positions available
     // and if lowest boardcount is the same then maximizer, of course, breaks the tie
 /*    def compare(that: Simulation): Int = {
@@ -180,13 +186,19 @@ class Game {
     // new algo:
     // ensure that the maximizeCount is largest
     // if there is a tie, then order by boardCount
-    def compare(that: Simulation): Int = {
+/*    def compare(that: Simulation): Int = {
       maximizerCount compare that.maximizerCount match {
         case 0 => boardCount - that.boardCount                               // when maximizerCount is the same, then favor the lower boardCount
         case differentMaximizerCount => that.maximizerCount - maximizerCount // when they are different, favor the larger
-      }
+      }*/
 
+    def compare(that: Simulation): Int = {
+      maximizerCount compare that.maximizerCount match {
+        case 0 => entropy compare that.entropy // when maximizerCount is the same, then favor the lowest entropy
+        case differentMaximizerCount => that.maximizerCount - maximizerCount // when they are different, favor the larger
+      }
     }
+
   }
 
   private def pieceSequenceSimulation(pieces: List[Piece], maxIters: Long): Simulation = {
@@ -219,7 +231,7 @@ class Game {
 
           val board1Copy = placeMe(p1, this.board, loc1)
           val maximizerLength1 = maximizerLength(board1Copy)
-          val simulation1 = Simulation(board1Copy.occupiedCount, maximizerLength1, List((p1, Some(loc1)), (p2, None), (p3, None)), board1Copy)
+          val simulation1 = Simulation(board1Copy.occupiedCount, maximizerLength1, board1Copy.entropy, List((p1, Some(loc1)), (p2, None), (p3, None)), board1Copy)
           synchronized { listBuffer1 append simulation1 }
 
           for (loc2 <- board1Copy.legalPlacements(p2).par) {
@@ -227,7 +239,7 @@ class Game {
 
               val board2Copy = placeMe(p2, board1Copy, loc2)
               val maximizerLength2 = maximizerLength(board2Copy)
-              val simulation2 = Simulation(board2Copy.occupiedCount, maximizerLength2, List((p1, Some(loc1)), (p2, Some(loc2)), (p3, None)), board2Copy)
+              val simulation2 = Simulation(board2Copy.occupiedCount, maximizerLength2, board2Copy.entropy, List((p1, Some(loc1)), (p2, Some(loc2)), (p3, None)), board2Copy)
 
               synchronized { listBuffer2 append simulation2 }
 
@@ -236,7 +248,7 @@ class Game {
 
                   val board3Copy = placeMe(p3, board2Copy, loc3)
                   val maximizerLength3 = maximizerLength(board3Copy)
-                  val simulation3 = Simulation(board3Copy.occupiedCount, maximizerLength3, List((p1, Some(loc1)), (p2, Some(loc2)), (p3, Some(loc3))), board3Copy)
+                  val simulation3 = Simulation(board3Copy.occupiedCount, maximizerLength3, board3Copy.entropy, List((p1, Some(loc1)), (p2, Some(loc2)), (p3, Some(loc3))), board3Copy)
 
                   synchronized { listBuffer3 append simulation3 }
 
@@ -258,7 +270,7 @@ class Game {
       else
         // arbitrary large number so that this option will never wih against
         // options that are still viable
-        List(Simulation(100000, 0, List((p1, None), (p2, None), (p3, None)), this.board))
+        List(Simulation(100000, 0, this.board.entropy, List((p1, None), (p2, None), (p3, None)), this.board))
 
     }
 
@@ -274,7 +286,7 @@ class Game {
 
       // populate this so the max calculation doesn't bust the first time through
       simulationsPerSecond append 0
-      Simulation(board3.occupiedCount, 0, List((p1, Some(legal1.head)), (p2, Some(legal2.head)), (p3, Some(legal3.head))), board3)
+      Simulation(board3.occupiedCount, 0, board3.entropy, List((p1, Some(legal1.head)), (p2, Some(legal2.head)), (p3, Some(legal3.head))), board3)
     } else {
 
       val options = createSimulations
@@ -296,8 +308,8 @@ class Game {
       val sPerSecond = "%,d".format(perSecond)
 
       println("permutation: " + piecesToString(pieces)
-        + " - Best(occ: " + best.boardCount + ", maximizer: " + best.maximizerCount + ")"
-        + ", Worst(occ: " + worst.boardCount + ", maximizer: " + worst.maximizerCount + ")"
+        + " - Best(occ: " + best.boardCount + ", maximizer: " + best.maximizerCount + ", entropy: %1.4f".format(best.entropy) + ")"
+        + ", Worst(occ: " + worst.boardCount + ", maximizer: " + worst.maximizerCount + ", entropy: %1.4f".format(best.entropy) + ")"
         + " - simulations: " + simulCount
         + " in " + durationString
         + " (" + sPerSecond + "/second" + (if (perSecond > BYATCH_THRESHOLD) " b-yatch" else "") + ")")
@@ -341,7 +353,7 @@ class Game {
   /*  // so for each piece in the list
   // f: make a board and iterate against all legal locations to create a solution
   // a solution which is a List of 3 ordered piece / location combinations - we need to keep track of the boards for all 3
-  // - the third board will be the one we compare to see which is the best solution
+  // - the third board will be the one we look at to see which is the best solution
   // - at least one solution must have location
   
   // couldn't get this recursive solution to work either

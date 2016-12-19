@@ -3,77 +3,74 @@
  * Main is just the stub to get it all off the ground
  */
 
+
 object Main extends App {
 
-  // todo - stash high scores in a file you can read at startup of the game
-  // high score to date is 6,898
+  play()
 
-  // different than game continuous mode which simply
-  // controls whether you hit enter to place the next piece
-  // Main continuous mode means continuous play - you have to ctrl-c out of it
-  val CONTINUOUS_MODE = true
+  private def play():Unit = {
 
-  import scala.collection.mutable.ListBuffer
-  val scores = new ListBuffer[Long]
-  val rounds = new ListBuffer[Long]
-  val simulationsPerSecond = new ListBuffer[Long]
+    // todo - stash high scores in a file you can read at startup of the game
+    // high score to date is 7,766
 
-  Game.showGameStart()
+    // different than game continuous mode which simply
+    // controls whether you hit enter to place the next piece
+    // Main continuous mode means continuous play - you have to ctrl-c out of it
+    val CONTINUOUS_MODE = true
 
-  // run the game, my friend
-  do {
-    val game = new Game()
-    val results = game.run()
+    import scala.collection.mutable.ListBuffer
+    val scores = new ListBuffer[Long]
+    val rounds = new ListBuffer[Long]
+    val simulationsPerSecond = new ListBuffer[Long]
 
-    scores.append(results._1)
-    rounds.append(results._2)
-    simulationsPerSecond.append(results._3)
+    Game.showGameStart()
 
-    if (CONTINUOUS_MODE) {
-      val highScore = scores.max
-      val mostRounds = rounds.max
-      val bestPerSecond = simulationsPerSecond.max
+    // run the game, my friend
+    do {
+      val game = new Game()
+      val results = game.run()
 
-      val labelFormat = GameUtil.labelFormat
-      val numberFormat = GameUtil.numberFormat
+      scores.append(results._1)
+      rounds.append(results._2)
+      simulationsPerSecond.append(results._3)
 
-      println
-      println
-      println("MULTIPLE GAME STATS")
-      println
-      println(labelFormat.format("Games Played") + numberFormat.format(scores.size))
-      println(labelFormat.format("High Score") + GameUtil.RED + numberFormat.format(highScore) + GameUtil.SANE)
-      println(labelFormat.format("Most Rounds") + numberFormat.format(mostRounds))
-      println(labelFormat.format("Most Simulations/Second") + numberFormat.format(bestPerSecond))
+      if (CONTINUOUS_MODE) {
+        val highScore = scores.max
+        val mostRounds = rounds.max
+        val bestPerSecond = simulationsPerSecond.max
 
-      println
-      print("Starting new game in ")
+        val labelFormat = GameUtil.labelFormat
+        val numberFormat = GameUtil.numberFormat
 
-      // countdown timer
-      (1 to 10).reverse.foreach { i =>
-        print(i + "...")
-        Thread.sleep(1000)
+        println
+        println
+        println("MULTIPLE GAME STATS")
+        println
+        println(labelFormat.format("Games Played") + numberFormat.format(scores.size))
+        println(labelFormat.format("High Score") + GameUtil.RED + numberFormat.format(highScore) + GameUtil.SANE)
+        println(labelFormat.format("Most Rounds") + numberFormat.format(mostRounds))
+        println(labelFormat.format("Most Simulations/Second") + numberFormat.format(bestPerSecond))
+
+        println
+        print("Starting new game in ")
+
+        // countdown timer
+        (1 to 10).reverse.foreach { i =>
+          print(i + "...")
+          Thread.sleep(1000)
+        }
+
+        println
+        println("Go!")
+        println
       }
 
-      println
-      println("Go!")
-      println
-    }
+    } while (CONTINUOUS_MODE)
 
-  } while (CONTINUOUS_MODE)
-
-  //  printPossiblePieces
-  //  printPossibleColors
-
-  /*private def printPossiblePieces(): Unit = {
-    val pieces = (new Pieces).pieceList
-    for (piece <- pieces) {
-      println(piece.name + ": " + piece.pointValue)
-      println(piece.toString)
-    }
-    println
   }
 
+
+  //  printPossibleColors
   // print the character colors that we have available to us
   private def printPossibleColors(): Unit = {
     for (i <- 30 to 37) {
@@ -91,7 +88,7 @@ object Main extends App {
 
     println
 
-  }*/
+  }
 
 }
 

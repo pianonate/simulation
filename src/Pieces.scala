@@ -117,4 +117,12 @@ class Pieces {
       .mkString("\n")
   }
 
+  def printPossiblePieces(): Unit = {
+    for (piece <- pieceList) {
+      println(piece.name + ": " + piece.pointValue)
+      println(piece.toString)
+    }
+    println
+  }
+
 }
