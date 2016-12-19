@@ -3,7 +3,6 @@
  * Main is just the stub to get it all off the ground
  */
 
-
 object Main extends App {
 
   // todo - stash high scores in a file you can read at startup of the game
@@ -14,48 +13,55 @@ object Main extends App {
   // Main continuous mode means continuous play - you have to ctrl-c out of it
   val CONTINUOUS_MODE = true
 
-  val scores = new scala.collection.mutable.ListBuffer[Long]
-  val rounds = new scala.collection.mutable.ListBuffer[Long]
+  import scala.collection.mutable.ListBuffer
+  val scores = new ListBuffer[Long]
+  val rounds = new ListBuffer[Long]
+  val simulationsPerSecond = new ListBuffer[Long]
+
+  Game.showGameStart
 
   // run the game, my friend
   do {
     val game = new Game()
-    val score = game.run
-    scores.append(score._1)
-    rounds.append(score._2)
+    val results = game.run
 
+    scores.append(results._1)
+    rounds.append(results._2)
+    simulationsPerSecond.append(results._3)
 
     if (CONTINUOUS_MODE) {
-        val highScore = scores.max
-        val mostRounds = rounds.max
-        println
-        println
-        println("High Score:   " + "%,7d".format(highScore))
-        println("Games Played: " + "%,7d".format(scores.size))
-        println("Most Rounds:  " + "%,7d".format(mostRounds))
+      val highScore = scores.max
+      val mostRounds = rounds.max
+      val bestPerSecond = simulationsPerSecond.max
+
+      println
+      println
+      println("Games Played           : " + "%,7d".format(scores.size))
+      println("High Score             : " + GameUtil.RED + "%,7d".format(highScore) + GameUtil.SANE)
+      println("Most Rounds            : " + "%,7d".format(mostRounds))
+      println("Most Simulations/Second: " + "%,7d".format(mostRounds))
 
       // todo: make it idiomatic
-        println
-        print("Starting new game in 5...")
-        Thread.sleep(1000)
-        print("4..")
-        Thread.sleep(1000)
-        print("3..")
-        Thread.sleep(1000)
-        print("2..")
-        Thread.sleep(1000)
-        print("1..")
-        Thread.sleep(1000)
-        println
-        println("Go!")
-        println
-      }
+      println
+      print("Starting new game in 5...")
+      Thread.sleep(1000)
+      print("4..")
+      Thread.sleep(1000)
+      print("3..")
+      Thread.sleep(1000)
+      print("2..")
+      Thread.sleep(1000)
+      print("1..")
+      Thread.sleep(1000)
+      println
+      println("Go!")
+      println
+    }
 
   } while (CONTINUOUS_MODE)
 
-//  printPossiblePieces
-//  printPossibleColors
-
+  //  printPossiblePieces
+  //  printPossibleColors
 
   private def printPossiblePieces(): Unit = {
     for (piece <- Piece.pieces) {
@@ -83,7 +89,6 @@ object Main extends App {
     println
 
   }
-
 
 }
 
