@@ -8,7 +8,7 @@ object GameRunner {
   def play(): Unit = {
 
     // todo - stash high scores in a file you can read at startup of the game
-    // high score to date is 7,766
+    // high score to date is 10,894!
 
     // different than game continuous mode which simply
     // controls whether you hit enter to place the next piece

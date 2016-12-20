@@ -4,6 +4,9 @@
  *
  * Todo: save every move in a game so you can replay it if it's awesome
  *
+ * Todo: Maximizer on first round should still be correct even if simulations are bypassed
+ *       Simulation skip message can be output only once, also.  don't even call piece simulation
+ *
  * Todo: If occupied is minimized and islands are maximized, then the next should be keep
  *       rows and columns clear - the most number...!!!  This could be the winner.
  *
@@ -113,12 +116,10 @@ class Game {
 
     val pieces = {
       // this code provides specific pieces for the (probable) last iteration
-      // set this to false if you want to just return the default set
-      // otherwise provide a conditional value - for example,
-      // board.occupiedCount > 50
       // was used as a condition to debug a situation in the end game
-      // there are probably other situations when you want to substitute a specific piece set
+      // if (board.occupiedCount > 50)
 
+      // used to test a few rounds...
       /* if (rounds.head ==1)
         Piece.getNamedPieces("VerticalLine5", "LowerLeftEl", "HorizontalLine3")
       else if (rounds.head == 2)
@@ -316,7 +317,7 @@ class Game {
     val curRowsCleared = rowsCleared.head
     val curColsCleared = colsCleared.head
 
-    println("\nAttempting piece: " + ((placed.next % 3) + 1) + "\n" + piece.toString)
+    println("\nAttempting piece: " + ((placed.next % 3) + 1) + "\n" + piece.toString + "\n")
 
     // passed in a handler function when i was trying out various simulations.
     // but right now there is only one handler so I don't know if need to keep this nicety around
@@ -434,8 +435,6 @@ class Game {
     piecesToStrings.map(a => a.toList)
       .transpose
       .foreach { l => print(l.mkString); println }
-
-    println
 
   }
 

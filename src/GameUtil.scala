@@ -11,6 +11,8 @@ object GameUtil {
   // you could also implement a stepBy if you wanted...
   def longIterFrom(start: Long): Iterator[Long] = Iterator.iterate[Long](start)(l => l + 1)
 
+  // this was typed because of testing on an Array[Array[Int]]
+  // in 'production' this is now running on an Array[Array[Cell]]
   def getLocationsList[T](a: Array[Array[T]]): List[(Int, Int)] = Array.tabulate(a.length, a.length)((i, j) => (i, j)).flatten.toList
 
   // print the character colors that we have available to us

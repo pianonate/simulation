@@ -7,40 +7,19 @@ import scala.collection.mutable.ListBuffer
 
 object Islands {
 
-  def makeIslands(layout: Array[Array[Cell]]): List[List[(Int, Int)]] = {
+  def findIslands(layout: Array[Array[Cell]]): List[List[(Int, Int)]] = {
 
     // once again, i can't get the recursive solution so resorting to imperative :(
     val islands = new ListBuffer[ListBuffer[(Int, Int)]]
-    val visited = new ListBuffer[(Int, Int)]
 
-    def unoccupied(loc: (Int, Int)): Boolean = !layout(loc._1)(loc._2).occupied
+    val locations = GameUtil.getLocationsList[Cell](layout)
+    val visited = Array.fill(layout.length)(Array.fill(layout.length)(false))
 
-    /*  def isPartOfIsland(loc: (Int, Int), island: ListBuffer[(Int, Int)]): Boolean = {
-      island.exists { existing =>
+    def occupied(loc: (Int, Int)): Boolean = layout(loc._1)(loc._2).occupied
 
-        val i = existing._1
-        val j = existing._2
+    def visitedLocation(loc: (Int, Int)): Boolean = visited(loc._1)(loc._2) == true
 
-        val x = loc._1
-        val y = loc._2
-
-        ((j == y) && ((i == (x - 1)) || (i == (x + 1)))) || ((i == x) && ((j == (y - 1)) || (j == (y + 1))))
-
-      }
-    }
-
-    def addToExistingIsland(loc: (Int, Int)): Unit = {
-
-      // filter for membership in a particular island
-      // if it's in there, then return islands mapped with the updated island
-      val filteredIslands = islands.filter(l => isPartOfIsland(loc, l))
-
-      if (filteredIslands.isEmpty)
-        islands append ListBuffer(loc)
-      else {
-        filteredIslands(0).append(loc)
-      }
-    }*/
+    def visit(loc: (Int, Int)): Unit = visited(loc._1)(loc._2) = true
 
     def isSafe(loc: (Int, Int)): Boolean = {
 
@@ -51,11 +30,11 @@ object Islands {
       if (!inbounds)
         return false
 
-      if (!unoccupied(loc))
+      if (occupied(loc))
         return false
 
-      if (visited.contains(loc))
-        return false
+      visitedLocation(loc)
+      return false
 
       true
 
@@ -64,7 +43,7 @@ object Islands {
     def dfs(loc: (Int, Int), newIsland: ListBuffer[(Int, Int)]): Unit = {
 
       // if we haven't visited, say we have
-      visited append loc
+      visit(loc)
 
       newIsland append loc
 
@@ -79,15 +58,15 @@ object Islands {
 
     }
 
-    def makeIslandsHelper(locations: List[(Int, Int)]): List[List[(Int, Int)]] = {
+    def findIslandsHelper(locations: List[(Int, Int)]): List[List[(Int, Int)]] = {
 
       // If an unoccupied cell is not visited yet,
       // then new island found
       for {
         loc <- locations
-        if unoccupied(loc)
+        if !occupied(loc)
       } {
-        if (visited.isEmpty || !visited.contains(loc)) {
+        if (!visitedLocation(loc)) {
           val newIsland = new ListBuffer[(Int, Int)]
           islands append newIsland
           dfs(loc, newIsland)
@@ -97,9 +76,7 @@ object Islands {
       islands.map(island => island.toList).toList
     }
 
-    val locations = GameUtil.getLocationsList[Cell](layout)
-
-    makeIslandsHelper(locations)
+    findIslandsHelper(locations)
 
   }
 
