@@ -25,12 +25,15 @@ class Board(val layout: Array[Array[Cell]], val name: String, val color: String)
 
   // calculate all locations for a board once - at board creation
   private val allLocations: List[(Int, Int)] = {
-    val a = for { r <- layout.indices; c <- layout(0).indices } yield (r, c)
-    a.toList
+  /* val a = for { r <- layout.indices; c <- layout(0).indices } yield (r, c)
+    a.toList */
+    GameUtil.getLocationsList[Cell](layout)
   }
 
   // todo - right now we're using a scale value of 3 - maybe we want to try multiple values such as 3 and 4 and return the sum...
   def entropy:Double = Entropy.scaledEntropy(3, this.layout)
+
+  def islands:Map[Int,Int] = Islands.makeIslands(this.layout).groupBy(_.length).mapValues(_.length)
 
   // changed to not use a rotated copy of the board
   // slight increase in LOC but definite decrease in % of code execution time

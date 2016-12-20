@@ -1,14 +1,16 @@
 /**
  * Created by nathan on 12/10/16.
  * Game will hold a reference to the current board and will also invoke simulations
- * algo research - measure of entropy is a decent approach:
- *    http://stats.stackexchange.com/questions/17109/measuring-entropy-information-patterns-of-a-2d-binary-matrix
- *    Picture D is problematic - want to avoid
  *
+ * Todo: save every move in a game so you can replay it if it's awesome
  *
- * Todo: Why do best and worst cases have the same entropy?
+ * Todo: do multiple entropy windows and maximize the smallest number
  *
- *    Todo: save every move in a game so you can replay it if it's awesome
+ * Todo: find count of locations that a singleton can _only_ fit into and
+ *       after you maximize the number of 3x3's that will fit, minimize the
+ *       number of places a singleton can _only_ fit and then minimize entropy
+ *       maybe extend the singleton only to a place where only an h2line or v2 line will fit
+ *       you can generalize this to a routine that can accept a piece and provide a minimizing value
  *
  *
  */
@@ -104,7 +106,8 @@ class Game {
         val best = permutations.head
         // todo remove println douplication of count, maximizer, entropy
         println("Chosen: " + piecesToString(best.pieceLocation.map(pieceLoc => pieceLoc._1))
-          + " - expected (occ: " + best.boardCount + ", maximizer: " + best.maximizerCount + " entropy: %1.4f".format(best.entropy) + ")")
+          + " - expected (islandMax: " + best.islandMax + " occ: " + best.boardCount + ", maximizer: " + best.maximizerCount + " entropy: %1.4f".format(best.entropy) + ")")
+
 
         best.pieceLocation.foreach(tup => handleThePiece(tup._1, tup._2, board.placeKnownLegal))
 
@@ -157,13 +160,20 @@ class Game {
     pieces
   }
 
-  case class Simulation(boardCount: Int, maximizerCount: Int, entropy:Double, pieceLocation: List[(Piece, Option[(Int, Int)])], board: Board) extends Ordered[Simulation] {
+  case class Simulation(boardCount: Int,
+                        maximizerCount: Int,
+                        entropy:Double,
+                        islands:Map[Int,Int],
+                        pieceLocation: List[(Piece, Option[(Int, Int)])],
+                        board: Board) extends Ordered[Simulation] {
 
+    val islandMax = islands.keys.max
 
     // now we're getting somewhere
 
     // this ordering will ensure that a lower boardcount wins EVEN if the maximizer ends up with a higher number of positions available
     // and if lowest boardcount is the same then maximizer, of course, breaks the tie
+    // this didn't work very well
 /*    def compare(that: Simulation): Int = {
       boardCount compare that.boardCount match {
         case 0 => that.maximizerCount - maximizerCount // when boardCount is the same, then favor the higher maximizerCount
@@ -179,13 +189,26 @@ class Game {
         case differentMaximizerCount => that.maximizerCount - maximizerCount // when they are different, favor the larger
       }*/
 
-    def compare(that: Simulation): Int = {
+
+    // new algo
+    // maximizer wins otherwise it's entropy
+    /*def compare(that: Simulation): Int = {
       maximizerCount compare that.maximizerCount match {
         case 0 => entropy compare that.entropy // when maximizerCount is the same, then favor the lowest entropy
-        case differentMaximizerCount => that.maximizerCount - maximizerCount // when they are different, favor the larger
-      }
-    }
+        case _ => that.maximizerCount - maximizerCount // when they are different, favor the larger
+      }*/
 
+    // new algo - lowest boardcount followed by largest island
+    // the following provides tuple ordering to ordered to make the tuple comparison work
+    import scala.math.Ordered.orderingToOrdered
+    def compare(that:Simulation): Int =
+      (this.boardCount, that.islandMax, that.maximizerCount) compare (that.boardCount, this.islandMax, this.maximizerCount) /*{*/
+  /*    boardCount compare that.boardCount match {
+        case 0 => that.islandMax compare this.islandMax
+        case _ => _
+      }*/
+      /*(this.boardCount, that.islandMax) compare (that.boardCount,  this.islandMax)
+    }*/
   }
 
   private def pieceSequenceSimulation(pieces: List[Piece], maxIters: Long): Simulation = {
@@ -218,7 +241,7 @@ class Game {
 
           val board1Copy = placeMe(p1, this.board, loc1)
           val maximizerLength1 = maximizerLength(board1Copy)
-          val simulation1 = Simulation(board1Copy.occupiedCount, maximizerLength1, board1Copy.entropy, List((p1, Some(loc1)), (p2, None), (p3, None)), board1Copy)
+          val simulation1 = Simulation(board1Copy.occupiedCount, maximizerLength1, board1Copy.entropy, board1Copy.islands, List((p1, Some(loc1)), (p2, None), (p3, None)), board1Copy)
           synchronized { listBuffer1 append simulation1 }
 
           for (loc2 <- board1Copy.legalPlacements(p2).par) {
@@ -226,7 +249,7 @@ class Game {
 
               val board2Copy = placeMe(p2, board1Copy, loc2)
               val maximizerLength2 = maximizerLength(board2Copy)
-              val simulation2 = Simulation(board2Copy.occupiedCount, maximizerLength2, board2Copy.entropy, List((p1, Some(loc1)), (p2, Some(loc2)), (p3, None)), board2Copy)
+              val simulation2 = Simulation(board2Copy.occupiedCount, maximizerLength2, board2Copy.entropy, board2Copy.islands, List((p1, Some(loc1)), (p2, Some(loc2)), (p3, None)), board2Copy)
 
               synchronized { listBuffer2 append simulation2 }
 
@@ -235,7 +258,7 @@ class Game {
 
                   val board3Copy = placeMe(p3, board2Copy, loc3)
                   val maximizerLength3 = maximizerLength(board3Copy)
-                  val simulation3 = Simulation(board3Copy.occupiedCount, maximizerLength3, board3Copy.entropy, List((p1, Some(loc1)), (p2, Some(loc2)), (p3, Some(loc3))), board3Copy)
+                  val simulation3 = Simulation(board3Copy.occupiedCount, maximizerLength3, board3Copy.entropy, board3Copy.islands, List((p1, Some(loc1)), (p2, Some(loc2)), (p3, Some(loc3))), board3Copy)
 
                   synchronized { listBuffer3 append simulation3 }
 
@@ -257,7 +280,7 @@ class Game {
       else
         // arbitrary large number so that this option will never wih against
         // options that are still viable
-        List(Simulation(100000, 0, this.board.entropy, List((p1, None), (p2, None), (p3, None)), this.board))
+        List(Simulation(100000, 0, this.board.entropy, this.board.islands, List((p1, None), (p2, None), (p3, None)), this.board))
 
     }
 
@@ -273,7 +296,7 @@ class Game {
 
       // populate this so the max calculation doesn't bust the first time through
       simulationsPerSecond append 0
-      Simulation(board3.occupiedCount, 0, board3.entropy, List((p1, Some(legal1.head)), (p2, Some(legal2.head)), (p3, Some(legal3.head))), board3)
+      Simulation(board3.occupiedCount, 0, board3.entropy, board.islands, List((p1, Some(legal1.head)), (p2, Some(legal2.head)), (p3, Some(legal3.head))), board3)
     } else {
 
       val options = createSimulations
@@ -296,6 +319,9 @@ class Game {
 
       // TODO - CLEANUP DUPLICATION
       println("permutation: " + piecesToString(pieces)
+        + " - islandMax: " + (if (best.islandMax > worst.islandMax) GameUtil.GREEN else "")
+        + best.islandMax + GameUtil.SANE
+        + " (" + worst.islandMax + ")"
         + " - occupied: " + (if (best.boardCount < worst.boardCount) GameUtil.GREEN else "")
         + best.boardCount + GameUtil.SANE
         + " (" + worst.boardCount + "), maximizer: " + (if (best.maximizerCount > worst.maximizerCount) GameUtil.GREEN else "")

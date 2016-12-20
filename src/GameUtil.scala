@@ -11,6 +11,8 @@ object GameUtil {
   // you could also implement a stepBy if you wanted...
   def longIterFrom(start: Long): Iterator[Long] = Iterator.iterate[Long](start)(l => l + 1)
 
+  def getLocationsList[T](a: Array[Array[T]]) = Array.tabulate(a.length, a.length)((i,j) => (i,j)).flatten.toList
+
   val labelFormat = "%-24s: "
   val numberFormat = "%,7d"
   val labelNumberFormat: String = labelFormat + numberFormat

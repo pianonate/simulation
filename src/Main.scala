@@ -3,12 +3,119 @@
  * Main is just the stub to get it all off the ground
  */
 
+import scala.collection.mutable.ListBuffer
 
 object Main extends App {
 
+ /* val layout = Array(
+    Array(0,1,1,0),
+    Array(0,0,1,1),
+    Array(1,1,0,0),
+    Array(0,1,0,0)
+  )
+
+  def makeIslands(islandValue: Int, matrix: Array[Array[Int]]): List[List[(Int,Int)]] = {
+
+    // once again, i can't get the recursive solution so resorting to imperative :(
+    val islands = new ListBuffer[ListBuffer[(Int,Int)]]
+    val visited = new ListBuffer[(Int,Int)]
+
+    def matrixValue(loc: (Int, Int)): Int = matrix(loc._1)(loc._2)
+
+    def isPartOfIsland(loc: (Int,Int), island: ListBuffer[(Int,Int)]):Boolean = {
+      island.exists{ existing =>
+
+        val i = existing._1
+        val j = existing._2
+
+        val x = loc._1
+        val y = loc._2
+
+        ( (j==y) && ( (i == (x-1) ) || (i == (x+1)) ) ) || ( (i==x) && ( (j == (y-1) ) || (j == (y+1)) ) )
+
+      }
+    }
+
+    def addToExistingIsland(loc: (Int, Int)):Unit = {
+
+      // filter for membership in a particular island
+      // if it's in there, then return islands mapped with the updated island
+      val filteredIslands = islands.filter(l => isPartOfIsland(loc, l))
+
+      if (filteredIslands.isEmpty)
+        islands append ListBuffer(loc)
+      else {
+        filteredIslands(0).append(loc)
+      }
+    }
+
+    def isSafe(loc: (Int, Int)): Boolean = {
+
+      val i = loc._1
+      val j = loc._2
+
+      val inbounds = (i >= 0 && i < matrix.length && j>=0 && j < matrix(0).length)
+      if (!inbounds)
+        return false
+
+      if (matrixValue(loc) != islandValue)
+        return false
+
+
+
+      true
+
+    }
+
+    def dfs(loc : (Int, Int) ): Unit = {
+      if (visited.nonEmpty && visited.contains(loc)) return
+
+      val isIsland = matrixValue(loc)==islandValue
+      if (isIsland)
+        visited.append(loc)
+      else return
+
+      if (islands.isEmpty)
+        islands append ListBuffer(loc)
+      else
+        addToExistingIsland(loc)
+
+      // call dfs in all directions - only acting on valid locations - until it can't find any more islands
+      val directions = List((-1,0),(0,-1),(1,0),(0,1))
+
+      for {offset <- directions
+          tryLoc = (loc._1 + offset._1, loc._2 + offset._2)
+          if (isSafe(tryLoc))
+      } dfs(tryLoc)
+
+    }
+
+    def makeIslandsHelper(locs: List[(Int, Int)]):List[List[(Int,Int)]] = {
+
+      locs match {
+        case head :: tail => {
+            dfs(head)
+            makeIslandsHelper(tail)
+          }
+        case Nil => islands.toList.map(island => island.toList)
+      }
+    }
+
+    val locs = GameUtil.getLocationsList[Int](layout)
+
+
+
+    makeIslandsHelper(locs)
+
+  }
+
+  val a = makeIslands(0, layout)
+  a.foreach {island => println("island: " + island.length); island.foreach(location=> println("(" + location._1 + "," + location._2 +")"))}
+*/
+
   play()
 
-  private def play():Unit = {
+  private def play(): Unit = {
 
     // todo - stash high scores in a file you can read at startup of the game
     // high score to date is 7,766
@@ -68,7 +175,6 @@ object Main extends App {
     } while (CONTINUOUS_MODE)
 
   }
-
 
   //  printPossibleColors
   // print the character colors that we have available to us
