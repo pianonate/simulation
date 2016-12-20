@@ -4,6 +4,9 @@
  *
  * Todo: save every move in a game so you can replay it if it's awesome
  *
+ * Todo: If occupied is minimized and islands are maximized, then the next should be keep
+ *       rows and columns clear - the most number...!!!  This could be the winner.
+ *
  * Todo: It doesn't seem as if doing the maximum number of simulations really buys you much
  *       so create an ability tune the simulation count to a number that results in the rolling average
  *       (sliding window) of simulations per second from the previous 12? runs to be less than 1.5 seconds
@@ -458,7 +461,7 @@ object Game {
     println("\nEach of these combinations of placements will then store the maximum number of legal positions")
     println("available for this piece (called the maximizer):\n")
     println(maximizer.toString)
-    println("The game uses the maximizer because it generally is a good choice for making sure there is")
+    println("\nThe game uses the maximizer because it generally is a good choice for making sure there is")
     println("plenty of space available.")
     println("\nThe combination of piece placements with the least number of board positions occupied and the most")
     println("number of legal positions for the maximizer piece is the one that will be selected to play.")

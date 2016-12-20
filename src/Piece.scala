@@ -37,7 +37,7 @@ abstract class Piece {
       s ++= row.map(cellToStringMapFunction).foldRight(" ")((a, b) => a + " " + b) + "\n"
     }
 
-    s.toString
+    s.toString.dropRight(1)
   }
 
   // when outputting pieces individually, don't output anything for unoccupied cells
