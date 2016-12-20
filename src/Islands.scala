@@ -17,7 +17,7 @@ object Islands {
 
     def occupied(loc: (Int, Int)): Boolean = layout(loc._1)(loc._2).occupied
 
-    def visitedLocation(loc: (Int, Int)): Boolean = visited(loc._1)(loc._2) == true
+    def isVisited(loc: (Int, Int)): Boolean = (visited(loc._1)(loc._2) == true)
 
     def visit(loc: (Int, Int)): Unit = visited(loc._1)(loc._2) = true
 
@@ -33,8 +33,8 @@ object Islands {
       if (occupied(loc))
         return false
 
-      visitedLocation(loc)
-      return false
+      if (isVisited(loc))
+        return false
 
       true
 
@@ -66,7 +66,9 @@ object Islands {
         loc <- locations
         if !occupied(loc)
       } {
-        if (!visitedLocation(loc)) {
+        // pulled out of for comprehension as it seems to want to find out visited status for all locs before
+        // diving into this foreach section...
+        if (!isVisited(loc)) {
           val newIsland = new ListBuffer[(Int, Int)]
           islands append newIsland
           dfs(loc, newIsland)
@@ -76,7 +78,9 @@ object Islands {
       islands.map(island => island.toList).toList
     }
 
-    findIslandsHelper(locations)
+    // stuffed into a var for debugging
+    val found = findIslandsHelper(locations)
+    found
 
   }
 

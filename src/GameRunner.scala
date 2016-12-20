@@ -3,6 +3,7 @@
  * let Main be Main
  * GameRunner owns the responsibility of running Games and managing high score persistence
  */
+import GameUtil._
 object GameRunner {
 
   def play(): Unit = {
@@ -24,7 +25,7 @@ object GameRunner {
 
     // run the game, my friend
     do {
-      val game = new Game()
+      val game = new Game(if (scores.isEmpty) 0 else scores.max)
       val results = game.run()
 
       scores.append(results._1)
@@ -36,15 +37,12 @@ object GameRunner {
         val mostRounds = rounds.max
         val bestPerSecond = simulationsPerSecond.max
 
-        val labelFormat = GameUtil.labelFormat
-        val numberFormat = GameUtil.numberFormat
-
         println
         println
         println("MULTIPLE GAME STATS")
         println
         println(labelFormat.format("Games Played") + numberFormat.format(scores.size))
-        println(labelFormat.format("High Score") + GameUtil.RED + numberFormat.format(highScore) + GameUtil.SANE)
+        println(labelFormat.format("High Score") + getScoreString(numberFormat.format(highScore)))
         println(labelFormat.format("Most Rounds") + numberFormat.format(mostRounds))
         println(labelFormat.format("Most Simulations/Second") + numberFormat.format(bestPerSecond))
 

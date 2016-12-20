@@ -21,14 +21,14 @@ import GameUtil._
 
 object GameOver extends Exception
 
-class Game {
+class Game(val highScore: Long) {
 
   import scala.collection.mutable.ListBuffer
 
   private val SLOW_COMPUTER = true
 
   // TODO: the math right now says we will never be in long territory so switch this bad boy to an int
-  private val MAX_SIMULATION_ITERATIONS = if (SLOW_COMPUTER) 10000l else 1000000l //  100l - 100 speeds up the game significantly
+  private val MAX_SIMULATION_ITERATIONS = if (SLOW_COMPUTER) 20000l else 1000000l //  100l - 100 speeds up the game significantly
 
   private val BYATCH_THRESHOLD = 55000 // your system has some cred if it is doing more than this number of simulations / second
 
@@ -343,7 +343,7 @@ class Game {
 
     assert(expectedOccupiedCount == board.occupiedCount, "Expected occupied: " + expectedOccupiedCount + " actual occupied: " + board.occupiedCount)
 
-    println("Score: " + score.head
+    println("Score: " + getScoreString(score.head.toString) + " (" + getScoreString(highScore.toString) + ")"
       + " - positions occupied: " + board.occupiedCount
       + " - maximizer positions available: " + board.legalPlacements(Game.maximizer).length)
   }
@@ -389,7 +389,7 @@ class Game {
 
     println("\nGAME OVER!!\n")
 
-    println(labelFormat.format("Final Score") + GameUtil.RED + numberFormat.format(score.head) + GameUtil.SANE)
+    println(labelFormat.format("Final Score") + getScoreString(numberFormat.format(score.head)))
     println(labelNumberFormat.format("Rounds", rounds.head))
     println(labelNumberFormat.format("Rows Cleared", rowsCleared.head))
     println(labelNumberFormat.format("Cols Cleared", colsCleared.head))
