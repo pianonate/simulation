@@ -4,46 +4,16 @@
  *
  * Todo: save every move in a game so you can replay it if it's awesome
  *
- * Todo: do multiple entropy windows and maximize the smallest number
- *
- * Todo: find count of locations that a singleton can _only_ fit into and
- *       after you maximize the number of 3x3's that will fit, minimize the
- *       number of places a singleton can _only_ fit and then minimize entropy
- *       maybe extend the singleton only to a place where only an h2line or v2 line will fit
- *       you can generalize this to a routine that can accept a piece and provide a minimizing value
- *
+ * Todo: It doesn't seem as if doing the maximum number of simulations really buys you much
+ *       so create an ability tune the simulation count to a number that results in the rolling average
+ *       (sliding window) of simulations per second from the previous 12? runs to be less than 1.5 seconds
+ *       per permutation.  If you can do more, great.  If you can't, that's great also.
+ *       potentially you could use the concurrency framework - that would be cool
  *
  */
 import GameUtil._
 
 object GameOver extends Exception
-
-object Game {
-
-  val maximizer = new Box("Maximizer", GameUtil.CYAN, 3)
-
-  def showGameStart(): Unit = {
-
-    println("GAME START")
-    println("\nThis game works by first selecting 3 pieces from the set of all possible pieces.")
-    println("Then it will try all possible orderings (permutations) of placements of those 3 pieces")
-    println("(up to six permutations will be selected depending on whether there are any duplicates).")
-    println("\nThen for each permutation, it will try each position on the board for the first piece")
-    println("and will determine the outcome of clearing lines for that piece piece, then it will place")
-    println("the second piece at all possible locations and check the outcome of clearing lines for the second")
-    println("and finally it will check the third piece at all possible locations and check the outcome")
-    println("of clearing lines for this last piece.")
-    println("\nEach of these combinations of placements will then store the maximum number of legal positions")
-    println("available for this piece (called the maximizer):\n")
-    println(maximizer.toString)
-    println("The game uses the maximizer because it generally is a good choice for making sure there is")
-    println("plenty of space available.")
-    println("\nThe combination of piece placements with the least number of board positions occupied and the most")
-    println("number of legal positions for the maximizer piece is the one that will be selected to play.")
-    println("Each combination for each permutation is called a 'simulation'.")
-
-  }
-}
 
 class Game {
 
@@ -52,7 +22,7 @@ class Game {
   private val SLOW_COMPUTER = true
 
   // TODO: the math right now says we will never be in long territory so switch this bad boy to an int
-  private val MAX_SIMULATION_ITERATIONS =  if (SLOW_COMPUTER) 10000l else 1000000l //  100l - 100 speeds up the game significantly
+  private val MAX_SIMULATION_ITERATIONS = if (SLOW_COMPUTER) 10000l else 1000000l //  100l - 100 speeds up the game significantly
 
   private val BYATCH_THRESHOLD = 55000 // your system has some cred if it is doing more than this number of simulations / second
 
@@ -104,10 +74,9 @@ class Game {
           .map(pieceSequenceSimulation(_, MAX_SIMULATION_ITERATIONS)).sorted
 
         val best = permutations.head
-        // todo remove println douplication of count, maximizer, entropy
+        // todo remove println duplication of count, maximizer, entropy
         println("Chosen: " + piecesToString(best.pieceLocation.map(pieceLoc => pieceLoc._1))
           + " - expected (islandMax: " + best.islandMax + " occ: " + best.boardCount + ", maximizer: " + best.maximizerCount + " entropy: %1.4f".format(best.entropy) + ")")
-
 
         best.pieceLocation.foreach(tup => handleThePiece(tup._1, tup._2, board.placeKnownLegal))
 
@@ -128,7 +97,7 @@ class Game {
     showGameOver(duration)
 
     // return the score and the number of rounds to Main - where such things are tracked across game instances
-    // Todo:  Maybe a GameRunner class should be introduced so that Main is simply a handoff to GameRunner
+    // Todo:  Maybe a GameRunner class should be introduced so that Main is simply a hand off to GameRunner
     // this would be more clear - then Main's only purpose is to be the application entry point
     (score.head, rounds.head, simulationsPerSecond.max)
 
@@ -160,21 +129,24 @@ class Game {
     pieces
   }
 
-  case class Simulation(boardCount: Int,
-                        maximizerCount: Int,
-                        entropy:Double,
-                        islands:Map[Int,Int],
-                        pieceLocation: List[(Piece, Option[(Int, Int)])],
-                        board: Board) extends Ordered[Simulation] {
+  case class Simulation(
+    boardCount: Int,
+    maximizerCount: Int,
+    entropy: Double,
+    islands: Map[Int, Int],
+    pieceLocation: List[(Piece, Option[(Int, Int)])],
+    board: Board
+  ) extends Ordered[Simulation] {
 
-    val islandMax = islands.keys.max
+    val islandMax: Int = islands.keys.max
+    import scala.math.Ordered.orderingToOrdered
 
     // now we're getting somewhere
 
-    // this ordering will ensure that a lower boardcount wins EVEN if the maximizer ends up with a higher number of positions available
-    // and if lowest boardcount is the same then maximizer, of course, breaks the tie
+    // this ordering will ensure that a lower boardCount wins EVEN if the maximizer ends up with a higher number of positions available
+    // and if lowest boardCount is the same then maximizer, of course, breaks the tie
     // this didn't work very well
-/*    def compare(that: Simulation): Int = {
+    /*    def compare(that: Simulation): Int = {
       boardCount compare that.boardCount match {
         case 0 => that.maximizerCount - maximizerCount // when boardCount is the same, then favor the higher maximizerCount
         case differentBoardCount => differentBoardCount // accept default ordering of integers for the boardCount
@@ -183,12 +155,11 @@ class Game {
     // new algo:
     // ensure that the maximizeCount is largest
     // if there is a tie, then order by boardCount
-/*    def compare(that: Simulation): Int = {
+    /*    def compare(that: Simulation): Int = {
       maximizerCount compare that.maximizerCount match {
         case 0 => boardCount - that.boardCount                               // when maximizerCount is the same, then favor the lower boardCount
         case differentMaximizerCount => that.maximizerCount - maximizerCount // when they are different, favor the larger
       }*/
-
 
     // new algo
     // maximizer wins otherwise it's entropy
@@ -198,20 +169,14 @@ class Game {
         case _ => that.maximizerCount - maximizerCount // when they are different, favor the larger
       }*/
 
-    // new algo - lowest boardcount followed by largest island
+    // new algo - lowest boardCount followed by largest island
     // the following provides tuple ordering to ordered to make the tuple comparison work
-    import scala.math.Ordered.orderingToOrdered
-    def compare(that:Simulation): Int =
-      (this.boardCount, that.islandMax, that.maximizerCount) compare (that.boardCount, this.islandMax, this.maximizerCount) /*{*/
-  /*    boardCount compare that.boardCount match {
-        case 0 => that.islandMax compare this.islandMax
-        case _ => _
-      }*/
-      /*(this.boardCount, that.islandMax) compare (that.boardCount,  this.islandMax)
-    }*/
+    def compare(that: Simulation): Int =
+      (this.boardCount, that.islandMax, that.maximizerCount) compare (that.boardCount, this.islandMax, this.maximizerCount)
+
   }
 
-  private def pieceSequenceSimulation(pieces: List[Piece], maxIters: Long): Simulation = {
+  private def pieceSequenceSimulation(pieces: List[Piece], maxIterations: Long): Simulation = {
 
     val t1 = System.currentTimeMillis()
     val simulations = longIter.buffered
@@ -237,7 +202,7 @@ class Game {
       val listBuffer3 = new ListBuffer[Simulation]
 
       for (loc1 <- this.board.legalPlacements(p1).par) {
-        if (simulations.head < maxIters) {
+        if (simulations.head < maxIterations) {
 
           val board1Copy = placeMe(p1, this.board, loc1)
           val maximizerLength1 = maximizerLength(board1Copy)
@@ -245,7 +210,7 @@ class Game {
           synchronized { listBuffer1 append simulation1 }
 
           for (loc2 <- board1Copy.legalPlacements(p2).par) {
-            if (simulations.head < maxIters) {
+            if (simulations.head < maxIterations) {
 
               val board2Copy = placeMe(p2, board1Copy, loc2)
               val maximizerLength2 = maximizerLength(board2Copy)
@@ -254,7 +219,7 @@ class Game {
               synchronized { listBuffer2 append simulation2 }
 
               for (loc3 <- board2Copy.legalPlacements(p3).par) {
-                if (simulations.head < maxIters) {
+                if (simulations.head < maxIterations) {
 
                   val board3Copy = placeMe(p3, board2Copy, loc3)
                   val maximizerLength3 = maximizerLength(board3Copy)
@@ -304,7 +269,7 @@ class Game {
       // invert the default comparison and take that as the result
       val worst = options.sortWith(_ > _).head
 
-      val simulCount = "%,d".format(simulations.head)
+      val simulationCount = "%,d".format(simulations.head)
 
       val t2 = System.currentTimeMillis
 
@@ -328,8 +293,8 @@ class Game {
         + best.maximizerCount + GameUtil.SANE
         + " (" + worst.maximizerCount + "), entropy: " + (if (best.entropy < worst.entropy) GameUtil.GREEN else "")
         + "%1.4f".format(best.entropy) + GameUtil.SANE
-        + " (%1.4f".format(worst.entropy)  + ")"
-        + " - simulations: " + simulCount
+        + " (%1.4f".format(worst.entropy) + ")"
+        + " - simulations: " + simulationCount
         + " in " + durationString
         + " (" + sPerSecond + "/second" + (if (perSecond > BYATCH_THRESHOLD) " b-yatch" else "") + ")")
 
@@ -339,70 +304,6 @@ class Game {
 
   // todo:  can this be turned into an implicit for a List[Piece].toString call?  if so, that would be nice
   private def piecesToString(pieces: List[Piece]): String = pieces.map(_.name).mkString(", ")
-
-  /*  // this is an attemp to make a recursive solution, but I couldn't make it go
-  // also tried one like the findQueens example, but still no go.  
-  // the non-recursive solution specifies precise ordering that does work.   keep trying.
-  // ask others
-  private def recursiveSimulationAttempt1(pieces:List[Piece]):List[(Board, Piece, Option[(Int, Int)])] = {
-
-    val boardCopy = copyBoard(pieces, this.board)
-    // for every position on boardCopy, evaluate all legal positions for the n passed in pieces
-
-
-
-
-    def getOne(copy: Board, piece:Piece): (Board, Piece, Option[(Int, Int)]) = {
-
-      val legal = copy.legalPlacements(piece)
-      if (legal.isEmpty)
-        (copy, piece, None)
-      else
-      {
-        boardCopy.tryPlacementSimulation(piece,legal.head)
-         (copy, piece,Some(legal.head))
-      }
-    }
-
-    for {piece <- pieces}
-      yield getOne(boardCopy, piece)
-
-  }*/
-
-  /*  // so for each piece in the list
-  // f: make a board and iterate against all legal locations to create a solution
-  // a solution which is a List of 3 ordered piece / location combinations - we need to keep track of the boards for all 3
-  // - the third board will be the one we look at to see which is the best solution
-  // - at least one solution must have location
-  
-  // couldn't get this recursive solution to work either
-
-  // List[List[(Piece, Option[(Int,Int)])]]
-
-  private def recursiveSimulationAttempt2(pieces: List[Piece]):  List[List[(Piece, (Int, Int), Board)]]  = {
-
-    // accept a list of Pieces, return a list of Piece, Location, Board tuples
-    // then for each piece, select the best Piece / location combo based on Board outcomes
-
-    def simulate(pieces: List[Piece], simulBoard:Board = this.board):  List[List[(Piece, (Int, Int), Board)]] = {
-      if (pieces.isEmpty)
-        List(List())
-      else {
-        val piece = pieces.head
-
-        for {
-          solutions <- simulate(pieces.tail, simulBoard)
-          loc <- simulBoard.legalPlacements(piece).take(2)
-          solution = (piece, loc, simulBoard)
-
-          if (simulBoard.tryPlacementSimulation(pieces.head, loc)) // try placement simulation will be invoked on this simulation copy - so no worries
-        } yield solution :: solutions
-      }
-    }
-
-    simulate(pieces, copyBoard(pieces, this.board))
-
-  }*/
 
   private def copyBoard(pieces: List[Piece], aBoard: Board): Board = Board.copy("board: " + pieces.map(_.name).mkString(", "), aBoard)
 
@@ -449,10 +350,10 @@ class Game {
 
     if (result._1 > 0 || result._2 > 0) {
 
-      def printme(i: Int, s: String): Unit = if (i > 0) println("cleared " + i + " " + s + (if (i > 1) "s" else ""))
+      def printMe(i: Int, s: String): Unit = if (i > 0) println("cleared " + i + " " + s + (if (i > 1) "s" else ""))
 
-      printme(result._1, "row")
-      printme(result._2, "column")
+      printMe(result._1, "row")
+      printMe(result._2, "column")
 
       // show an updated board reflecting the cleared lines
       println("\n" + board)
@@ -535,4 +436,33 @@ class Game {
 
   }
 
+}
+
+object Game {
+
+  // one of the optimizations is to ensure that the maximum number of
+  // maximum pieces can fit on a board from all the boards simulated in the permutation of a set of pieces
+  protected val maximizer = new Box("Maximizer", GameUtil.CYAN, 3)
+
+  def showGameStart(): Unit = {
+
+    println("GAME START")
+    println("\nThis game works by first selecting 3 pieces from the set of all possible pieces.")
+    println("Then it will try all possible orderings (permutations) of placements of those 3 pieces")
+    println("(up to six permutations will be selected depending on whether there are any duplicates).")
+    println("\nThen for each permutation, it will try each position on the board for the first piece")
+    println("and will determine the outcome of clearing lines for that piece piece, then it will place")
+    println("the second piece at all possible locations and check the outcome of clearing lines for the second")
+    println("and finally it will check the third piece at all possible locations and check the outcome")
+    println("of clearing lines for this last piece.")
+    println("\nEach of these combinations of placements will then store the maximum number of legal positions")
+    println("available for this piece (called the maximizer):\n")
+    println(maximizer.toString)
+    println("The game uses the maximizer because it generally is a good choice for making sure there is")
+    println("plenty of space available.")
+    println("\nThe combination of piece placements with the least number of board positions occupied and the most")
+    println("number of legal positions for the maximizer piece is the one that will be selected to play.")
+    println("Each combination for each permutation is called a 'simulation'.")
+
+  }
 }

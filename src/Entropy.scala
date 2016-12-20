@@ -7,13 +7,15 @@
  * which was an implementation of the discussion in
  * http://stats.stackexchange.com/questions/17109/measuring-entropy-information-patterns-of-a-2d-binary-matrix/17556#17556
  * just by the way, the scala code seems easier than the python...
+ *
  */
+
 object Entropy {
 
   def scaledEntropy(n: Int, matrix: Array[Array[Cell]]): Double = {
 
     def distributionAtLocation(row: Int, col: Int): Double = {
-      val occupieds = for {
+      val occupiedPositions = for {
         i <- row until (row + n)
         j <- col until (col + n)
         if matrix(i)(j).occupied
@@ -22,7 +24,7 @@ object Entropy {
       // the distribution is the number of
       // occupied positions divided by the
       // size of the moving window
-      occupieds.length.toDouble / (n * n)
+      occupiedPositions.length.toDouble / (n * n)
 
     }
 

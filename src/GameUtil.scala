@@ -11,7 +11,26 @@ object GameUtil {
   // you could also implement a stepBy if you wanted...
   def longIterFrom(start: Long): Iterator[Long] = Iterator.iterate[Long](start)(l => l + 1)
 
-  def getLocationsList[T](a: Array[Array[T]]) = Array.tabulate(a.length, a.length)((i,j) => (i,j)).flatten.toList
+  def getLocationsList[T](a: Array[Array[T]]): List[(Int, Int)] = Array.tabulate(a.length, a.length)((i, j) => (i, j)).flatten.toList
+
+  // print the character colors that we have available to us
+  def printPossibleColors(): Unit = {
+    for (i <- 30 to 37) {
+      val code = i.toString
+      print(f"\u001b[38;5;$code%sm$code%3s")
+    }
+
+    println("")
+
+    for (i <- 90 to 97) {
+      val code = i.toString
+      print(f"\u001b" +
+        f"[38;5;$code%sm$code%3s")
+    }
+
+    println
+
+  }
 
   val labelFormat = "%-24s: "
   val numberFormat = "%,7d"

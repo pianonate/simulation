@@ -15,7 +15,7 @@ object Islands {
 
     def unoccupied(loc: (Int, Int)): Boolean = !layout(loc._1)(loc._2).occupied
 
-  /*  def isPartOfIsland(loc: (Int, Int), island: ListBuffer[(Int, Int)]): Boolean = {
+    /*  def isPartOfIsland(loc: (Int, Int), island: ListBuffer[(Int, Int)]): Boolean = {
       island.exists { existing =>
 
         val i = existing._1
@@ -47,7 +47,7 @@ object Islands {
       val i = loc._1
       val j = loc._2
 
-      val inbounds = (i >= 0 && i < layout.length && j >= 0 && j < layout(0).length)
+      val inbounds = i >= 0 && i < layout.length && j >= 0 && j < layout(0).length
       if (!inbounds)
         return false
 
@@ -61,13 +61,12 @@ object Islands {
 
     }
 
-    def dfs(loc: (Int, Int), newIsland:ListBuffer[(Int,Int)]): Unit = {
+    def dfs(loc: (Int, Int), newIsland: ListBuffer[(Int, Int)]): Unit = {
 
       // if we haven't visited, say we have
       visited append loc
 
       newIsland append loc
-
 
       // call dfs in all directions - only acting on valid locations - until it can't find any more islands
       val directions = List((-1, 0), (0, -1), (1, 0), (0, 1))
@@ -75,31 +74,32 @@ object Islands {
       for {
         offset <- directions
         tryLoc = (loc._1 + offset._1, loc._2 + offset._2)
-        if (isSafe(tryLoc))
+        if isSafe(tryLoc)
       } dfs(tryLoc, newIsland)
 
     }
 
-    def makeIslandsHelper(locs: List[(Int, Int)]): List[List[(Int, Int)]] = {
+    def makeIslandsHelper(locations: List[(Int, Int)]): List[List[(Int, Int)]] = {
 
       // If an unoccupied cell is not visited yet,
       // then new island found
-      for {loc <- locs
-          if unoccupied(loc)}
-          {
-            if (visited.isEmpty || !visited.contains(loc)) {
-              val newIsland = new ListBuffer[(Int,Int)]
-              islands append newIsland
-              dfs(loc, newIsland)
-            }
-          }
+      for {
+        loc <- locations
+        if unoccupied(loc)
+      } {
+        if (visited.isEmpty || !visited.contains(loc)) {
+          val newIsland = new ListBuffer[(Int, Int)]
+          islands append newIsland
+          dfs(loc, newIsland)
+        }
+      }
 
       islands.map(island => island.toList).toList
     }
 
-    val locs = GameUtil.getLocationsList[Cell](layout)
+    val locations = GameUtil.getLocationsList[Cell](layout)
 
-    makeIslandsHelper(locs)
+    makeIslandsHelper(locations)
 
   }
 
