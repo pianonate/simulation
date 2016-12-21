@@ -20,6 +20,8 @@
  *       potentially you could use the concurrency framework - that would be cool
  *
  */
+import scala.collection.mutable
+
 import GameUtil._
 
 object GameOver extends Exception
@@ -147,6 +149,14 @@ class Game(val highScore: Long) {
     lazy val islandMax: Int = board.islandMax
     lazy val entropy: Double = board.entropy
 
+    def dontBeLazy:Unit = {
+      this.boardCount
+      this.maximizerCount
+      this.openLines
+      this.islandMax
+      this.entropy
+    }
+
     // the following provides tuple ordering to ordered to make the tuple comparison work
     import scala.math.Ordered.orderingToOrdered
 
@@ -175,37 +185,48 @@ class Game(val highScore: Long) {
       boardCopy
     }
 
+    /*
     def maximizerLength(theBoard: Board): Int = theBoard.legalPlacements(Game.maximizer).length
+*/
 
     // todo: make this recursive...
     // todo - you don't need to pass copies of the board, just pass 1 around...
-    def createSimulations: List[Simulation] = {
+    def createSimulations: /*scala.collection.parallel.ParSeq*/List[Simulation] = {
 
+      /*val listBuffer1 =*/ /*new ListBuffer[Simulation]*/
       val listBuffer1 = new ListBuffer[Simulation]
       val listBuffer2 = new ListBuffer[Simulation]
       val listBuffer3 = new ListBuffer[Simulation]
 
-      for (loc1 <- this.board.legalPlacements(p1).par) {
+      val paralegal1 = this.board.legalPlacements(p1).par
+
+      for (loc1 <-  paralegal1) {
         if (simulations.head < maxIterations) {
 
           val board1Copy = placeMe(p1, this.board, loc1)
           val simulation1 = Simulation(List((p1, Some(loc1)), (p2, None), (p3, None)), board1Copy)
           synchronized { listBuffer1 append simulation1 }
 
-          for (loc2 <- board1Copy.legalPlacements(p2).par) {
+          val paralegal2 = board1Copy.legalPlacements(p2).par
+          if (paralegal2.isEmpty) simulation1.dontBeLazy
+
+          for (loc2 <- paralegal2) {
             if (simulations.head < maxIterations) {
 
               val board2Copy = placeMe(p2, board1Copy, loc2)
               val simulation2 = Simulation(List((p1, Some(loc1)), (p2, Some(loc2)), (p3, None)), board2Copy)
-
               synchronized { listBuffer2 append simulation2 }
 
-              for (loc3 <- board2Copy.legalPlacements(p3).par) {
+              val paralegal3 =  board2Copy.legalPlacements(p3).par
+              if (paralegal3.isEmpty) simulation2.dontBeLazy
+
+              for (loc3 <- paralegal3) {
                 if (simulations.head < maxIterations) {
 
                   val board3Copy = placeMe(p3, board2Copy, loc3)
                   val simulation3 = Simulation(List((p1, Some(loc1)), (p2, Some(loc2)), (p3, Some(loc3))), board3Copy)
 
+                  simulation3.dontBeLazy
                   synchronized { listBuffer3 append simulation3 }
 
                 }
@@ -223,13 +244,18 @@ class Game(val highScore: Long) {
         listBuffer2.toList
       else if (listBuffer1.nonEmpty)
         listBuffer1.toList
-      else
+      else {
         // arbitrary large number so that this option will never wih against
         // options that are still viable
-        List(Simulation(List((p1, None), (p2, None), (p3, None)), this.board))
+        val gameOverSimulation = List(Simulation(List((p1, None), (p2, None), (p3, None)), this.board))
+        gameOverSimulation(0).dontBeLazy
+        gameOverSimulation
+      }
     }
 
     val options = createSimulations
+
+    // with the new optimization, sorted should be the slowest thing as it lazy val's the fields of the Simulation
     val best = options.sorted.head
 
     // invert the default comparison and take that as the result for worst

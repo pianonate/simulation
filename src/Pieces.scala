@@ -1,6 +1,7 @@
 /**
  * Created by nathan on 12/18/16.
  * a game needs a new collection of pieces on each run because the pieces maintain their own usage per run
+ * todo if you don't like the sort of pieces at end of game sort, make this thing ordered and provide your own compare
  */
 /*
  following are what the templates look like for creating lines, boxes, and El's
@@ -110,7 +111,6 @@ class Pieces {
 
   override def toString: String = {
 
-    // todo if you don't like this sort, make this thing ordered and provide your own compare
     pieceList
       .sortBy(piece => (piece.usage.head, piece.name))
       .map(piece => GameUtil.labelNumberFormat.format(piece.name, piece.usage.next))
