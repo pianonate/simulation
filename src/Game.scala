@@ -28,7 +28,7 @@ class Game(val highScore: Long) {
   private val SLOW_COMPUTER = true
 
   // TODO: the math right now says we will never be in long territory so switch this bad boy to an int
-  private val MAX_SIMULATION_ITERATIONS = if (SLOW_COMPUTER) 20000l else 1000000l //  100l - 100 speeds up the game significantly
+  private val MAX_SIMULATION_ITERATIONS = if (SLOW_COMPUTER) 30000l else 1000000l //  100l - 100 speeds up the game significantly
 
   private val BYATCH_THRESHOLD = 55000 // your system has some cred if it is doing more than this number of simulations / second
 
@@ -135,9 +135,10 @@ class Game(val highScore: Long) {
 
   case class Simulation(
     boardCount: Int,
+    openLines: Int,
+    islands: Map[Int, Int],
     maximizerCount: Int,
     entropy: Double,
-    islands: Map[Int, Int],
     pieceLocation: List[(Piece, Option[(Int, Int)])],
     board: Board
   ) extends Ordered[Simulation] {
@@ -148,8 +149,8 @@ class Game(val highScore: Long) {
     // new algo - lowest boardCount followed by largest island
     // the following provides tuple ordering to ordered to make the tuple comparison work
     def compare(that: Simulation): Int = {
-      (this.boardCount, that.islandMax, that.maximizerCount, this.entropy)
-        .compare(that.boardCount, this.islandMax, this.maximizerCount, that.entropy)
+      (this.boardCount, that.openLines, that.islandMax, that.maximizerCount, this.entropy)
+        .compare(that.boardCount, this.openLines, this.islandMax, this.maximizerCount, that.entropy)
     }
 
   }
@@ -184,7 +185,7 @@ class Game(val highScore: Long) {
 
           val board1Copy = placeMe(p1, this.board, loc1)
           val maximizerLength1 = maximizerLength(board1Copy)
-          val simulation1 = Simulation(board1Copy.occupiedCount, maximizerLength1, board1Copy.entropy, board1Copy.islands, List((p1, Some(loc1)), (p2, None), (p3, None)), board1Copy)
+          val simulation1 = Simulation(board1Copy.occupiedCount, board1Copy.openLines, board1Copy.islands, maximizerLength1, board1Copy.entropy, List((p1, Some(loc1)), (p2, None), (p3, None)), board1Copy)
           synchronized { listBuffer1 append simulation1 }
 
           for (loc2 <- board1Copy.legalPlacements(p2).par) {
@@ -192,7 +193,7 @@ class Game(val highScore: Long) {
 
               val board2Copy = placeMe(p2, board1Copy, loc2)
               val maximizerLength2 = maximizerLength(board2Copy)
-              val simulation2 = Simulation(board2Copy.occupiedCount, maximizerLength2, board2Copy.entropy, board2Copy.islands, List((p1, Some(loc1)), (p2, Some(loc2)), (p3, None)), board2Copy)
+              val simulation2 = Simulation(board2Copy.occupiedCount, board2Copy.openLines, board2Copy.islands, maximizerLength2, board2Copy.entropy, List((p1, Some(loc1)), (p2, Some(loc2)), (p3, None)), board2Copy)
 
               synchronized { listBuffer2 append simulation2 }
 
@@ -201,7 +202,7 @@ class Game(val highScore: Long) {
 
                   val board3Copy = placeMe(p3, board2Copy, loc3)
                   val maximizerLength3 = maximizerLength(board3Copy)
-                  val simulation3 = Simulation(board3Copy.occupiedCount, maximizerLength3, board3Copy.entropy, board3Copy.islands, List((p1, Some(loc1)), (p2, Some(loc2)), (p3, Some(loc3))), board3Copy)
+                  val simulation3 = Simulation(board3Copy.occupiedCount, board3Copy.openLines, board3Copy.islands, maximizerLength3, board3Copy.entropy, List((p1, Some(loc1)), (p2, Some(loc2)), (p3, Some(loc3))), board3Copy)
 
                   synchronized { listBuffer3 append simulation3 }
 
@@ -223,24 +224,9 @@ class Game(val highScore: Long) {
       else
         // arbitrary large number so that this option will never wih against
         // options that are still viable
-        List(Simulation(100000, 0, this.board.entropy, this.board.islands, List((p1, None), (p2, None), (p3, None)), this.board))
+        List(Simulation(100000, this.board.openLines, this.board.islands, 0, this.board.entropy, List((p1, None), (p2, None), (p3, None)), this.board))
 
     }
-
-    /*   // on a slow computer no point in simulating the first round as there are too many combinations of legal moves
-    if (SLOW_COMPUTER && board.occupiedCount < 10) {
-      println("bypassing simulation for grid with occupied count < 10")
-      val legal1 = board.legalPlacements(p1)
-      val board1 = placeMe(p1, board, legal1.head)
-      val legal2 = board1.legalPlacements(p2)
-      val board2 = placeMe(p2, board1, legal2.head)
-      val legal3 = board2.legalPlacements(p3)
-      val board3 = placeMe(p3, board2, legal3.head)
-
-      // populate this so the max calculation doesn't bust the first time through
-      simulationsPerSecond append 0
-      Simulation(board3.occupiedCount, 0, board3.entropy, board.islands, List((p1, Some(legal1.head)), (p2, Some(legal2.head)), (p3, Some(legal3.head))), board3)
-    } else {*/
 
     val options = createSimulations
     val best = options.sorted.head
@@ -252,14 +238,16 @@ class Game(val highScore: Long) {
     // todo: create a timer class that starts, stops and does a toString
     val duration = t2 - t1
 
-    val simulationCount = "%,d".format(simulations.head)
+    val largeValuesFormat = "%,5d"
+
+    val simulationCount = largeValuesFormat.format(simulations.head)
 
     val perSecond = if (duration > 0) (simulations.head * 1000) / duration else 0
 
     simulationsPerSecond append perSecond
 
-    val durationString = "%,d".format(duration) + "ms"
-    val sPerSecond = "%,d".format(perSecond)
+    val durationString = largeValuesFormat.format(duration) + "ms"
+    val sPerSecond = largeValuesFormat.format(perSecond)
 
     val prefix = "permutation: " + piecesToString(pieces)
 
@@ -270,7 +258,7 @@ class Game(val highScore: Long) {
     )
 
     best
-    /*}*/
+
   }
 
   private def getSimulationResultsString(prefix: String, best: Simulation, worst: Option[Simulation] = None): String = {
@@ -290,8 +278,10 @@ class Game(val highScore: Long) {
       case (b: Simulation, w: Some[Simulation]) => {
         (
           greenify((b.boardCount < w.get.boardCount), b.boardCount, openFormat, "occupied", labelFormat)
-
           + greenify(false, w.get.boardCount, parenFormat, "", "")
+
+          + greenify((b.openLines > w.get.openLines), b.openLines, openFormat, "open lines", labelFormat)
+          + greenify(false, w.get.openLines, parenFormat, "", "")
 
           + greenify(b.islandMax > w.get.islandMax, b.islandMax, openFormat, "islandMax", labelFormat)
           + greenify(false, w.get.islandMax, parenFormat, "", "")
@@ -306,6 +296,7 @@ class Game(val highScore: Long) {
       case (b: Simulation, None) => {
         (
           greenify(true, b.boardCount, openFormat, "occupied", labelFormat)
+          + greenify(true, b.openLines, openFormat, "open lines", longLabelFormat)
           + greenify(true, b.islandMax, openFormat, "islandMax", longLabelFormat)
           + greenify(true, b.maximizerCount, openFormat, "maximizer", longLabelFormat)
           + greenify(true, b.entropy, entropyFormat, "entropy", longLabelFormat)
@@ -355,10 +346,11 @@ class Game(val highScore: Long) {
     assert(expectedOccupiedCount == board.occupiedCount, "Expected occupied: " + expectedOccupiedCount + " actual occupied: " + board.occupiedCount)
 
     println("Score: " + getScoreString(score.head) + " (" + getScoreString(highScore) + ")"
-      + " - positions occupied: " + board.occupiedCount
-      + " - largest contiguous unoccupied: " + best.islandMax
+      + " - occupied: " + board.occupiedCount
+      + " - open lines: " + board.openLines
+      + " - largest contiguous unoccupied: " + best.islandMax // a little unusual - todo: you could put islandMax on the board - makes more sense there
       + " - maximizer positions available: " + board.legalPlacements(Game.maximizer).length
-      + " - disorder (aka entropy) of the board: " + entropyFormat.format(board.entropy))
+      + " - disorder (aka entropy): " + entropyFormat.format(board.entropy))
   }
 
   private def handleLineClearing() = {

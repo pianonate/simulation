@@ -31,6 +31,23 @@ class Board(val layout: Array[Array[Cell]], val name: String, val color: String)
 
   def islands: Map[Int, Int] = Islands.findIslands(this.layout).groupBy(_.length).mapValues(_.length)
 
+  def openLines: Int = {
+
+    val openRows = layout.filter(row => row.forall(!_.occupied)).length
+
+    def openCol(col: Int): Boolean = layout.forall(row => !row(col).occupied)
+
+    val openCols: Int = {
+      for {
+        i <- this.layout.indices
+        if openCol(i)
+      } yield i
+    }.length
+
+    openRows + openCols
+
+  }
+
   // changed to not use a rotated copy of the board
   // slight increase in LOC but definite decrease in % of code execution time
   // from ~24% with the original version - now it's 226102 / 1543684 = 0.146469096 = 14.6% of code execution time
