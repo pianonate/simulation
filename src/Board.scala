@@ -98,16 +98,6 @@ class Board(val layout: Array[Array[Cell]], val name: String, val color: String)
 
   }
 
-  def simulatePlacement(piece: Piece, loc: (Int, Int)): Unit = {
-
-    // place the piece on a copy, clear the lines
-    // and return the occupied count and location that results from that occupied count
-    // we'll then sort the result of all occupied counts to see which one has the lowest value
-    // and from there - we're golden
-    place(piece, loc)
-    this.clearLines()
-  }
-
   // todo: this one could go away if we get rid of tryPlacement and all of that - or maybe not
   // instead the Game will be simulating on legal locations so will just use
   // the other definition of place

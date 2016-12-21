@@ -10,6 +10,7 @@ object GameRunner {
 
     // todo - stash high scores in a file you can read at startup of the game
     // high score to date is 10,894!
+    // after open lines optimization 22,603
 
     // different than game continuous mode which simply
     // controls whether you hit enter to place the next piece

@@ -2,6 +2,9 @@
  * Created by nathan on 12/10/16.
  * Game will hold a reference to the current board and will also invoke simulations
  *
+ * TODO: see if saving a simulation allows re-use from the first round through
+ *       don't calculate entropy maximizer, etc. until you get to the last simulation.  Only save the last board state for simulations....
+ *
  * Todo: save every move in a game so you can replay it if it's awesome
  *
  * Todo: Maximizer on first round should still be correct even if simulations are bypassed
@@ -28,7 +31,7 @@ class Game(val highScore: Long) {
   private val SLOW_COMPUTER = true
 
   // TODO: the math right now says we will never be in long territory so switch this bad boy to an int
-  private val MAX_SIMULATION_ITERATIONS = if (SLOW_COMPUTER) 50000l else 1000000l //  100l - 100 speeds up the game significantly
+  private val MAX_SIMULATION_ITERATIONS = if (SLOW_COMPUTER) 10000l else 1000000l //  100l - 100 speeds up the game significantly
 
   private val BYATCH_THRESHOLD = 55000 // your system has some cred if it is doing more than this number of simulations / second
 
@@ -82,7 +85,7 @@ class Game(val highScore: Long) {
         println(getSimulationResultsString("     Chosen: " + piecesToString(best.pieceLocation.map(pieceLoc => pieceLoc._1)), best, None))
 
         // pause for effect
-        Thread.sleep(2000)
+        Thread.sleep(750)
 
         best.pieceLocation.foreach(tup => handleThePiece(best, tup._1, tup._2, board.placeOrFail))
 
@@ -167,13 +170,15 @@ class Game(val highScore: Long) {
     def placeMe(piece: Piece, theBoard: Board, loc: (Int, Int)): Board = {
       simulations.next() // simulation counter increased
       val boardCopy = copyBoard(List(piece), theBoard)
-      boardCopy.simulatePlacement(piece, loc)
+      boardCopy.place(piece, loc)
+      boardCopy.clearLines()
       boardCopy
     }
 
     def maximizerLength(theBoard: Board): Int = theBoard.legalPlacements(Game.maximizer).length
 
     // todo: make this recursive...
+    // todo - you don't need to pass copies of the board, just pass 1 around...
     def createSimulations: List[Simulation] = {
 
       val listBuffer1 = new ListBuffer[Simulation]
@@ -351,6 +356,9 @@ class Game(val highScore: Long) {
       + " - open lines: " + board.openLines
       + " - largest contiguous unoccupied: " + best.islandMax // a little unusual - todo: you could put islandMax on the board - makes more sense there
       + " - disorder (aka entropy): " + entropyFormat.format(board.entropy))
+
+    // pace these things out
+    Thread.sleep(750)
   }
 
   private def handleLineClearing() = {
