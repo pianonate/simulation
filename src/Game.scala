@@ -2,6 +2,14 @@
  * Created by nathan on 12/10/16.
  * Game will hold a reference to the current board and will also invoke simulations
  *
+ * TODO: Kevin suggests assigning values from 0 to 5 to 0 on both axes and minimize for placement on higher valued squares
+ *       I.e., stay out of the middle
+ *
+ * TODO: Kevin suggests only running simulations where stuff exists or on the left col or top row depending on piece length
+ *       only expand out to other simulations if you HAVE to - this might provide a lot of savings
+ *       for example if you place 3 singletons on an empty board, there's no reason to move the pieces further than 3 out from the origin - huge savings
+ *
+ *
  * TODO: see if saving a simulation allows re-use from the first round through
  *       don't calculate entropy maximizer, etc. until you get to the last simulation.  Only save the last board state for simulations....
  *
@@ -186,6 +194,9 @@ class Game(val highScore: Long) {
     }
 
     // todo: make this recursive...
+    //       even depth first must pass a copy of the board to lower levels otherwise you mess with state
+    // todo: see if removing entropy helps speed things up - also see if removing islandMax speeds things up
+    //       pretty sure it will
     // todo - IMPORTANT see if you can cache board states
     def createSimulations: /*scala.collection.parallel.ParSeq*/List[Simulation] = {
 
