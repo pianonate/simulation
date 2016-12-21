@@ -15,7 +15,7 @@ object GameUtil {
   // in 'production' this is now running on an Array[Array[Cell]]
   def getLocationsList[T](a: Array[Array[T]]): List[(Int, Int)] = Array.tabulate(a.length, a.length)((i, j) => (i, j)).flatten.toList
 
-  def getScoreString(score: String): String = GREEN + score + SANE
+  def getScoreString(score: Long): String = (GREEN + "%,d".format(score) + SANE)
 
   // print the character colors that we have available to us
   def printPossibleColors(): Unit = {
@@ -36,9 +36,11 @@ object GameUtil {
 
   }
 
+  // these are used in the end game
   val labelFormat = "%-24s: "
   val numberFormat = "%,7d"
   val labelNumberFormat: String = labelFormat + numberFormat
+  val entropyFormat = "%1.4f"
 
   // Color code strings from:
   // http://www.topmudsites.com/forums/mud-coding/413-java-ansi.html

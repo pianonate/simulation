@@ -70,11 +70,14 @@ class Board(val layout: Array[Array[Cell]], val name: String, val color: String)
     (clearableRows.length, clearableCols.length)
   }
 
-  def placeKnownLegal(piece: Piece, loc: Option[(Int, Int)]): Boolean = loc match {
+  // when the simulation can't find a possible location
+  // then the this will not be able to place a piece
+  // in which case return false
+  def placeOrFail(piece: Piece, loc: Option[(Int, Int)]): Unit = loc match {
 
     case Some(l) =>
-      place(piece, l); true
-    case None => false
+      place(piece, l)
+    case None => throw GameOver
 
   }
 

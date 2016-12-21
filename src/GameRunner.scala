@@ -42,7 +42,7 @@ object GameRunner {
         println("MULTIPLE GAME STATS")
         println
         println(labelFormat.format("Games Played") + numberFormat.format(scores.size))
-        println(labelFormat.format("High Score") + getScoreString(numberFormat.format(highScore)))
+        println(labelFormat.format("High Score") + getScoreString(highScore))
         println(labelFormat.format("Most Rounds") + numberFormat.format(mostRounds))
         println(labelFormat.format("Most Simulations/Second") + numberFormat.format(bestPerSecond))
 

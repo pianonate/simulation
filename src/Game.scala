@@ -61,8 +61,6 @@ class Game(val highScore: Long) {
 
       do {
 
-        println("\nRound: " + (rounds.next + 1))
-
         // get 3 random pieces
         val pieces = getPieces
 
@@ -80,11 +78,13 @@ class Game(val highScore: Long) {
           .map(pieceSequenceSimulation(_, MAX_SIMULATION_ITERATIONS)).sorted
 
         val best = permutations.head
-        // todo remove println duplication of count, maximizer, entropy
-        println("Chosen: " + piecesToString(best.pieceLocation.map(pieceLoc => pieceLoc._1))
-          + " - expected (islandMax: " + best.islandMax + " occ: " + best.boardCount + ", maximizer: " + best.maximizerCount + " entropy: %1.4f".format(best.entropy) + ")")
 
-        best.pieceLocation.foreach(tup => handleThePiece(tup._1, tup._2, board.placeKnownLegal))
+        println(getSimulationResultsString("     Chosen: " + piecesToString(best.pieceLocation.map(pieceLoc => pieceLoc._1)), best, None))
+
+        // pause for effect
+        Thread.sleep(2000)
+
+        best.pieceLocation.foreach(tup => handleThePiece(best, tup._1, tup._2, board.placeOrFail))
 
         showBoardFooter()
 
@@ -145,38 +145,12 @@ class Game(val highScore: Long) {
     val islandMax: Int = islands.keys.max
     import scala.math.Ordered.orderingToOrdered
 
-    // now we're getting somewhere
-
-    // this ordering will ensure that a lower boardCount wins EVEN if the maximizer ends up with a higher number of positions available
-    // and if lowest boardCount is the same then maximizer, of course, breaks the tie
-    // this didn't work very well
-    /*    def compare(that: Simulation): Int = {
-      boardCount compare that.boardCount match {
-        case 0 => that.maximizerCount - maximizerCount // when boardCount is the same, then favor the higher maximizerCount
-        case differentBoardCount => differentBoardCount // accept default ordering of integers for the boardCount
-      }*/
-
-    // new algo:
-    // ensure that the maximizeCount is largest
-    // if there is a tie, then order by boardCount
-    /*    def compare(that: Simulation): Int = {
-      maximizerCount compare that.maximizerCount match {
-        case 0 => boardCount - that.boardCount                               // when maximizerCount is the same, then favor the lower boardCount
-        case differentMaximizerCount => that.maximizerCount - maximizerCount // when they are different, favor the larger
-      }*/
-
-    // new algo
-    // maximizer wins otherwise it's entropy
-    /*def compare(that: Simulation): Int = {
-      maximizerCount compare that.maximizerCount match {
-        case 0 => entropy compare that.entropy // when maximizerCount is the same, then favor the lowest entropy
-        case _ => that.maximizerCount - maximizerCount // when they are different, favor the larger
-      }*/
-
     // new algo - lowest boardCount followed by largest island
     // the following provides tuple ordering to ordered to make the tuple comparison work
-    def compare(that: Simulation): Int =
-      (this.boardCount, that.islandMax, that.maximizerCount) compare (that.boardCount, this.islandMax, this.maximizerCount)
+    def compare(that: Simulation): Int = {
+      (this.boardCount, that.islandMax, that.maximizerCount, this.entropy)
+        .compare(that.boardCount, this.islandMax, this.maximizerCount, that.entropy)
+    }
 
   }
 
@@ -253,7 +227,7 @@ class Game(val highScore: Long) {
 
     }
 
-    // on a slow computer no point in simulating the first round as there are too many combinations of legal moves
+    /*   // on a slow computer no point in simulating the first round as there are too many combinations of legal moves
     if (SLOW_COMPUTER && board.occupiedCount < 10) {
       println("bypassing simulation for grid with occupied count < 10")
       val legal1 = board.legalPlacements(p1)
@@ -266,44 +240,82 @@ class Game(val highScore: Long) {
       // populate this so the max calculation doesn't bust the first time through
       simulationsPerSecond append 0
       Simulation(board3.occupiedCount, 0, board3.entropy, board.islands, List((p1, Some(legal1.head)), (p2, Some(legal2.head)), (p3, Some(legal3.head))), board3)
-    } else {
+    } else {*/
 
-      val options = createSimulations
-      val best = options.sorted.head
-      // invert the default comparison and take that as the result
-      val worst = options.sortWith(_ > _).head
+    val options = createSimulations
+    val best = options.sorted.head
 
-      val simulationCount = "%,d".format(simulations.head)
+    // invert the default comparison and take that as the result for worst
+    val worst = options.sortWith(_ > _).head
 
-      val t2 = System.currentTimeMillis
+    val t2 = System.currentTimeMillis
+    // todo: create a timer class that starts, stops and does a toString
+    val duration = t2 - t1
 
-      // todo: create a timer class that starts, stops and does a toString
-      val duration = t2 - t1
-      val durationString = "%,d".format(duration) + "ms"
+    val simulationCount = "%,d".format(simulations.head)
 
-      val perSecond = if (duration > 0) (simulations.head * 1000) / duration else 0
-      simulationsPerSecond append perSecond
+    val perSecond = if (duration > 0) (simulations.head * 1000) / duration else 0
 
-      val sPerSecond = "%,d".format(perSecond)
+    simulationsPerSecond append perSecond
 
-      // TODO - CLEANUP DUPLICATION
-      println("permutation: " + piecesToString(pieces)
-        + " - islandMax: " + (if (best.islandMax > worst.islandMax) GameUtil.GREEN else "")
-        + best.islandMax + GameUtil.SANE
-        + " (" + worst.islandMax + ")"
-        + " - occupied: " + (if (best.boardCount < worst.boardCount) GameUtil.GREEN else "")
-        + best.boardCount + GameUtil.SANE
-        + " (" + worst.boardCount + "), maximizer: " + (if (best.maximizerCount > worst.maximizerCount) GameUtil.GREEN else "")
-        + best.maximizerCount + GameUtil.SANE
-        + " (" + worst.maximizerCount + "), entropy: " + (if (best.entropy < worst.entropy) GameUtil.GREEN else "")
-        + "%1.4f".format(best.entropy) + GameUtil.SANE
-        + " (%1.4f".format(worst.entropy) + ")"
-        + " - simulations: " + simulationCount
-        + " in " + durationString
-        + " (" + sPerSecond + "/second" + (if (perSecond > BYATCH_THRESHOLD) " b-yatch" else "") + ")")
+    val durationString = "%,d".format(duration) + "ms"
+    val sPerSecond = "%,d".format(perSecond)
 
-      best
+    val prefix = "permutation: " + piecesToString(pieces)
+
+    println(
+      getSimulationResultsString(prefix, best, Some(worst))
+        + " - simulations: " + simulationCount + " in " + durationString
+        + " (" + sPerSecond + "/second" + (if (perSecond > BYATCH_THRESHOLD) " b-yatch" else "") + ")"
+    )
+
+    best
+    /*}*/
+  }
+
+  private def getSimulationResultsString(prefix: String, best: Simulation, worst: Option[Simulation] = None): String = {
+
+    val greenify = (b: Boolean, v: AnyVal, valFormat: String, label: String, labelFormat: String) => {
+      val result = valFormat.format(v)
+      labelFormat.format(label) + (if (b) (GameUtil.GREEN + result + GameUtil.SANE) else result)
     }
+
+    val openFormat = "%2d"
+    val parenFormat = " (" + openFormat + ")"
+    val parenEntropyFormat = " (" + entropyFormat + ")"
+    val labelFormat = " %s: "
+    val longLabelFormat = "     " + labelFormat
+
+    val results = (best, worst) match {
+      case (b: Simulation, w: Some[Simulation]) => {
+        (
+          greenify((b.boardCount < w.get.boardCount), b.boardCount, openFormat, "occupied", labelFormat)
+
+          + greenify(false, w.get.boardCount, parenFormat, "", "")
+
+          + greenify(b.islandMax > w.get.islandMax, b.islandMax, openFormat, "islandMax", labelFormat)
+          + greenify(false, w.get.islandMax, parenFormat, "", "")
+
+          + greenify(b.maximizerCount > w.get.maximizerCount, b.maximizerCount, openFormat, "maximizer", labelFormat)
+          + greenify(false, w.get.maximizerCount, parenFormat, "", "")
+
+          + greenify(b.entropy < w.get.entropy, b.entropy, entropyFormat, "entropy", labelFormat)
+          + greenify(false, w.get.entropy, parenEntropyFormat, "", "")
+        )
+      }
+      case (b: Simulation, None) => {
+        (
+          greenify(true, b.boardCount, openFormat, "occupied", labelFormat)
+          + greenify(true, b.islandMax, openFormat, "islandMax", longLabelFormat)
+          + greenify(true, b.maximizerCount, openFormat, "maximizer", longLabelFormat)
+          + greenify(true, b.entropy, entropyFormat, "entropy", longLabelFormat)
+        )
+      }
+
+    }
+
+    prefix + " -" + results
+
   }
 
   // todo:  can this be turned into an implicit for a List[Piece].toString call?  if so, that would be nice
@@ -311,7 +323,7 @@ class Game(val highScore: Long) {
 
   private def copyBoard(pieces: List[Piece], aBoard: Board): Board = Board.copy("board: " + pieces.map(_.name).mkString(", "), aBoard)
 
-  private def handleThePiece(piece: Piece, loc: Option[(Int, Int)], f: (Piece, Option[(Int, Int)]) => Boolean): Unit = {
+  private def handleThePiece(best: Simulation, piece: Piece, loc: Option[(Int, Int)], f: (Piece, Option[(Int, Int)]) => Unit): Unit = {
 
     val currentOccupied = board.occupiedCount
     val curRowsCleared = rowsCleared.head
@@ -319,9 +331,8 @@ class Game(val highScore: Long) {
 
     println("\nAttempting piece: " + ((placed.next % 3) + 1) + "\n" + piece.toString + "\n")
 
-    // passed in a handler function when i was trying out various simulations.
-    // but right now there is only one handler so I don't know if need to keep this nicety around
-    if (!f(piece, loc)) throw GameOver // GameOver will be caught by the run method do loop otherwise start aggregating...
+    // a function designed to throw GameOver if it receives no valid locations
+    f(piece, loc)
 
     piece.usage.next
 
@@ -343,9 +354,11 @@ class Game(val highScore: Long) {
 
     assert(expectedOccupiedCount == board.occupiedCount, "Expected occupied: " + expectedOccupiedCount + " actual occupied: " + board.occupiedCount)
 
-    println("Score: " + getScoreString(score.head.toString) + " (" + getScoreString(highScore.toString) + ")"
+    println("Score: " + getScoreString(score.head) + " (" + getScoreString(highScore) + ")"
       + " - positions occupied: " + board.occupiedCount
-      + " - maximizer positions available: " + board.legalPlacements(Game.maximizer).length)
+      + " - largest contiguous unoccupied: " + best.islandMax
+      + " - maximizer positions available: " + board.legalPlacements(Game.maximizer).length
+      + " - disorder (aka entropy) of the board: " + entropyFormat.format(board.entropy))
   }
 
   private def handleLineClearing() = {
@@ -389,7 +402,7 @@ class Game(val highScore: Long) {
 
     println("\nGAME OVER!!\n")
 
-    println(labelFormat.format("Final Score") + getScoreString(numberFormat.format(score.head)))
+    println(labelFormat.format("Final Score") + getScoreString(score.head))
     println(labelNumberFormat.format("Rounds", rounds.head))
     println(labelNumberFormat.format("Rows Cleared", rowsCleared.head))
     println(labelNumberFormat.format("Cols Cleared", colsCleared.head))
@@ -427,7 +440,7 @@ class Game(val highScore: Long) {
 
     }
 
-    println("Candidate pieces:")
+    println("\nRound: " + (rounds.next + 1) + " - Candidate pieces:")
 
     // turn arrays into a list so you can transpose them
     // transpose will create a list of 1st rows, a list of 2nd rows, etc.
