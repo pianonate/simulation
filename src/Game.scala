@@ -28,7 +28,7 @@ class Game(val highScore: Long) {
   private val SLOW_COMPUTER = true
 
   // TODO: the math right now says we will never be in long territory so switch this bad boy to an int
-  private val MAX_SIMULATION_ITERATIONS = if (SLOW_COMPUTER) 30000l else 1000000l //  100l - 100 speeds up the game significantly
+  private val MAX_SIMULATION_ITERATIONS = if (SLOW_COMPUTER) 50000l else 1000000l //  100l - 100 speeds up the game significantly
 
   private val BYATCH_THRESHOLD = 55000 // your system has some cred if it is doing more than this number of simulations / second
 
@@ -103,7 +103,7 @@ class Game(val highScore: Long) {
     showGameOver(duration)
 
     // return the score and the number of rounds to Main - where such things are tracked across game instances
-    // Todo:  Maybe a GameRunner class should be introduced so that Main is simply a hand off to GameRunner
+
     // this would be more clear - then Main's only purpose is to be the application entry point
     (score.head, rounds.head, simulationsPerSecond.max)
 
@@ -149,8 +149,8 @@ class Game(val highScore: Long) {
     // new algo - lowest boardCount followed by largest island
     // the following provides tuple ordering to ordered to make the tuple comparison work
     def compare(that: Simulation): Int = {
-      (this.boardCount, that.openLines, that.islandMax, that.maximizerCount, this.entropy)
-        .compare(that.boardCount, this.openLines, this.islandMax, this.maximizerCount, that.entropy)
+      (this.boardCount, that.maximizerCount, that.openLines, that.islandMax, this.entropy)
+        .compare(that.boardCount, this.maximizerCount, this.openLines, this.islandMax, that.entropy)
     }
 
   }
@@ -280,14 +280,14 @@ class Game(val highScore: Long) {
           greenify((b.boardCount < w.get.boardCount), b.boardCount, openFormat, "occupied", labelFormat)
           + greenify(false, w.get.boardCount, parenFormat, "", "")
 
+          + greenify(b.maximizerCount > w.get.maximizerCount, b.maximizerCount, openFormat, "maximizer", labelFormat)
+          + greenify(false, w.get.maximizerCount, parenFormat, "", "")
+
           + greenify((b.openLines > w.get.openLines), b.openLines, openFormat, "open lines", labelFormat)
           + greenify(false, w.get.openLines, parenFormat, "", "")
 
           + greenify(b.islandMax > w.get.islandMax, b.islandMax, openFormat, "islandMax", labelFormat)
           + greenify(false, w.get.islandMax, parenFormat, "", "")
-
-          + greenify(b.maximizerCount > w.get.maximizerCount, b.maximizerCount, openFormat, "maximizer", labelFormat)
-          + greenify(false, w.get.maximizerCount, parenFormat, "", "")
 
           + greenify(b.entropy < w.get.entropy, b.entropy, entropyFormat, "entropy", labelFormat)
           + greenify(false, w.get.entropy, parenEntropyFormat, "", "")
@@ -296,9 +296,9 @@ class Game(val highScore: Long) {
       case (b: Simulation, None) => {
         (
           greenify(true, b.boardCount, openFormat, "occupied", labelFormat)
+          + greenify(true, b.maximizerCount, openFormat, "maximizer", longLabelFormat)
           + greenify(true, b.openLines, openFormat, "open lines", longLabelFormat)
           + greenify(true, b.islandMax, openFormat, "islandMax", longLabelFormat)
-          + greenify(true, b.maximizerCount, openFormat, "maximizer", longLabelFormat)
           + greenify(true, b.entropy, entropyFormat, "entropy", longLabelFormat)
         )
       }
@@ -347,9 +347,9 @@ class Game(val highScore: Long) {
 
     println("Score: " + getScoreString(score.head) + " (" + getScoreString(highScore) + ")"
       + " - occupied: " + board.occupiedCount
+      + " - maximizer positions available: " + board.legalPlacements(Game.maximizer).length
       + " - open lines: " + board.openLines
       + " - largest contiguous unoccupied: " + best.islandMax // a little unusual - todo: you could put islandMax on the board - makes more sense there
-      + " - maximizer positions available: " + board.legalPlacements(Game.maximizer).length
       + " - disorder (aka entropy): " + entropyFormat.format(board.entropy))
   }
 
