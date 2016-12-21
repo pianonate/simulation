@@ -87,7 +87,7 @@ class Game(val highScore: Long) {
         println(getSimulationResultsString("     Chosen: " + piecesToString(best.pieceLocation.map(pieceLoc => pieceLoc._1)), best, None))
 
         // pause for effect
-        Thread.sleep(750)
+        sleepShort
 
         best.pieceLocation.foreach(tup => handleThePiece(best, tup._1, tup._2, board.placeOrFail))
 
@@ -185,12 +185,8 @@ class Game(val highScore: Long) {
       boardCopy
     }
 
-    /*
-    def maximizerLength(theBoard: Board): Int = theBoard.legalPlacements(Game.maximizer).length
-*/
-
     // todo: make this recursive...
-    // todo - you don't need to pass copies of the board, just pass 1 around...
+    // todo - IMPORTANT see if you can cache board states
     def createSimulations: /*scala.collection.parallel.ParSeq*/List[Simulation] = {
 
       /*val listBuffer1 =*/ /*new ListBuffer[Simulation]*/
@@ -208,7 +204,7 @@ class Game(val highScore: Long) {
           synchronized { listBuffer1 append simulation1 }
 
           val paralegal2 = board1Copy.legalPlacements(p2).par
-          if (paralegal2.isEmpty) simulation1.dontBeLazy
+          if (paralegal2.isEmpty) {simulation1.dontBeLazy}
 
           for (loc2 <- paralegal2) {
             if (simulations.head < maxIterations) {
@@ -218,7 +214,7 @@ class Game(val highScore: Long) {
               synchronized { listBuffer2 append simulation2 }
 
               val paralegal3 =  board2Copy.legalPlacements(p3).par
-              if (paralegal3.isEmpty) simulation2.dontBeLazy
+              if (paralegal3.isEmpty) { simulation2.dontBeLazy}
 
               for (loc3 <- paralegal3) {
                 if (simulations.head < maxIterations) {
@@ -386,7 +382,7 @@ class Game(val highScore: Long) {
       + " - disorder (aka entropy): " + entropyFormat.format(board.entropy))
 
     // pace these things out
-    Thread.sleep(750)
+    sleepShort
   }
 
   private def handleLineClearing() = {

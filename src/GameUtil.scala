@@ -36,6 +36,8 @@ object GameUtil {
 
   }
 
+  def sleepShort:Unit = Thread.sleep(500)
+
   // these are used in the end game
   val labelFormat = "%-24s: "
   val numberFormat = "%,7d"
