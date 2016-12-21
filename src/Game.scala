@@ -137,20 +137,20 @@ class Game(val highScore: Long) {
   }
 
   case class Simulation(
-    boardCount: Int,
-    openLines: Int,
-    islands: Map[Int, Int],
-    maximizerCount: Int,
-    entropy: Double,
     pieceLocation: List[(Piece, Option[(Int, Int)])],
     board: Board
   ) extends Ordered[Simulation] {
 
-    val islandMax: Int = islands.keys.max
+    lazy val boardCount: Int = board.occupiedCount
+    lazy val maximizerCount: Int = board.legalPlacements(Game.maximizer).length
+    lazy val openLines: Int = board.openLines
+    lazy val islandMax: Int = board.islandMax
+    lazy val entropy: Double = board.entropy
+
+    // the following provides tuple ordering to ordered to make the tuple comparison work
     import scala.math.Ordered.orderingToOrdered
 
     // new algo - lowest boardCount followed by largest island
-    // the following provides tuple ordering to ordered to make the tuple comparison work
     def compare(that: Simulation): Int = {
       (this.boardCount, that.maximizerCount, that.openLines, that.islandMax, this.entropy)
         .compare(that.boardCount, this.maximizerCount, this.openLines, this.islandMax, that.entropy)
@@ -189,16 +189,14 @@ class Game(val highScore: Long) {
         if (simulations.head < maxIterations) {
 
           val board1Copy = placeMe(p1, this.board, loc1)
-          val maximizerLength1 = maximizerLength(board1Copy)
-          val simulation1 = Simulation(board1Copy.occupiedCount, board1Copy.openLines, board1Copy.islands, maximizerLength1, board1Copy.entropy, List((p1, Some(loc1)), (p2, None), (p3, None)), board1Copy)
+          val simulation1 = Simulation(List((p1, Some(loc1)), (p2, None), (p3, None)), board1Copy)
           synchronized { listBuffer1 append simulation1 }
 
           for (loc2 <- board1Copy.legalPlacements(p2).par) {
             if (simulations.head < maxIterations) {
 
               val board2Copy = placeMe(p2, board1Copy, loc2)
-              val maximizerLength2 = maximizerLength(board2Copy)
-              val simulation2 = Simulation(board2Copy.occupiedCount, board2Copy.openLines, board2Copy.islands, maximizerLength2, board2Copy.entropy, List((p1, Some(loc1)), (p2, Some(loc2)), (p3, None)), board2Copy)
+              val simulation2 = Simulation(List((p1, Some(loc1)), (p2, Some(loc2)), (p3, None)), board2Copy)
 
               synchronized { listBuffer2 append simulation2 }
 
@@ -206,8 +204,7 @@ class Game(val highScore: Long) {
                 if (simulations.head < maxIterations) {
 
                   val board3Copy = placeMe(p3, board2Copy, loc3)
-                  val maximizerLength3 = maximizerLength(board3Copy)
-                  val simulation3 = Simulation(board3Copy.occupiedCount, board3Copy.openLines, board3Copy.islands, maximizerLength3, board3Copy.entropy, List((p1, Some(loc1)), (p2, Some(loc2)), (p3, Some(loc3))), board3Copy)
+                  val simulation3 = Simulation(List((p1, Some(loc1)), (p2, Some(loc2)), (p3, Some(loc3))), board3Copy)
 
                   synchronized { listBuffer3 append simulation3 }
 
@@ -229,8 +226,7 @@ class Game(val highScore: Long) {
       else
         // arbitrary large number so that this option will never wih against
         // options that are still viable
-        List(Simulation(100000, this.board.openLines, this.board.islands, 0, this.board.entropy, List((p1, None), (p2, None), (p3, None)), this.board))
-
+        List(Simulation(List((p1, None), (p2, None), (p3, None)), this.board))
     }
 
     val options = createSimulations
@@ -279,32 +275,38 @@ class Game(val highScore: Long) {
     val labelFormat = " %s: "
     val longLabelFormat = "     " + labelFormat
 
+    val occupiedLabel = "occ"
+    val maximizerLable = "mxmzr"
+    val openLabel = "openRC"
+    val islandMaxLabel = "islandMax"
+    val entropyLabel = "ntrpy"
+
     val results = (best, worst) match {
       case (b: Simulation, w: Some[Simulation]) => {
         (
-          greenify((b.boardCount < w.get.boardCount), b.boardCount, openFormat, "occupied", labelFormat)
+          greenify((b.boardCount < w.get.boardCount), b.boardCount, openFormat, occupiedLabel, labelFormat)
           + greenify(false, w.get.boardCount, parenFormat, "", "")
 
-          + greenify(b.maximizerCount > w.get.maximizerCount, b.maximizerCount, openFormat, "maximizer", labelFormat)
+          + greenify(b.maximizerCount > w.get.maximizerCount, b.maximizerCount, openFormat, maximizerLable, labelFormat)
           + greenify(false, w.get.maximizerCount, parenFormat, "", "")
 
-          + greenify((b.openLines > w.get.openLines), b.openLines, openFormat, "open lines", labelFormat)
+          + greenify((b.openLines > w.get.openLines), b.openLines, openFormat, openLabel, labelFormat)
           + greenify(false, w.get.openLines, parenFormat, "", "")
 
-          + greenify(b.islandMax > w.get.islandMax, b.islandMax, openFormat, "islandMax", labelFormat)
+          + greenify(b.islandMax > w.get.islandMax, b.islandMax, openFormat, islandMaxLabel, labelFormat)
           + greenify(false, w.get.islandMax, parenFormat, "", "")
 
-          + greenify(b.entropy < w.get.entropy, b.entropy, entropyFormat, "entropy", labelFormat)
+          + greenify(b.entropy < w.get.entropy, b.entropy, entropyFormat, entropyLabel, labelFormat)
           + greenify(false, w.get.entropy, parenEntropyFormat, "", "")
         )
       }
       case (b: Simulation, None) => {
         (
-          greenify(true, b.boardCount, openFormat, "occupied", labelFormat)
-          + greenify(true, b.maximizerCount, openFormat, "maximizer", longLabelFormat)
-          + greenify(true, b.openLines, openFormat, "open lines", longLabelFormat)
-          + greenify(true, b.islandMax, openFormat, "islandMax", longLabelFormat)
-          + greenify(true, b.entropy, entropyFormat, "entropy", longLabelFormat)
+          greenify(true, b.boardCount, openFormat, occupiedLabel, labelFormat)
+          + greenify(true, b.maximizerCount, openFormat, maximizerLable, longLabelFormat)
+          + greenify(true, b.openLines, openFormat, openLabel, longLabelFormat)
+          + greenify(true, b.islandMax, openFormat, islandMaxLabel, longLabelFormat)
+          + greenify(true, b.entropy, entropyFormat, entropyLabel, longLabelFormat)
         )
       }
 

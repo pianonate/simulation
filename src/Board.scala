@@ -29,7 +29,10 @@ class Board(val layout: Array[Array[Cell]], val name: String, val color: String)
   // todo - right now we're using a scale value of 3 - maybe we want to try multiple values such as 3 and 4 and return the sum...
   def entropy: Double = Entropy.scaledEntropy(3, this.layout)
 
-  def islands: Map[Int, Int] = Islands.findIslands(this.layout).groupBy(_.length).mapValues(_.length)
+  // todo potentially you turn islands back into a def because it may be that you want to call it on the board more than once after  astate change
+  private lazy val islands: Map[Int, Int] = Islands.findIslands(this.layout).groupBy(_.length).mapValues(_.length)
+
+  def islandMax: Int = islands.keys.max
 
   def openLines: Int = {
 
