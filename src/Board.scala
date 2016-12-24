@@ -27,12 +27,14 @@ class Board(val layout: Array[Array[Cell]], val name: String, val color: String)
   private val allLocations: List[(Int, Int)] = GameUtil.getLocationsList[Cell](layout)
 
   // todo - right now we're using a scale value of 3 - maybe we want to try multiple values such as 3 and 4 and return the sum...
-  def entropy: Double = Entropy.scaledEntropy(3, this.layout)
+  // temporary disable
+  def entropy: Double = 0.0 // Entropy.scaledEntropy(3, this.layout)
 
   // todo potentially you turn islands back into a def because it may be that you want to call it on the board more than once after  astate change
   private lazy val islands: Map[Int, Int] = Islands.findIslands(this.layout).groupBy(_.length).mapValues(_.length)
 
-  def islandMax: Int = islands.keys.max
+  // temporary disable
+  def islandMax: Int = 0 // islands.keys.max
 
   def openLines: Int = {
 
@@ -88,17 +90,6 @@ class Board(val layout: Array[Array[Cell]], val name: String, val color: String)
 
     // rows cleared and cols cleared
     (clearableRows.length, clearableCols.length)
-  }
-
-  // when the simulation can't find a possible location
-  // then the this will not be able to place a piece
-  // in which case return false
-  def placeOrFail(piece: Piece, loc: Option[(Int, Int)]): Unit = loc match {
-
-    case Some(l) =>
-      place(piece, l)
-    case None => throw GameOver
-
   }
 
   // todo: this one could go away if we get rid of tryPlacement and all of that - or maybe not

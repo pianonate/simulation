@@ -36,12 +36,15 @@ object GameOver extends Exception
 
 class Game(val highScore: Long) {
 
-  import scala.collection.mutable.ListBuffer
 
   private val SLOW_COMPUTER = true
 
+  // Todo: create a manifest object that specifies the ordering and participation of
+  //       various algorithms used in this simulation (openlines, maximizer, etc.
+  //       this will allow you to quickly turn them off or on (or potentially provide them at the command line)
+
   // TODO: the math right now says we will never be in long territory so switch this bad boy to an int
-  private val MAX_SIMULATION_ITERATIONS = if (SLOW_COMPUTER) 10000l else 1000000l //  100l - 100 speeds up the game significantly
+  private val MAX_SIMULATION_ITERATIONS = if (SLOW_COMPUTER) 100000l else 1000000l //  100l - 100 speeds up the game significantly
 
   private val BYATCH_THRESHOLD = 55000 // your system has some cred if it is doing more than this number of simulations / second
 
@@ -63,6 +66,7 @@ class Game(val highScore: Long) {
   private val placed: BufferedIterator[Long] = longIter.buffered
   private def incrementCounter(count: Int, it: Iterator[Long]): Unit = for (i <- 0 until count) it.next
 
+  import scala.collection.mutable.ListBuffer
   private val simulationsPerSecond = new ListBuffer[Long]
 
   def run(): (Long, Long, Long) = {
@@ -97,7 +101,10 @@ class Game(val highScore: Long) {
         // pause for effect
         sleepShort
 
-        best.pieceLocation.foreach(tup => handleThePiece(best, tup._1, tup._2, board.placeOrFail))
+        best.pieceLocation.foreach(tup => handleThePiece(best, tup._1, tup._2))
+
+        if (best.pieceCount < 3)
+          throw GameOver
 
         showBoardFooter()
 
@@ -147,23 +154,16 @@ class Game(val highScore: Long) {
   }
 
   case class Simulation(
-    pieceLocation: List[(Piece, Option[(Int, Int)])],
-    board: Board
+    pieceLocation: List[(Piece, (Int, Int))], board: Board
   ) extends Ordered[Simulation] {
 
-    lazy val boardCount: Int = board.occupiedCount
-    lazy val maximizerCount: Int = board.legalPlacements(Game.maximizer).length
-    lazy val openLines: Int = board.openLines
-    lazy val islandMax: Int = board.islandMax
-    lazy val entropy: Double = board.entropy
+    val pieceCount = pieceLocation.length
 
-    def dontBeLazy:Unit = {
-      this.boardCount
-      this.maximizerCount
-      this.openLines
-      this.islandMax
-      this.entropy
-    }
+    val boardCount: Int = board.occupiedCount
+    val maximizerCount: Int = board.legalPlacements(Game.maximizer).length
+    val openLines: Int = board.openLines
+    val islandMax: Int = board.islandMax
+    val entropy: Double = board.entropy
 
     // the following provides tuple ordering to ordered to make the tuple comparison work
     import scala.math.Ordered.orderingToOrdered
@@ -181,10 +181,6 @@ class Game(val highScore: Long) {
     val t1 = System.currentTimeMillis()
     val simulations = longIter.buffered
 
-    val p1 = pieces.head
-    val p2 = pieces(1)
-    val p3 = pieces(2)
-
     def placeMe(piece: Piece, theBoard: Board, loc: (Int, Int)): Board = {
       simulations.next() // simulation counter increased
       val boardCopy = copyBoard(List(piece), theBoard)
@@ -193,74 +189,53 @@ class Game(val highScore: Long) {
       boardCopy
     }
 
-    // todo: make this recursive...
-    //       even depth first must pass a copy of the board to lower levels otherwise you mess with state
+    // i can't see how to not have this listbuffer
+    // i can accumulate locations because you generate on each time through the recursion
+    // but you only store the last simulation - so there's nothing to accumulate...
+    // Todo: Wiat, can't you just pass it as is?  otherwise push another simulation on it?
+    //       i might be tired...
+    val listBuffer = new ListBuffer[Simulation]
+
     // todo: see if removing entropy helps speed things up - also see if removing islandMax speeds things up
     //       pretty sure it will
-    // todo - IMPORTANT see if you can cache board states
-    def createSimulations: /*scala.collection.parallel.ParSeq*/List[Simulation] = {
+    // todo - see if you can cache board states
+    def createSimulations(board: Board, pieces: List[Piece], locationAccumulator: List[(Piece, (Int, Int))]): Unit = {
 
-      /*val listBuffer1 =*/ /*new ListBuffer[Simulation]*/
-      val listBuffer1 = new ListBuffer[Simulation]
-      val listBuffer2 = new ListBuffer[Simulation]
-      val listBuffer3 = new ListBuffer[Simulation]
+      val piece = pieces.head
 
-      val paralegal1 = this.board.legalPlacements(p1).par
+      val paralegal = board.legalPlacements(piece).par
 
-      for (loc1 <-  paralegal1) {
+      for (loc <- paralegal) {
         if (simulations.head < maxIterations) {
 
-          val board1Copy = placeMe(p1, this.board, loc1)
-          val simulation1 = Simulation(List((p1, Some(loc1)), (p2, None), (p3, None)), board1Copy)
-          synchronized { listBuffer1 append simulation1 }
+          val boardCopy = placeMe(piece, board, loc)
 
-          val paralegal2 = board1Copy.legalPlacements(p2).par
-          if (paralegal2.isEmpty) {simulation1.dontBeLazy}
-
-          for (loc2 <- paralegal2) {
-            if (simulations.head < maxIterations) {
-
-              val board2Copy = placeMe(p2, board1Copy, loc2)
-              val simulation2 = Simulation(List((p1, Some(loc1)), (p2, Some(loc2)), (p3, None)), board2Copy)
-              synchronized { listBuffer2 append simulation2 }
-
-              val paralegal3 =  board2Copy.legalPlacements(p3).par
-              if (paralegal3.isEmpty) { simulation2.dontBeLazy}
-
-              for (loc3 <- paralegal3) {
-                if (simulations.head < maxIterations) {
-
-                  val board3Copy = placeMe(p3, board2Copy, loc3)
-                  val simulation3 = Simulation(List((p1, Some(loc1)), (p2, Some(loc2)), (p3, Some(loc3))), board3Copy)
-
-                  simulation3.dontBeLazy
-                  synchronized { listBuffer3 append simulation3 }
-
-                }
-              }
+          if (pieces.tail.nonEmpty) {
+            // recurse
+            createSimulations(boardCopy, pieces.tail, (piece, loc) :: locationAccumulator)
+          } else {
+            val pieceLocs = ((piece, loc) :: locationAccumulator).reverse
+            val simulation = Simulation(pieceLocs, boardCopy)
+            synchronized {
+              // only append simulation when we've reached the last legal location on this path
+              listBuffer append simulation
             }
           }
         }
       }
-
-      // if we have a 3 piece solution we should use it as two piece and one piece solutions mean GameOver
-      // at least along this particular simulation path
-      if (listBuffer3.nonEmpty)
-        listBuffer3.toList
-      else if (listBuffer2.nonEmpty)
-        listBuffer2.toList
-      else if (listBuffer1.nonEmpty)
-        listBuffer1.toList
-      else {
-        // arbitrary large number so that this option will never wih against
-        // options that are still viable
-        val gameOverSimulation = List(Simulation(List((p1, None), (p2, None), (p3, None)), this.board))
-        gameOverSimulation(0).dontBeLazy
-        gameOverSimulation
-      }
     }
 
-    val options = createSimulations
+    createSimulations(board, pieces, List())
+
+    val options = {
+      val grouped = listBuffer.toList.groupBy(simul => simul.pieceCount)
+
+      if (grouped.contains(3)) grouped(3)
+      else if (grouped.contains(2)) grouped(2)
+      else if (grouped.contains(1)) grouped(1)
+      else List(Simulation(List(), this.board))
+
+    }
 
     // with the new optimization, sorted should be the slowest thing as it lazy val's the fields of the Simulation
     val best = options.sorted.head
@@ -354,7 +329,7 @@ class Game(val highScore: Long) {
 
   private def copyBoard(pieces: List[Piece], aBoard: Board): Board = Board.copy("board: " + pieces.map(_.name).mkString(", "), aBoard)
 
-  private def handleThePiece(best: Simulation, piece: Piece, loc: Option[(Int, Int)], f: (Piece, Option[(Int, Int)]) => Unit): Unit = {
+  private def handleThePiece(best: Simulation, piece: Piece, loc: (Int, Int)): Unit = {
 
     val currentOccupied = board.occupiedCount
     val curRowsCleared = rowsCleared.head
@@ -363,7 +338,7 @@ class Game(val highScore: Long) {
     println("\nAttempting piece: " + ((placed.next % 3) + 1) + "\n" + piece.toString + "\n")
 
     // a function designed to throw GameOver if it receives no valid locations
-    f(piece, loc)
+    board.place(piece, loc)
 
     piece.usage.next
 
