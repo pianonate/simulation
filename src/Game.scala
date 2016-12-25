@@ -34,7 +34,7 @@ import GameUtil._
 //todo consider making this a service and you show the actual game simulation in an ios app or browser with angular. which is even more useful
 object GameOver extends Exception
 
-class Game(val highScore: Long) {
+class Game(val highScore: Int) {
 
   private val SLOW_COMPUTER = true
 
@@ -45,7 +45,7 @@ class Game(val highScore: Long) {
   // TODO: the math right now says we will never be in long territory so switch this bad boy to an int
   private val MAX_SIMULATION_ITERATIONS = if (SLOW_COMPUTER) 100000l else 1000000l //  100l - 100 speeds up the game significantly
 
-  private val BYATCH_THRESHOLD = 55000 // your system has some cred if it is doing more than this number of simulations / second
+  private val BYATCH_THRESHOLD = 110000 // your system has some cred if it is doing more than this number of simulations / second
 
   private val CONTINUOUS_MODE = true // set to false to have the user advance through each board placement by hitting enter
 
@@ -58,17 +58,19 @@ class Game(val highScore: Long) {
   //      you can make the code a lot more clear by just asking this counter class for the current count and hide
   //      the Iterator used to maintain the count
 
-  private val score = longIter.buffered
-  private val rowsCleared = longIter.buffered
-  private val colsCleared = longIter.buffered
-  private val rounds = longIter.buffered
-  private val placed = longIter.buffered
-  private def incrementCounter(count: Long, it: Iterator[Long]): Unit = for (i <- 0l until count) it.next
+  private val score = Counter()
+  private val rowsCleared = Counter()
+  private val colsCleared = Counter()
+  private val rounds = Counter()
+  private val placed = Counter()
+
+  /*private def incrementCounter(count: Long, it: Iterator[Long]): Unit = for (i <- 0l until count) it.next
+*/
 
   import scala.collection.mutable.ListBuffer
-  private val simulationsPerSecond = new ListBuffer[Long]
+  private val simulationsPerSecond = new ListBuffer[Int]
 
-  def run(machineHighScore: Long): (Long, Long, Long) = {
+  def run(machineHighScore: Int): (Int, Int, Int) = {
 
     // val t1 = System.currentTimeMillis()
     val duration = new Timer
@@ -124,7 +126,7 @@ class Game(val highScore: Long) {
     // return the score and the number of rounds to Main - where such things are tracked across game instances
 
     // this would be more clear - then Main's only purpose is to be the application entry point
-    (score.head, rounds.head, simulationsPerSecond.max)
+    (score.value, rounds.value, simulationsPerSecond.max)
 
   }
 
@@ -178,10 +180,9 @@ class Game(val highScore: Long) {
   private def pieceSequenceSimulation(pieces: List[Piece], maxIterations: Long): Simulation = {
 
     val t1 = System.currentTimeMillis()
-    val simulations = longIter.buffered
+    val simulations = Counter()
 
     def placeMe(piece: Piece, theBoard: Board, loc: (Int, Int)): Board = {
-      simulations.next() // simulation counter increased
       val boardCopy = copyBoard(List(piece), theBoard)
       boardCopy.place(piece, loc)
       boardCopy.clearLines()
@@ -205,7 +206,7 @@ class Game(val highScore: Long) {
       val paralegal = board.legalPlacements(piece).par
 
       for (loc <- paralegal) {
-        if (simulations.head < maxIterations) {
+        if (simulations.value < maxIterations) {
 
           val boardCopy = placeMe(piece, board, loc)
 
@@ -215,6 +216,8 @@ class Game(val highScore: Long) {
           } else {
             val pieceLocs = ((piece, loc) :: locationAccumulator).reverse
             val simulation = Simulation(pieceLocs, boardCopy)
+            simulations.inc // simulation counter increased
+
             synchronized {
               // only append simulation when we've reached the last legal location on this path
               listBuffer append simulation
@@ -248,11 +251,11 @@ class Game(val highScore: Long) {
 
     val largeValuesFormat = "%,5d"
 
-    val simulationCount = largeValuesFormat.format(simulations.head)
+    val simulationCount = largeValuesFormat.format(simulations.value)
 
-    val perSecond = if (duration > 0) (simulations.head * 1000) / duration else 0
+    val perSecond = if (duration > 0) (simulations.value * 1000) / duration else 0
 
-    simulationsPerSecond append perSecond
+    simulationsPerSecond append perSecond.toInt
 
     val durationString = largeValuesFormat.format(duration) + "ms"
     val sPerSecond = largeValuesFormat.format(perSecond)
@@ -328,20 +331,21 @@ class Game(val highScore: Long) {
 
   private def copyBoard(pieces: List[Piece], aBoard: Board): Board = Board.copy("board: " + pieces.map(_.name).mkString(", "), aBoard)
 
-  private def handleThePiece(best: Simulation, piece: Piece, loc: (Int, Int), machineHighScore: Long): Unit = {
+  private def handleThePiece(best: Simulation, piece: Piece, loc: (Int, Int), machineHighScore: Int): Unit = {
 
     val currentOccupied = board.occupiedCount
-    val curRowsCleared = rowsCleared.head
-    val curColsCleared = colsCleared.head
+    val curRowsCleared = rowsCleared.value
+    val curColsCleared = colsCleared.value
 
-    println("\nAttempting piece: " + ((placed.next % 3) + 1) + "\n" + piece.toString + "\n")
+    println("\nAttempting piece: " + ((placed.value % 3) + 1) + "\n" + piece.toString + "\n")
 
     // a function designed to throw GameOver if it receives no valid locations
     board.place(piece, loc)
 
-    piece.usage.next
+    placed.inc
+    piece.usage.inc
 
-    incrementCounter(piece.pointValue, score)
+    score.incrementMultiple(piece.pointValue)
 
     // placing a piece puts underlines on it to highlight it
     println(board)
@@ -351,19 +355,19 @@ class Game(val highScore: Long) {
 
     handleLineClearing()
 
-    val rowsClearedThisRun = rowsCleared.head - curRowsCleared
-    val colsClearedThisRun = colsCleared.head - curColsCleared
+    val rowsClearedThisRun = rowsCleared.value - curRowsCleared
+    val colsClearedThisRun = colsCleared.value - curColsCleared
     val positionsCleared = ((rowsClearedThisRun + colsClearedThisRun) * 10) - (rowsClearedThisRun * colsClearedThisRun)
 
     val expectedOccupiedCount = currentOccupied + piece.pointValue - positionsCleared
 
     assert(expectedOccupiedCount == board.occupiedCount, "Expected occupied: " + expectedOccupiedCount + " actual occupied: " + board.occupiedCount)
 
-    println("Score: " + getScoreString(score.head) + " (" + getScoreString(highScore) + ")" + " (" + getScoreString(machineHighScore) + ")"
+    println("Score: " + getScoreString(numberFormatShort, score.value) + " (" + getScoreString(numberFormatShort, highScore) + ")" + " (" + getScoreString(numberFormatShort, machineHighScore) + ")"
       + " - occupied: " + board.occupiedCount
       + " - maximizer positions available: " + board.legalPlacements(Game.maximizer).length
       + " - open lines: " + board.openLines
-      + " - largest contiguous unoccupied: " + best.islandMax // a little unusual - todo: you could put islandMax on the board - makes more sense there
+      + " - largest contiguous unoccupied: " + board.islandMax // a little unusual - todo: you could put islandMax on the board - makes more sense there
       + " - disorder (aka entropy): " + entropyFormat.format(board.entropy))
 
     // pace these things out
@@ -384,12 +388,13 @@ class Game(val highScore: Long) {
       // show an updated board reflecting the cleared lines
       println("\n" + board)
 
-      incrementCounter(result._1, rowsCleared)
-      incrementCounter(result._2, colsCleared)
+      rowsCleared.incrementMultiple(result._1)
+      colsCleared.incrementMultiple(result._2)
 
     }
 
-    incrementCounter((result._1 + result._2) * board.layout.length, score)
+    score.incrementMultiple((result._1 + result._2) * board.layout.length)
+
   }
 
   private def showGameOver(duration: Timer) = {
@@ -400,19 +405,21 @@ class Game(val highScore: Long) {
 
     println("\nGAME OVER!!\n")
 
-    println(labelFormat.format("Final Score") + getScoreString(score.head))
-    println(labelNumberFormat.format("Rounds", rounds.head))
-    println(labelNumberFormat.format("Rows Cleared", rowsCleared.head))
-    println(labelNumberFormat.format("Cols Cleared", colsCleared.head))
+    println(labelFormat.format("Final Score") + getScoreString(numberFormat, score.value))
+    println(labelNumberFormat.format("Rounds", rounds.value))
+    println(labelNumberFormat.format("Rows Cleared", rowsCleared.value))
+    println(labelNumberFormat.format("Cols Cleared", colsCleared.value))
     println(duration.toString) // toString stops the timer
   }
 
   private def showBoardFooter() = {
     val bestPerSecond = simulationsPerSecond.max
 
-    println("\nAfter " + "%,d".format(rounds.head) + " rounds"
-      + " - rows cleared: " + "%,d".format(rowsCleared.head)
-      + " - columns cleared: " + "%,d".format(colsCleared.head)
+    rounds.inc
+
+    println("\nAfter " + "%,d".format(rounds.value) + " rounds"
+      + " - rows cleared: " + "%,d".format(rowsCleared.value)
+      + " - columns cleared: " + "%,d".format(colsCleared.value)
       + " - best simulations per second: " + "%,d".format(bestPerSecond))
 
     if (!CONTINUOUS_MODE)
@@ -438,7 +445,7 @@ class Game(val highScore: Long) {
 
     }
 
-    println("\nRound: " + (rounds.next + 1) + " - Candidate pieces:")
+    println("\nRound: " + (rounds.value + 1) + " - Candidate pieces:")
 
     // turn arrays into a list so you can transpose them
     // transpose will create a list of 1st rows, a list of 2nd rows, etc.
@@ -458,6 +465,8 @@ object Game {
   protected val maximizer = new Box("Maximizer", GameUtil.CYAN, 3)
 
   def showGameStart(): Unit = {
+
+    //todo - rewrite to include what you do with the occupied, etc. - also this can provide a key for it
 
     println("GAME START")
     println("\nThis game works by first selecting 3 pieces from the set of all possible pieces.")

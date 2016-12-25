@@ -100,7 +100,6 @@ class Pieces {
     // add a random piece to the board and print it out
     val pieceIndex = scala.util.Random.nextInt(pieceList.size)
     pieceList(pieceIndex)
-
   }
 
   def getNamedPiece(name: String): Piece = pieceMap(name)
@@ -112,8 +111,8 @@ class Pieces {
   override def toString: String = {
 
     pieceList
-      .sortBy(piece => (piece.usage.head, piece.name))
-      .map(piece => GameUtil.labelNumberFormat.format(piece.name, piece.usage.next))
+      .sortBy(piece => (piece.usage.value, piece.name))
+      .map(piece => GameUtil.labelNumberFormat.format(piece.name, piece.usage.value))
       .mkString("\n")
   }
 

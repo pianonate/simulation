@@ -24,15 +24,15 @@ class Board(val layout: Array[Array[Cell]], val name: String, val color: String)
   override def cellToStringMapFunction(cell: Cell): String = cell.toString
 
   // calculate all locations for a board once - at board creation
-  private val allLocations: List[(Int, Int)] = GameUtil.getLocationsList[Cell](layout)
+  private val allLocations: List[(Int, Int)] = Array.tabulate(layout.length, layout.length)((i, j) => (i, j)).flatten.toList
 
   // todo - right now we're using a scale value of 3 - maybe we want to try multiple values such as 3 and 4 and return the sum...
   // temporary disable
   def entropy: Double = 0.0 // Entropy.scaledEntropy(3, this.layout)
 
-  private lazy val islands: Map[Int, Int] = Islands.findIslands(this.layout).groupBy(_.length).mapValues(_.length)
+  private def islands: Map[Int, Int] = Islands.findIslands(this.layout, allLocations).groupBy(_.length).mapValues(_.length)
 
-  val islandMax: Int = islands.keys.max
+  def islandMax: Int = islands.keys.max
 
   def openLines: Int = {
 
@@ -147,20 +147,25 @@ class Board(val layout: Array[Array[Cell]], val name: String, val color: String)
     if ((piece.rows + locRow) > rows) return false // exceeds the bounds of the board - no point in checking any further
     if ((piece.cols + locCol) > cols) return false // exceeds the bounds of the board - no point in checking any further
 
-    // this for comprehension will find all instances
+    // find all instances
     // where the piece has an occupied value and the board has an unoccupied value
     // to yield the unoccupied status of each corresponding position on the board
-    for {
-      r <- piece.layout.indices
-      c <- piece.layout(0).indices
-      pieceOccupied = piece.layout(r)(c).occupied
-      boardOccupied = layout(r + locRow)(c + locCol).occupied
-      if pieceOccupied
 
-    } {
-      // bail immediately if you find an instance where the piece is occupied
-      // and the board is also occupied
-      if (boardOccupied) return false
+    // using a while loop rather than a for comprehension because even with -optimize,
+    // the while loop is a LOT faster
+    var r = 0
+    var c = 0
+    while  (r < piece.layout.length) {
+      while (c < piece.layout(0).length) {
+        val pieceOccupied = piece.layout(r)(c).occupied
+        val boardOccupied = layout(r + locRow)(c + locCol).occupied
+        if (pieceOccupied && boardOccupied) {
+          return false
+        }
+        c += 1
+      }
+      c=0
+      r+=1
     }
 
     // if we didn't bail, then this place is legal

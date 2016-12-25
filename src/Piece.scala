@@ -2,14 +2,13 @@
  * Created by nathan on 12/9/16.
  * represents pieces in the game - also represents the board
  */
-import GameUtil.longIter
 
 abstract class Piece {
   val name: String
   val color: String
   val layout: Array[Array[Cell]]
 
-  val usage = longIter.buffered
+  val usage = Counter()
 
   lazy val rows: Int = layout.length
   lazy val cols: Int = layout(0).length

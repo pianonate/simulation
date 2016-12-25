@@ -6,7 +6,6 @@
 import GameUtil._
 import java.io.{PrintWriter}
 
-
 //todo:  right align scores correctly
 object GameRunner {
 
@@ -23,9 +22,9 @@ object GameRunner {
 
     import scala.collection.mutable.ListBuffer
 
-    val scores = new ListBuffer[Long]
-    val rounds = new ListBuffer[Long]
-    val simulationsPerSecond = new ListBuffer[Long]
+    val scores = new ListBuffer[Int]
+    val rounds = new ListBuffer[Int]
+    val simulationsPerSecond = new ListBuffer[Int]
 
     Game.showGameStart()
 
@@ -54,8 +53,8 @@ object GameRunner {
       println("MULTIPLE GAME STATS")
       println
       println(labelFormat.format("Games Played") + numberFormat.format(scores.size))
-      println(labelFormat.format("High Score") + getScoreString(sessionHighScore))
-      println(labelFormat.format("All Time High Score") + getScoreString(allTimeHighScore))
+      println(labelFormat.format("High Score") + getScoreString(numberFormat, sessionHighScore))
+      println(labelFormat.format("All Time High Score") + getScoreString(numberFormat, allTimeHighScore))
       println(labelFormat.format("Most Rounds") + numberFormat.format(mostRounds))
       println(labelFormat.format("Most Simulations/Second") + numberFormat.format(bestPerSecond))
 
@@ -78,19 +77,19 @@ object GameRunner {
 
   }
 
-  def saveHighScore(highScore: Long) = {
+  def saveHighScore(highScore: Int) = {
     val pw = new PrintWriter(HIGH_SCORE_FILE)
     pw.write(highScore.toString)
     pw.close()
 
   }
 
-  def getHighScore: Long = {
+  def getHighScore: Int = {
 
     import scala.io.Source
 
     try {
-      return (Source.fromFile(HIGH_SCORE_FILE).getLines.mkString.toLong)
+      return (Source.fromFile(HIGH_SCORE_FILE).getLines.mkString.toInt)
 
     } catch {
       case _: Throwable => {
@@ -101,7 +100,7 @@ object GameRunner {
       }
     }
 
-    return 0l
+    return 0
 
   }
 

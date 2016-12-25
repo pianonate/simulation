@@ -4,18 +4,7 @@
  */
 object GameUtil {
 
-  // you could also use Stream.from(0
-  def longIter(): Iterator[Long] = longIterFrom(0)
-
-  // creates an infinite iterator on a long value starting at the given and incrementing by 1
-  // you could also implement a stepBy if you wanted...
-  def longIterFrom(start: Long): Iterator[Long] = Iterator.iterate(start)(num => num + 1)
-
-  // this was typed because of testing on an Array[Array[Int]]
-  // in 'production' this is now running on an Array[Array[Cell]]
-  def getLocationsList[T](a: Array[Array[T]]): List[(Int, Int)] = Array.tabulate(a.length, a.length)((i, j) => (i, j)).flatten.toList
-
-  def getScoreString(score: Long): String = (GREEN + "%,d".format(score) + SANE)
+  def getScoreString(formatString: String, score: Int): String = (GREEN + formatString.format(score) + SANE)
 
   // print the character colors that we have available to us
   def printPossibleColors(): Unit = {
@@ -41,6 +30,7 @@ object GameUtil {
   // these are used in the end game
   val labelFormat = "%-24s: "
   val numberFormat = "%,7d"
+  val numberFormatShort = "%,d"
   val labelNumberFormat: String = labelFormat + numberFormat
   val entropyFormat = "%1.4f"
 

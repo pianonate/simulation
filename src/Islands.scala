@@ -7,12 +7,11 @@ import scala.collection.mutable.ListBuffer
 
 object Islands {
 
-  def findIslands(layout: Array[Array[Cell]]): List[List[(Int, Int)]] = {
+  def findIslands(layout: Array[Array[Cell]], locations: List[(Int, Int)]): List[List[(Int, Int)]] = {
 
     // once again, i can't get the recursive solution so resorting to imperative :(
     val islands = new ListBuffer[ListBuffer[(Int, Int)]]
 
-    val locations = GameUtil.getLocationsList[Cell](layout)
     val visited = Array.fill(layout.length)(Array.fill(layout.length)(false))
 
     def occupied(loc: (Int, Int)): Boolean = layout(loc._1)(loc._2).occupied
@@ -48,13 +47,24 @@ object Islands {
       newIsland append loc
 
       // call dfs in all directions - only acting on valid locations - until it can't find any more islands
-      val directions = List((-1, 0), (0, -1), (1, 0), (0, 1))
+      val directions = Array((-1, 0), (0, -1), (1, 0), (0, 1))
 
-      for {
+      var i = 0
+      while (i < directions.length) {
+        val offset = directions(i)
+        val tryLoc = (loc._1 + offset._1, loc._2 + offset._2)
+        if (isSafe(tryLoc)) {
+          dfs(tryLoc, newIsland)
+        }
+
+        i += 1
+      }
+
+      /*      for {
         offset <- directions
         tryLoc = (loc._1 + offset._1, loc._2 + offset._2)
         if isSafe(tryLoc)
-      } dfs(tryLoc, newIsland)
+      } dfs(tryLoc, newIsland)*/
 
     }
 
@@ -62,25 +72,24 @@ object Islands {
 
       // If an unoccupied cell is not visited yet,
       // then new island found
-      for {
-        loc <- locations
-        if !occupied(loc)
-      } {
-        // pulled out of for comprehension as it seems to want to find out visited status for all locs before
-        // diving into this foreach section...
-        if (!isVisited(loc)) {
+
+      // switched to while to go faster than for comprehension
+      var i = 0
+      while (i < locations.length) {
+        val loc = locations(i)
+        // if unoccupied and not visited
+        if ((!occupied(loc)) && (!isVisited(loc))) {
           val newIsland = new ListBuffer[(Int, Int)]
           islands append newIsland
           dfs(loc, newIsland)
         }
+        i += 1
       }
 
       islands.map(island => island.toList).toList
     }
 
-    // stuffed into a var for debugging
-    val found = findIslandsHelper(locations)
-    found
+    findIslandsHelper(locations)
 
   }
 
