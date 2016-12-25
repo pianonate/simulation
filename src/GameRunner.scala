@@ -4,12 +4,16 @@
  * GameRunner owns the responsibility of running Games and managing high score persistence
  */
 import GameUtil._
+import java.io.{PrintWriter}
+
+
+//todo:  right align scores correctly
 object GameRunner {
+
+  val HIGH_SCORE_FILE = ".highscore"
 
   def play(): Unit = {
 
-    // todo - stash high scores in a file you can read at startup of the game
-    // high score to date is 10,894!
     // after open lines optimization 22,603
 
     // different than game continuous mode which simply
@@ -18,6 +22,7 @@ object GameRunner {
     val CONTINUOUS_MODE = true
 
     import scala.collection.mutable.ListBuffer
+
     val scores = new ListBuffer[Long]
     val rounds = new ListBuffer[Long]
     val simulationsPerSecond = new ListBuffer[Long]
@@ -26,27 +31,35 @@ object GameRunner {
 
     // run the game, my friend
     do {
+
+      val machineHighScore = getHighScore
+
       val game = new Game(if (scores.isEmpty) 0 else scores.max)
-      val results = game.run()
+      val results = game.run(machineHighScore)
 
       scores.append(results._1)
       rounds.append(results._2)
       simulationsPerSecond.append(results._3)
 
+      val sessionHighScore = scores.max
+      val allTimeHighScore = List(machineHighScore, sessionHighScore).max
+      val mostRounds = rounds.max
+      val bestPerSecond = simulationsPerSecond.max
+
+      if (sessionHighScore > machineHighScore)
+        saveHighScore(sessionHighScore)
+
+      println
+      println
+      println("MULTIPLE GAME STATS")
+      println
+      println(labelFormat.format("Games Played") + numberFormat.format(scores.size))
+      println(labelFormat.format("High Score") + getScoreString(sessionHighScore))
+      println(labelFormat.format("All Time High Score") + getScoreString(allTimeHighScore))
+      println(labelFormat.format("Most Rounds") + numberFormat.format(mostRounds))
+      println(labelFormat.format("Most Simulations/Second") + numberFormat.format(bestPerSecond))
+
       if (CONTINUOUS_MODE) {
-        val highScore = scores.max
-        val mostRounds = rounds.max
-        val bestPerSecond = simulationsPerSecond.max
-
-        println
-        println
-        println("MULTIPLE GAME STATS")
-        println
-        println(labelFormat.format("Games Played") + numberFormat.format(scores.size))
-        println(labelFormat.format("High Score") + getScoreString(highScore))
-        println(labelFormat.format("Most Rounds") + numberFormat.format(mostRounds))
-        println(labelFormat.format("Most Simulations/Second") + numberFormat.format(bestPerSecond))
-
         println
         print("Starting new game in ")
 
@@ -62,6 +75,33 @@ object GameRunner {
       }
 
     } while (CONTINUOUS_MODE)
+
+  }
+
+  def saveHighScore(highScore: Long) = {
+    val pw = new PrintWriter(HIGH_SCORE_FILE)
+    pw.write(highScore.toString)
+    pw.close()
+
+  }
+
+  def getHighScore: Long = {
+
+    import scala.io.Source
+
+    try {
+      return (Source.fromFile(HIGH_SCORE_FILE).getLines.mkString.toLong)
+
+    } catch {
+      case _: Throwable => {
+        val pw = new PrintWriter(HIGH_SCORE_FILE)
+        pw.write("0")
+        pw.close()
+
+      }
+    }
+
+    return 0l
 
   }
 

@@ -30,11 +30,9 @@ class Board(val layout: Array[Array[Cell]], val name: String, val color: String)
   // temporary disable
   def entropy: Double = 0.0 // Entropy.scaledEntropy(3, this.layout)
 
-  // todo potentially you turn islands back into a def because it may be that you want to call it on the board more than once after  astate change
   private lazy val islands: Map[Int, Int] = Islands.findIslands(this.layout).groupBy(_.length).mapValues(_.length)
 
-  // temporary disable
-  def islandMax: Int = 0 // islands.keys.max
+  val islandMax: Int = islands.keys.max
 
   def openLines: Int = {
 
@@ -90,6 +88,22 @@ class Board(val layout: Array[Array[Cell]], val name: String, val color: String)
 
     // rows cleared and cols cleared
     (clearableRows.length, clearableCols.length)
+  }
+
+  def clearPieceUnderlines(piece: Piece, loc: (Int, Int)) = {
+
+    val pieceRowStart = loc._1
+    val pieceRowEnd = pieceRowStart + piece.layout.length
+    val pieceColStart = loc._2
+    val pieceColEnd = pieceColStart + piece.layout(0).length
+
+    for {
+      row <- pieceRowStart until pieceRowEnd
+      col <- pieceColStart until pieceColEnd
+      cell = layout(row)(col)
+      if cell.underline
+    } cell.underline = false
+
   }
 
   // todo: this one could go away if we get rid of tryPlacement and all of that - or maybe not

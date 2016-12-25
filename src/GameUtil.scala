@@ -5,11 +5,11 @@
 object GameUtil {
 
   // you could also use Stream.from(0
-  def longIter: Iterator[Long] = longIterFrom(0)
+  def longIter(): Iterator[Long] = longIterFrom(0)
 
   // creates an infinite iterator on a long value starting at the given and incrementing by 1
   // you could also implement a stepBy if you wanted...
-  def longIterFrom(start: Long): Iterator[Long] = Iterator.iterate[Long](start)(l => l + 1)
+  def longIterFrom(start: Long): Iterator[Long] = Iterator.iterate(start)(num => num + 1)
 
   // this was typed because of testing on an Array[Array[Int]]
   // in 'production' this is now running on an Array[Array[Cell]]
@@ -36,7 +36,7 @@ object GameUtil {
 
   }
 
-  def sleepShort:Unit = Thread.sleep(500)
+  def sleepShort: Unit = Thread.sleep(500)
 
   // these are used in the end game
   val labelFormat = "%-24s: "

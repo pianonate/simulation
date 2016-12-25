@@ -28,14 +28,13 @@
  *       potentially you could use the concurrency framework - that would be cool
  *
  */
-import scala.collection.mutable
 
 import GameUtil._
 
+//todo consider making this a service and you show the actual game simulation in an ios app or browser with angular. which is even more useful
 object GameOver extends Exception
 
 class Game(val highScore: Long) {
-
 
   private val SLOW_COMPUTER = true
 
@@ -59,17 +58,17 @@ class Game(val highScore: Long) {
   //      you can make the code a lot more clear by just asking this counter class for the current count and hide
   //      the Iterator used to maintain the count
 
-  private val score: BufferedIterator[Long] = longIter.buffered
-  private val rowsCleared: BufferedIterator[Long] = longIter.buffered
-  private val colsCleared: BufferedIterator[Long] = longIter.buffered
-  private val rounds: BufferedIterator[Long] = longIter.buffered
-  private val placed: BufferedIterator[Long] = longIter.buffered
-  private def incrementCounter(count: Int, it: Iterator[Long]): Unit = for (i <- 0 until count) it.next
+  private val score = longIter.buffered
+  private val rowsCleared = longIter.buffered
+  private val colsCleared = longIter.buffered
+  private val rounds = longIter.buffered
+  private val placed = longIter.buffered
+  private def incrementCounter(count: Long, it: Iterator[Long]): Unit = for (i <- 0l until count) it.next
 
   import scala.collection.mutable.ListBuffer
   private val simulationsPerSecond = new ListBuffer[Long]
 
-  def run(): (Long, Long, Long) = {
+  def run(machineHighScore: Long): (Long, Long, Long) = {
 
     // val t1 = System.currentTimeMillis()
     val duration = new Timer
@@ -101,7 +100,7 @@ class Game(val highScore: Long) {
         // pause for effect
         sleepShort
 
-        best.pieceLocation.foreach(tup => handleThePiece(best, tup._1, tup._2))
+        best.pieceLocation.foreach(tup => handleThePiece(best, tup._1, tup._2, machineHighScore))
 
         if (best.pieceCount < 3)
           throw GameOver
@@ -329,7 +328,7 @@ class Game(val highScore: Long) {
 
   private def copyBoard(pieces: List[Piece], aBoard: Board): Board = Board.copy("board: " + pieces.map(_.name).mkString(", "), aBoard)
 
-  private def handleThePiece(best: Simulation, piece: Piece, loc: (Int, Int)): Unit = {
+  private def handleThePiece(best: Simulation, piece: Piece, loc: (Int, Int), machineHighScore: Long): Unit = {
 
     val currentOccupied = board.occupiedCount
     val curRowsCleared = rowsCleared.head
@@ -348,7 +347,7 @@ class Game(val highScore: Long) {
     println(board)
 
     // so now clear any previously underlined cells for the next go around
-    clearPieceUnderlines()
+    board.clearPieceUnderlines(piece, loc)
 
     handleLineClearing()
 
@@ -360,7 +359,7 @@ class Game(val highScore: Long) {
 
     assert(expectedOccupiedCount == board.occupiedCount, "Expected occupied: " + expectedOccupiedCount + " actual occupied: " + board.occupiedCount)
 
-    println("Score: " + getScoreString(score.head) + " (" + getScoreString(highScore) + ")"
+    println("Score: " + getScoreString(score.head) + " (" + getScoreString(highScore) + ")" + " (" + getScoreString(machineHighScore) + ")"
       + " - occupied: " + board.occupiedCount
       + " - maximizer positions available: " + board.legalPlacements(Game.maximizer).length
       + " - open lines: " + board.openLines
@@ -391,17 +390,6 @@ class Game(val highScore: Long) {
     }
 
     incrementCounter((result._1 + result._2) * board.layout.length, score)
-  }
-
-  private def clearPieceUnderlines() = {
-    // Todo: as right now clearUnderlines just loops through the whole board which is between 91 to 99 operations to many
-    // if you passed it the piece that just got underlined, you could just remove underlines where that piece was placed
-    //   also this is probably best a Board operation not a Game operation
-    for {
-      row <- board.layout
-      cell <- row
-      if cell.underline
-    } cell.underline = false
   }
 
   private def showGameOver(duration: Timer) = {

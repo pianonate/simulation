@@ -9,7 +9,7 @@ abstract class Piece {
   val color: String
   val layout: Array[Array[Cell]]
 
-  val usage: BufferedIterator[Long] = longIter.buffered
+  val usage = longIter.buffered
 
   lazy val rows: Int = layout.length
   lazy val cols: Int = layout(0).length
