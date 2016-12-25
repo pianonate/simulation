@@ -155,7 +155,7 @@ class Board(val layout: Array[Array[Cell]], val name: String, val color: String)
     // the while loop is a LOT faster
     var r = 0
     var c = 0
-    while  (r < piece.layout.length) {
+    while (r < piece.layout.length) {
       while (c < piece.layout(0).length) {
         val pieceOccupied = piece.layout(r)(c).occupied
         val boardOccupied = layout(r + locRow)(c + locCol).occupied
@@ -164,8 +164,8 @@ class Board(val layout: Array[Array[Cell]], val name: String, val color: String)
         }
         c += 1
       }
-      c=0
-      r+=1
+      c = 0
+      r += 1
     }
 
     // if we didn't bail, then this place is legal

@@ -36,6 +36,7 @@ abstract class Piece {
       s ++= row.map(cellToStringMapFunction).foldRight(" ")((a, b) => a + " " + b) + "\n"
     }
 
+    // we don't need the final newline as we're sending these things out via println
     s.toString.dropRight(1)
   }
 

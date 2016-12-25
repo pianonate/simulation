@@ -80,29 +80,19 @@ class Game(val highScore: Int) {
       do {
 
         // get 3 random pieces
-        val pieces = getPieces
+        val pieces = getPiecesForRound
 
         // show the pieces in the order they were randomly chosen
         showPieces(pieces)
 
-        // set up a test of running through all orderings of piece placement (permutations)
-        // and for each ordering, try all combinations of legal locations
-        // the lowest board score after trying all legal locations will what is chosen
-        // right now this is kind of stupid and the game doesn't play very well...but we can make it better
-        val permutations = pieces
-          .permutations
-          .toList
-          // sort by the occupied count, then max by the number of places that can accept a 3x3 box
-          .map(pieceSequenceSimulation(_, MAX_SIMULATION_ITERATIONS)).sorted
+        val best = getBestPermutation(pieces)
 
-        val best = permutations.head
-
-        println(getSimulationResultsString("     Chosen: " + piecesToString(best.pieceLocation.map(pieceLoc => pieceLoc._1)), best, None))
+        println(getSimulationResultsString("     Chosen: " + piecesToString(best.plcList.map(plc => plc.piece)), best, None))
 
         // pause for effect
         sleepShort
 
-        best.pieceLocation.foreach(tup => handleThePiece(best, tup._1, tup._2, machineHighScore))
+        best.plcList.foreach(plc => handleThePiece(best, plc.piece, plc.loc, machineHighScore))
 
         if (best.pieceCount < 3)
           throw GameOver
@@ -130,10 +120,36 @@ class Game(val highScore: Int) {
 
   }
 
+  private def getBestPermutation(pieces: List[Piece]): Simulation = {
+    // set up a test of running through all orderings of piece placement (permutations)
+    // and for each ordering, try all combinations of legal locations
+    // the bestscore as defined by Simulations.compare after trying all legal locations is chosen
+
+    //one thing to note - (thanks Kevin) - and this seems like a duh in retrospect...
+    // order doesn't matter if we don't clear any lines.
+    // in a no-lines-cleared situation, it's only the board state at the end of one permutation simulation that matters
+    // thus - simulate one run
+
+    val permutations = pieces
+      .permutations
+      .toList
+
+    val simulateHead: Simulation = pieceSequenceSimulation(permutations.head)
+
+    if (simulateHead.plcList.exists(plc => plc.clearedLines)) {
+      val simulateTail: List[Simulation] = permutations.tail.map(pieceSequenceSimulation(_))
+      (simulateHead :: simulateTail).sorted.head
+    } else {
+
+      simulateHead
+    }
+
+  }
+
   // use this method to return specific pieces under specific circumstances
   // under normal conditions if (false
   // just return a random set of 3 pieces
-  private def getPieces: List[Piece] = {
+  private def getPiecesForRound: List[Piece] = {
 
     val pieces = {
       // this code provides specific pieces for the (probable) last iteration
@@ -154,11 +170,11 @@ class Game(val highScore: Int) {
     pieces
   }
 
-  case class Simulation(
-    pieceLocation: List[(Piece, (Int, Int))], board: Board
-  ) extends Ordered[Simulation] {
+  case class PieceLocCleared(piece: Piece, loc: (Int, Int), clearedLines: Boolean)
 
-    val pieceCount = pieceLocation.length
+  case class Simulation(plcList: List[PieceLocCleared], board: Board) extends Ordered[Simulation] {
+
+    val pieceCount = plcList.length
 
     val boardCount: Int = board.occupiedCount
     val maximizerCount: Int = board.legalPlacements(Game.maximizer).length
@@ -169,6 +185,8 @@ class Game(val highScore: Int) {
     // the following provides tuple ordering to ordered to make the tuple comparison work
     import scala.math.Ordered.orderingToOrdered
 
+    override def toString: String = this.plcList.map(plc => plc.piece.name).mkString(", ")
+
     // new algo - lowest boardCount followed by largest island
     def compare(that: Simulation): Int = {
       (this.boardCount, that.maximizerCount, that.openLines, that.islandMax, this.entropy)
@@ -177,29 +195,30 @@ class Game(val highScore: Int) {
 
   }
 
-  private def pieceSequenceSimulation(pieces: List[Piece], maxIterations: Long): Simulation = {
+  private def pieceSequenceSimulation(pieces: List[Piece]): Simulation = {
 
     val t1 = System.currentTimeMillis()
     val simulations = Counter()
 
-    def placeMe(piece: Piece, theBoard: Board, loc: (Int, Int)): Board = {
+    val maxIterations = MAX_SIMULATION_ITERATIONS
+
+    //return the board copy and the number of lines cleared
+    def placeMe(piece: Piece, theBoard: Board, loc: (Int, Int)): (Board, PieceLocCleared) = {
       val boardCopy = copyBoard(List(piece), theBoard)
       boardCopy.place(piece, loc)
-      boardCopy.clearLines()
-      boardCopy
+      val cleared = boardCopy.clearLines()
+      (boardCopy, PieceLocCleared(piece, loc, (cleared._1 + cleared._2) > 0))
+
     }
 
     // i can't see how to not have this listbuffer
     // i can accumulate locations because you generate on each time through the recursion
     // but you only store the last simulation - so there's nothing to accumulate...
-    // Todo: Wiat, can't you just pass it as is?  otherwise push another simulation on it?
+    // Todo: Wait, can't you just pass it as is?  otherwise push another simulation on it?
     //       i might be tired...
     val listBuffer = new ListBuffer[Simulation]
 
-    // todo: see if removing entropy helps speed things up - also see if removing islandMax speeds things up
-    //       pretty sure it will
-    // todo - see if you can cache board states
-    def createSimulations(board: Board, pieces: List[Piece], locationAccumulator: List[(Piece, (Int, Int))]): Unit = {
+    def createSimulations(board: Board, pieces: List[Piece], locationAccumulator: List[PieceLocCleared]): Unit = {
 
       val piece = pieces.head
 
@@ -208,14 +227,16 @@ class Game(val highScore: Int) {
       for (loc <- paralegal) {
         if (simulations.value < maxIterations) {
 
-          val boardCopy = placeMe(piece, board, loc)
+          val result = placeMe(piece, board, loc)
+          val boardCopy = result._1
+          val plc = result._2
 
           if (pieces.tail.nonEmpty) {
             // recurse
-            createSimulations(boardCopy, pieces.tail, (piece, loc) :: locationAccumulator)
+            createSimulations(boardCopy, pieces.tail, (plc :: locationAccumulator))
           } else {
-            val pieceLocs = ((piece, loc) :: locationAccumulator).reverse
-            val simulation = Simulation(pieceLocs, boardCopy)
+            val plcList = plc :: locationAccumulator
+            val simulation = Simulation(plcList.reverse, boardCopy)
             simulations.inc // simulation counter increased
 
             synchronized {
