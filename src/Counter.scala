@@ -5,21 +5,21 @@
 class Counter {
 
   // you could also use Stream.from(0
-  private def intIter(): Iterator[Int] = intIterFrom(0)
+  private def intIterator(): Iterator[Int] = intIteratorFrom(0)
 
   // creates an infinite iterator on a long value starting at the given and incrementing by 1
   // you could also implement a stepBy if you wanted...
-  private def intIterFrom(start: Int): Iterator[Int] = Iterator.iterate(start)(num => num + 1)
+  private def intIteratorFrom(start: Int): Iterator[Int] = Iterator.iterate(start)(num => num + 1)
 
-  private val iter = intIter.buffered
+  private val iterator = intIterator().buffered
 
-  def inc: Int = iter.next()
+  def inc: Int = iterator.next()
 
-  override def toString = value.toString
+  override def toString: String = value.toString
 
-  def value: Int = iter.head
+  def value: Int = iterator.head
 
-  def incrementMultiple(count: Int): Int = { for (i <- 0l until count) iter.next; iter.head }
+  def incrementMultiple(count: Int): Int = { for (_ <- 0 until count) iterator.next; iterator.head }
 
 }
 

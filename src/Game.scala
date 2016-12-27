@@ -2,6 +2,8 @@
  * Created by nathan on 12/10/16.
  * Game will hold a reference to the current board and will also invoke simulations
  *
+ * Todo: at end of game you can often place one or two pieces, but we don't place any - find out why
+ *
  * TODO: Kevin suggests assigning values from 0 to 5 to 0 on both axes and minimize for placement on higher valued squares
  *       I.e., stay out of the middle
  *
@@ -9,14 +11,7 @@
  *       only expand out to other simulations if you HAVE to - this might provide a lot of savings
  *       for example if you place 3 singletons on an empty board, there's no reason to move the pieces further than 3 out from the origin - huge savings
  *
- *
- * TODO: see if saving a simulation allows re-use from the first round through
- *       don't calculate entropy maximizer, etc. until you get to the last simulation.  Only save the last board state for simulations....
- *
  * Todo: save every move in a game so you can replay it if it's awesome
- *
- * Todo: Maximizer on first round should still be correct even if simulations are bypassed
- *       Simulation skip message can be output only once, also.  don't even call piece simulation
  *
  * Todo: If occupied is minimized and islands are maximized, then the next should be keep
  *       rows and columns clear - the most number...!!!  This could be the winner.
@@ -36,27 +31,18 @@ object GameOver extends Exception
 
 class Game(val highScore: Int) {
 
-  private val SLOW_COMPUTER = true
-
   // Todo: create a manifest object that specifies the ordering and participation of
-  //       various algorithms used in this simulation (openlines, maximizer, etc.
+  //       various algorithms used in this simulation (openLines, maximizer, etc.
   //       this will allow you to quickly turn them off or on (or potentially provide them at the command line)
 
-  // TODO: the math right now says we will never be in long territory so switch this bad boy to an int
-  private val MAX_SIMULATION_ITERATIONS = if (SLOW_COMPUTER) 100000l else 1000000l //  100l - 100 speeds up the game significantly
+  private val MAX_SIMULATION_ITERATIONS = 300000 // 1000000
 
-  private val BYATCH_THRESHOLD = 110000 // your system has some cred if it is doing more than this number of simulations / second
+  private val BYATCH_THRESHOLD = 225000 // your system has some cred if it is doing more than this number of simulations / second
 
   private val CONTINUOUS_MODE = true // set to false to have the user advance through each board placement by hitting enter
 
-  private val board: Board = new Board(10)
+  private val board: Board = new Board(Game.BOARD_SIZE)
   private val gamePieces: Pieces = new Pieces
-
-  //Todo: create a counter class that has the ability to increment itself
-  //      it can maintain it's own internal representation of things to count
-  //      you can get the current count just by asking for it - right now we're asking the longIter (buffered) for it's .head
-  //      you can make the code a lot more clear by just asking this counter class for the current count and hide
-  //      the Iterator used to maintain the count
 
   private val score = Counter()
   private val rowsCleared = Counter()
@@ -89,9 +75,6 @@ class Game(val highScore: Int) {
 
         println(getSimulationResultsString("     Chosen: " + piecesToString(best.plcList.map(plc => plc.piece)), best, None))
 
-        // pause for effect
-        sleepShort
-
         best.plcList.foreach(plc => handleThePiece(best, plc.piece, plc.loc, machineHighScore))
 
         if (best.pieceCount < 3)
@@ -123,7 +106,7 @@ class Game(val highScore: Int) {
   private def getBestPermutation(pieces: List[Piece]): Simulation = {
     // set up a test of running through all orderings of piece placement (permutations)
     // and for each ordering, try all combinations of legal locations
-    // the bestscore as defined by Simulations.compare after trying all legal locations is chosen
+    // the best score as defined by Simulations.compare after trying all legal locations is chosen
 
     //one thing to note - (thanks Kevin) - and this seems like a duh in retrospect...
     // order doesn't matter if we don't clear any lines.
@@ -137,7 +120,7 @@ class Game(val highScore: Int) {
     val simulateHead: Simulation = pieceSequenceSimulation(permutations.head)
 
     if (simulateHead.plcList.exists(plc => plc.clearedLines)) {
-      val simulateTail: List[Simulation] = permutations.tail.map(pieceSequenceSimulation(_))
+      val simulateTail: List[Simulation] = permutations.tail.map(pieceSequenceSimulation)
       (simulateHead :: simulateTail).sorted.head
     } else {
 
@@ -157,13 +140,16 @@ class Game(val highScore: Int) {
       // if (board.occupiedCount > 50)
 
       // used to test a few rounds...
-      /* if (rounds.head ==1)
+      /*if (rounds.head ==1)
         Piece.getNamedPieces("VerticalLine5", "LowerLeftEl", "HorizontalLine3")
       else if (rounds.head == 2)
         Piece.getNamedPieces("Box", "VerticalLine3", "BigUpperRightEl")
       else if (rounds.head == 3)
        Piece.getNamedPieces("BigUpperLeftEl", "BigBox", "VerticalLine5")
       else*/
+
+      // List.fill(3)(gamePieces.getNamedPiece("Singleton"))
+
       List.fill(3)(gamePieces.getRandomPiece)
 
     }
@@ -174,7 +160,7 @@ class Game(val highScore: Int) {
 
   case class Simulation(plcList: List[PieceLocCleared], board: Board) extends Ordered[Simulation] {
 
-    val pieceCount = plcList.length
+    val pieceCount: Int = plcList.length
 
     val boardCount: Int = board.occupiedCount
     val maximizerCount: Int = board.legalPlacements(Game.maximizer).length
@@ -204,21 +190,21 @@ class Game(val highScore: Int) {
 
     //return the board copy and the number of lines cleared
     def placeMe(piece: Piece, theBoard: Board, loc: (Int, Int)): (Board, PieceLocCleared) = {
-      val boardCopy = copyBoard(List(piece), theBoard)
+      val boardCopy = Board.copy("simulationBoard", theBoard)
       boardCopy.place(piece, loc)
       val cleared = boardCopy.clearLines()
       (boardCopy, PieceLocCleared(piece, loc, (cleared._1 + cleared._2) > 0))
 
     }
 
-    // i can't see how to not have this listbuffer
+    // i can't see how to not have this ListBuffer
     // i can accumulate locations because you generate on each time through the recursion
     // but you only store the last simulation - so there's nothing to accumulate...
     // Todo: Wait, can't you just pass it as is?  otherwise push another simulation on it?
     //       i might be tired...
     val listBuffer = new ListBuffer[Simulation]
 
-    def createSimulations(board: Board, pieces: List[Piece], locationAccumulator: List[PieceLocCleared]): Unit = {
+    def createSimulations(board: Board, pieces: List[Piece], plcAccumulator: List[PieceLocCleared]): Unit = {
 
       val piece = pieces.head
 
@@ -233,9 +219,9 @@ class Game(val highScore: Int) {
 
           if (pieces.tail.nonEmpty) {
             // recurse
-            createSimulations(boardCopy, pieces.tail, (plc :: locationAccumulator))
+            createSimulations(boardCopy, pieces.tail, plc :: plcAccumulator)
           } else {
-            val plcList = plc :: locationAccumulator
+            val plcList = plc :: plcAccumulator
             val simulation = Simulation(plcList.reverse, boardCopy)
             simulations.inc // simulation counter increased
 
@@ -251,7 +237,7 @@ class Game(val highScore: Int) {
     createSimulations(board, pieces, List())
 
     val options = {
-      val grouped = listBuffer.toList.groupBy(simul => simul.pieceCount)
+      val grouped = listBuffer.toList.groupBy(_.pieceCount)
 
       if (grouped.contains(3)) grouped(3)
       else if (grouped.contains(2)) grouped(2)
@@ -297,7 +283,7 @@ class Game(val highScore: Int) {
 
     val greenify = (b: Boolean, v: AnyVal, valFormat: String, label: String, labelFormat: String) => {
       val result = valFormat.format(v)
-      labelFormat.format(label) + (if (b) (GameUtil.GREEN + result + GameUtil.SANE) else result)
+      labelFormat.format(label) + (if (b) GameUtil.GREEN + result + GameUtil.SANE else result)
     }
 
     val openFormat = "%2d"
@@ -306,22 +292,22 @@ class Game(val highScore: Int) {
     val labelFormat = " %s: "
     val longLabelFormat = "     " + labelFormat
 
-    val occupiedLabel = "occ"
-    val maximizerLable = "mxmzr"
-    val openLabel = "openRC"
+    val occupiedLabel = "occupied"
+    val maximizerLabel = "maximizer"
+    val openLabel = "openRowsCols"
     val islandMaxLabel = "islandMax"
-    val entropyLabel = "ntrpy"
+    val entropyLabel = "entropy"
 
     val results = (best, worst) match {
-      case (b: Simulation, w: Some[Simulation]) => {
+      case (b: Simulation, w: Some[Simulation]) =>
         (
-          greenify((b.boardCount < w.get.boardCount), b.boardCount, openFormat, occupiedLabel, labelFormat)
+          greenify(b.boardCount < w.get.boardCount, b.boardCount, openFormat, occupiedLabel, labelFormat)
           + greenify(false, w.get.boardCount, parenFormat, "", "")
 
-          + greenify(b.maximizerCount > w.get.maximizerCount, b.maximizerCount, openFormat, maximizerLable, labelFormat)
+          + greenify(b.maximizerCount > w.get.maximizerCount, b.maximizerCount, openFormat, maximizerLabel, labelFormat)
           + greenify(false, w.get.maximizerCount, parenFormat, "", "")
 
-          + greenify((b.openLines > w.get.openLines), b.openLines, openFormat, openLabel, labelFormat)
+          + greenify(b.openLines > w.get.openLines, b.openLines, openFormat, openLabel, labelFormat)
           + greenify(false, w.get.openLines, parenFormat, "", "")
 
           + greenify(b.islandMax > w.get.islandMax, b.islandMax, openFormat, islandMaxLabel, labelFormat)
@@ -330,16 +316,14 @@ class Game(val highScore: Int) {
           + greenify(b.entropy < w.get.entropy, b.entropy, entropyFormat, entropyLabel, labelFormat)
           + greenify(false, w.get.entropy, parenEntropyFormat, "", "")
         )
-      }
-      case (b: Simulation, None) => {
+      case (b: Simulation, None) =>
         (
           greenify(true, b.boardCount, openFormat, occupiedLabel, labelFormat)
-          + greenify(true, b.maximizerCount, openFormat, maximizerLable, longLabelFormat)
+          + greenify(true, b.maximizerCount, openFormat, maximizerLabel, longLabelFormat)
           + greenify(true, b.openLines, openFormat, openLabel, longLabelFormat)
           + greenify(true, b.islandMax, openFormat, islandMaxLabel, longLabelFormat)
           + greenify(true, b.entropy, entropyFormat, entropyLabel, longLabelFormat)
         )
-      }
 
     }
 
@@ -350,15 +334,13 @@ class Game(val highScore: Int) {
   // todo:  can this be turned into an implicit for a List[Piece].toString call?  if so, that would be nice
   private def piecesToString(pieces: List[Piece]): String = pieces.map(_.name).mkString(", ")
 
-  private def copyBoard(pieces: List[Piece], aBoard: Board): Board = Board.copy("board: " + pieces.map(_.name).mkString(", "), aBoard)
-
   private def handleThePiece(best: Simulation, piece: Piece, loc: (Int, Int), machineHighScore: Int): Unit = {
 
     val currentOccupied = board.occupiedCount
     val curRowsCleared = rowsCleared.value
     val curColsCleared = colsCleared.value
 
-    println("\nAttempting piece: " + ((placed.value % 3) + 1) + "\n" + piece.toString + "\n")
+    println("\nAttempting piece: " + ((placed.value % 3) + 1) + "\n" + piece.show + "\n")
 
     // a function designed to throw GameOver if it receives no valid locations
     board.place(piece, loc)
@@ -369,7 +351,7 @@ class Game(val highScore: Int) {
     score.incrementMultiple(piece.pointValue)
 
     // placing a piece puts underlines on it to highlight it
-    println(board)
+    println(board.show)
 
     // so now clear any previously underlined cells for the next go around
     board.clearPieceUnderlines(piece, loc)
@@ -391,8 +373,6 @@ class Game(val highScore: Int) {
       + " - largest contiguous unoccupied: " + board.islandMax // a little unusual - todo: you could put islandMax on the board - makes more sense there
       + " - disorder (aka entropy): " + entropyFormat.format(board.entropy))
 
-    // pace these things out
-    sleepShort
   }
 
   private def handleLineClearing() = {
@@ -407,7 +387,7 @@ class Game(val highScore: Int) {
       printMe(result._2, "column")
 
       // show an updated board reflecting the cleared lines
-      println("\n" + board)
+      println("\n" + board.show)
 
       rowsCleared.incrementMultiple(result._1)
       colsCleared.incrementMultiple(result._2)
@@ -422,7 +402,7 @@ class Game(val highScore: Int) {
 
     println
 
-    println(gamePieces.toString)
+    println(gamePieces.usageString)
 
     println("\nGAME OVER!!\n")
 
@@ -458,7 +438,7 @@ class Game(val highScore: Int) {
     // the toString from each piece into an Array.  In this case, we'll create a List[Array[String]]
     val piecesToStrings = pieces map { piece =>
 
-      val a = piece.toString.split('\n')
+      val a = piece.show.split('\n')
       if (a.length < tallestPieceHeight)
         a ++ Array.fill(tallestPieceHeight - a.length)(piece.printFillString) // fill out the array
       else
@@ -484,6 +464,7 @@ object Game {
   // one of the optimizations is to ensure that the maximum number of
   // maximum pieces can fit on a board from all the boards simulated in the permutation of a set of pieces
   protected val maximizer = new Box("Maximizer", GameUtil.CYAN, 3)
+  val BOARD_SIZE = 10
 
   def showGameStart(): Unit = {
 

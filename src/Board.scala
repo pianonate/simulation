@@ -18,25 +18,22 @@ class Board(val layout: Array[Array[Cell]], val name: String, val color: String)
     this(layout, name, Board.BOARD_COLOR)
   }
 
-  // the board outputs unoccupied cells so just call toString on every piece
-  // different than the Piece.toString which will not output unoccupied Cell's in other pieces
-  // this method is mapped in from Piece.toString
-  override def cellToStringMapFunction(cell: Cell): String = cell.toString
-
-  // calculate all locations for a board once - at board creation
-  private val allLocations: List[(Int, Int)] = Array.tabulate(layout.length, layout.length)((i, j) => (i, j)).flatten.toList
+  // the board outputs unoccupied cells so just call toString on every cell
+  // different than the Piece.show which will not output unoccupied Cell's in other pieces
+  // this method is mapped in from Piece.show
+  override def cellShowMapFunction(cell: Cell): String = cell.show
 
   // todo - right now we're using a scale value of 3 - maybe we want to try multiple values such as 3 and 4 and return the sum...
   // temporary disable
   def entropy: Double = 0.0 // Entropy.scaledEntropy(3, this.layout)
 
-  private def islands: Map[Int, Int] = Islands.findIslands(this.layout, allLocations).groupBy(_.length).mapValues(_.length)
+  private def islands: List[Int]  = Islands.findIslands(this.layout, Board.allLocations)
 
-  def islandMax: Int = islands.keys.max
+  def islandMax: Int = islands.max
 
   def openLines: Int = {
 
-    val openRows = layout.filter(row => row.forall(!_.occupied)).length
+    val openRows = layout.count(row => row.forall(!_.occupied))
 
     def openCol(col: Int): Boolean = layout.forall(row => !row(col).occupied)
 
@@ -90,7 +87,7 @@ class Board(val layout: Array[Array[Cell]], val name: String, val color: String)
     (clearableRows.length, clearableCols.length)
   }
 
-  def clearPieceUnderlines(piece: Piece, loc: (Int, Int)) = {
+  def clearPieceUnderlines(piece: Piece, loc: (Int, Int)): Unit = {
 
     val pieceRowStart = loc._1
     val pieceRowEnd = pieceRowStart + piece.layout.length
@@ -132,11 +129,12 @@ class Board(val layout: Array[Array[Cell]], val name: String, val color: String)
 
   }*/
 
+  // todo: see if using toList slows this down a lot
   def legalPlacements(piece: Piece): List[(Int, Int)] = {
     // walk through each position on the board
     // see if the piece fits at that position, if it does, add that position to the list
-    for { loc <- allLocations if legalPlacement(piece, loc) } yield loc
-
+    val l = for { loc <- Board.allLocations if legalPlacement(piece, loc) } yield loc
+    l.toList
   }
 
   private def legalPlacement(piece: Piece, loc: (Int, Int)): Boolean = {
@@ -176,6 +174,39 @@ class Board(val layout: Array[Array[Cell]], val name: String, val color: String)
 }
 
 object Board {
+
+  // calculate all locations for a board once - at class Board construction
+  // copyBoard was originally: 21.5% of execution time with the tabulate functionality
+  // moved to a while loop with a ListBuffer and that was...31.6% - worse!!
+  // so moved to a recursive loop with a List - which was 9.1%
+  // and finally by building the list in reverse, recursion gave it back in order...
+  // so we didn't have to call reverse and end up with 4.8% of execution time
+  // worth the optimization - from 21.5% to 4.8%!
+
+  // duh - this value is invariant throughout the game
+  // moved it to Board object, lazy instantiated it on first use
+  // and now it is only calculated once in less than 1 ms
+  // probably you can put the tabulate mechanism back if you wish
+  //
+  // now with getLocations calculated once, copyBoard is about 3.1% of the overall time
+  private def getLocations(boardSize: Int): Array[(Int, Int)] = /*Array.tabulate(layout.length, layout.length)((i, j) => (i, j)).flatten.toList*/ {
+
+    def loop(row: Int, col: Int, acc: List[(Int, Int)]): List[(Int, Int)] = {
+      (row, col) match {
+        case (-1, _) => acc
+        case (_, 0) => loop(row - 1, boardSize - 1, (row, col) :: acc)
+        case _ => loop(row, col - 1, (row, col) :: acc)
+      }
+    }
+
+    val size = boardSize
+    val locs = loop(size - 1, size - 1, List())
+    // changed getLocations to Array so that access is constant time rather than linear time for items in the list
+    locs.toArray
+
+  }
+
+  lazy val allLocations: Array[(Int, Int)] = getLocations(Game.BOARD_SIZE)
 
   private val BOARD_COLOR = GameUtil.BRIGHT_WHITE
 

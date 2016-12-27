@@ -1,92 +1,110 @@
 /**
  * Created by nathan on 12/19/16.
- * methods to create an islands array showing contiguous blocks of space
+ * methods to create an islands array showing contiguous blocks of unoccupied space
  */
 
 import scala.collection.mutable.ListBuffer
 
 object Islands {
 
-  def findIslands(layout: Array[Array[Cell]], locations: List[(Int, Int)]): List[List[(Int, Int)]] = {
+  def findIslands(layout: Array[Array[Cell]], locations: Array[(Int, Int)]): List[Int] = {
+
+    def getVisitedArray = Array.fill(layout.length)(Array.fill(layout.length)(false))
 
     // once again, i can't get the recursive solution so resorting to imperative :(
-    val islands = new ListBuffer[ListBuffer[(Int, Int)]]
+    val islands = new ListBuffer[Int]
 
-    val visited = Array.fill(layout.length)(Array.fill(layout.length)(false))
+    // call dfs in all directions - only acting on valid locations - until it can't find any more islands
+    val directions = Array((-1, 0), (0, -1), (1, 0), (0, 1))
 
+    // keep track of all visited locations so you only start new islands where necessary
+    val visited = getVisitedArray
+
+    // is this location occupied?
     def occupied(loc: (Int, Int)): Boolean = layout(loc._1)(loc._2).occupied
 
-    def isVisited(loc: (Int, Int)): Boolean = (visited(loc._1)(loc._2) == true)
+    // has this location been visited?
+    def isVisited(loc: (Int, Int), arr: Array[Array[Boolean]]): Boolean = arr(loc._1)(loc._2)
 
-    def visit(loc: (Int, Int)): Unit = visited(loc._1)(loc._2) = true
+    // visit the location
+    def visit(loc: (Int, Int), arr: Array[Array[Boolean]]): Unit = arr(loc._1)(loc._2) = true
 
-    def isSafe(loc: (Int, Int)): Boolean = {
+    // is it safe to recurse into this location
+    def isSafe(loc: (Int, Int), arr: Array[Array[Boolean]]): Boolean = {
 
       val i = loc._1
       val j = loc._2
 
       val inbounds = i >= 0 && i < layout.length && j >= 0 && j < layout(0).length
+
       if (!inbounds)
         return false
 
-      if (occupied(loc))
+      if (isVisited(loc, arr))
         return false
 
-      if (isVisited(loc))
+      if (occupied(loc))
         return false
 
       true
 
     }
 
-    def dfs(loc: (Int, Int), newIsland: ListBuffer[(Int, Int)]): Unit = {
+    // changing directions to an array sped things up significantly
+    // also not accessing list.length during while loop
+    // also eliminated appending the location to a ListBuffer
+    // sped this up to 501 islands / second in profiler
+    // from 319 / second prior.  57% speedup
+    // changing locations to array from a list (constant indexed access time)
+    // sped things up to 1,141 islands per second in the profiler - 258% faster
+    def dfs(loc: (Int, Int), dfsVisited: Array[Array[Boolean]]) /* newIsland: ListBuffer[(Int, Int)])*/ : Array[Array[Boolean]] /*List[(Int, Int)] */ = {
 
-      // if we haven't visited, say we have
-      visit(loc)
+      // global visited so you don't create new islands where you've already been
+      visit(loc, visited)
+      // local visited to this particular island search
+      visit(loc, dfsVisited)
 
-      newIsland append loc
-
-      // call dfs in all directions - only acting on valid locations - until it can't find any more islands
-      val directions = Array((-1, 0), (0, -1), (1, 0), (0, 1))
-
+      val (row, col) = loc
       var i = 0
-      while (i < directions.length) {
-        val offset = directions(i)
-        val tryLoc = (loc._1 + offset._1, loc._2 + offset._2)
-        if (isSafe(tryLoc)) {
-          dfs(tryLoc, newIsland)
+      val length = directions.length
+      while (i < length) {
+        val (offsetRow, offsetCol) = directions(i)
+        val tryLoc = (row + offsetRow, col + offsetCol)
+        if (isSafe(tryLoc, dfsVisited)) {
+          dfs(tryLoc, dfsVisited)
         }
 
         i += 1
       }
 
-      /*      for {
-        offset <- directions
-        tryLoc = (loc._1 + offset._1, loc._2 + offset._2)
-        if isSafe(tryLoc)
-      } dfs(tryLoc, newIsland)*/
+      dfsVisited
 
     }
 
-    def findIslandsHelper(locations: List[(Int, Int)]): List[List[(Int, Int)]] = {
+    def findIslandsHelper(locations: Array[(Int, Int)]): List[Int] /*List[List[(Int, Int)]]*/ = {
 
       // If an unoccupied cell is not visited yet,
       // then new island found
 
       // switched to while to go faster than for comprehension
       var i = 0
+
       while (i < locations.length) {
         val loc = locations(i)
-        // if unoccupied and not visited
-        if ((!occupied(loc)) && (!isVisited(loc))) {
-          val newIsland = new ListBuffer[(Int, Int)]
-          islands append newIsland
-          dfs(loc, newIsland)
+
+        // if unoccupied and not visited already by dfs
+        if ((!occupied(loc)) && (!isVisited(loc, visited))) {
+
+          val island = dfs(loc, getVisitedArray)
+          val count = island.map(a => a.count(_ == true)).sum
+          islands append count
         }
+
         i += 1
+
       }
 
-      islands.map(island => island.toList).toList
+      islands.toList
     }
 
     findIslandsHelper(locations)

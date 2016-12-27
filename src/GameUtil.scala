@@ -4,7 +4,7 @@
  */
 object GameUtil {
 
-  def getScoreString(formatString: String, score: Int): String = (GREEN + formatString.format(score) + SANE)
+  def getScoreString(formatString: String, score: Int): String = GREEN + formatString.format(score) + SANE
 
   // print the character colors that we have available to us
   def printPossibleColors(): Unit = {
@@ -24,8 +24,6 @@ object GameUtil {
     println
 
   }
-
-  def sleepShort: Unit = Thread.sleep(500)
 
   // these are used in the end game
   val labelFormat = "%-24s: "

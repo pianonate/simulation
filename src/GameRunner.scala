@@ -4,7 +4,7 @@
  * GameRunner owns the responsibility of running Games and managing high score persistence
  */
 import GameUtil._
-import java.io.{PrintWriter}
+import java.io.PrintWriter
 
 //todo:  right align scores correctly
 object GameRunner {
@@ -14,6 +14,7 @@ object GameRunner {
   def play(): Unit = {
 
     // after open lines optimization 22,603
+    // playing it many times, sped up with some luck - 26,914
 
     // different than game continuous mode which simply
     // controls whether you hit enter to place the next piece
@@ -77,7 +78,7 @@ object GameRunner {
 
   }
 
-  def saveHighScore(highScore: Int) = {
+  def saveHighScore(highScore: Int): Unit = {
     val pw = new PrintWriter(HIGH_SCORE_FILE)
     pw.write(highScore.toString)
     pw.close()
@@ -89,18 +90,16 @@ object GameRunner {
     import scala.io.Source
 
     try {
-      return (Source.fromFile(HIGH_SCORE_FILE).getLines.mkString.toInt)
+      return Source.fromFile(HIGH_SCORE_FILE).getLines.mkString.toInt
 
     } catch {
-      case _: Throwable => {
+      case _: Throwable =>
         val pw = new PrintWriter(HIGH_SCORE_FILE)
         pw.write("0")
         pw.close()
-
-      }
     }
 
-    return 0
+    0
 
   }
 

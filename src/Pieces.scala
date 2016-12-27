@@ -108,7 +108,7 @@ class Pieces {
     names.map(name => pieceMap(name)).toList
   }
 
-  override def toString: String = {
+  def usageString: String = {
 
     pieceList
       .sortBy(piece => (piece.usage.value, piece.name))
@@ -119,7 +119,7 @@ class Pieces {
   def printPossiblePieces(): Unit = {
     for (piece <- pieceList) {
       println(piece.name + ": " + piece.pointValue)
-      println(piece.toString)
+      println(piece.show)
     }
     println
   }
