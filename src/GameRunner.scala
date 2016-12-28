@@ -11,7 +11,7 @@ object GameRunner {
 
   val HIGH_SCORE_FILE = ".highscore"
 
-  def play(): Unit = {
+  def play(args: Array[String]): Unit = {
 
     // after open lines optimization 22,603
     // playing it many times, sped up with some luck - 26,914
@@ -34,7 +34,15 @@ object GameRunner {
 
       val machineHighScore = getHighScore
 
-      val game = new Game(if (scores.isEmpty) 0 else scores.max)
+      val profiling = if (args.contains("-p")) true else false
+      val maxSimulations = {
+        if (profiling)
+          Game.MAX_SIMULATION_ITERATIONS_UNDER_PROFILER
+        else
+          Game.MAX_SIMULATION_ITERATIONS
+      }
+
+      val game = new Game(if (scores.isEmpty) 0 else scores.max, maxSimulations)
       val results = game.run(machineHighScore)
 
       scores.append(results._1)

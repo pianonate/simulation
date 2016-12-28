@@ -1,7 +1,7 @@
 /**
  * Created by nathan on 12/10/16.
  * Game will hold a reference to the current board and will also invoke simulations
- *
+ * Todo: fix the Round x,xxx to have comma format
  * Todo: at end of game you can often place one or two pieces, but we don't place any - find out why
  *
  * TODO: Kevin suggests assigning values from 0 to 5 to 0 on both axes and minimize for placement on higher valued squares
@@ -13,31 +13,27 @@
  *
  * Todo: save every move in a game so you can replay it if it's awesome
  *
- * Todo: If occupied is minimized and islands are maximized, then the next should be keep
- *       rows and columns clear - the most number...!!!  This could be the winner.
+ * Todo: start looking at hte points your game loses at - find out where you disagree with the choices it made
  *
- * Todo: It doesn't seem as if doing the maximum number of simulations really buys you much
- *       so create an ability tune the simulation count to a number that results in the rolling average
- *       (sliding window) of simulations per second from the previous 12? runs to be less than 1.5 seconds
- *       per permutation.  If you can do more, great.  If you can't, that's great also.
- *       potentially you could use the concurrency framework - that would be cool
+ * Todo: introduce random seed and then follow that particular seeded game through to completion -
+ *       you can optimize one game play at a time rather than trying to run them over and over
+ *       and hope for something better!
  *
+ * Todo:  save datasets of all of the top say 90% of boards for each of your stats in games where you lose.  then keep track of whether or not you lose in the next
+ *        round for each of them.  then you'll have a dataset to run a machine learning algorithm of of our stats to better pick the best options
  */
 
 import GameUtil._
 
-//todo consider making this a service and you show the actual game simulation in an ios app or browser with angular. which is even more useful
+//    todo consider making this a service and you show the actual game simulation in an ios app or browser with angular. which is even more useful
 object GameOver extends Exception
 
-class Game(val highScore: Int) {
+class Game(val highScore: Int, val maxSimulations: Int) {
 
   // Todo: create a manifest object that specifies the ordering and participation of
   //       various algorithms used in this simulation (openLines, maximizer, etc.
   //       this will allow you to quickly turn them off or on (or potentially provide them at the command line)
-
-  private val MAX_SIMULATION_ITERATIONS = 300000 // 1000000
-
-  private val BYATCH_THRESHOLD = 225000 // your system has some cred if it is doing more than this number of simulations / second
+  private val BYATCH_THRESHOLD = 300000 // your system has some cred if it is doing more than this number of simulations / second
 
   private val CONTINUOUS_MODE = true // set to false to have the user advance through each board placement by hitting enter
 
@@ -49,9 +45,6 @@ class Game(val highScore: Int) {
   private val colsCleared = Counter()
   private val rounds = Counter()
   private val placed = Counter()
-
-  /*private def incrementCounter(count: Long, it: Iterator[Long]): Unit = for (i <- 0l until count) it.next
-*/
 
   import scala.collection.mutable.ListBuffer
   private val simulationsPerSecond = new ListBuffer[Int]
@@ -148,7 +141,7 @@ class Game(val highScore: Int) {
        Piece.getNamedPieces("BigUpperLeftEl", "BigBox", "VerticalLine5")
       else*/
 
-      // List.fill(3)(gamePieces.getNamedPiece("Singleton"))
+      // List.fill(3)(gamePieces.getNamedPiece("VLine5"))
 
       List.fill(3)(gamePieces.getRandomPiece)
 
@@ -186,8 +179,6 @@ class Game(val highScore: Int) {
     val t1 = System.currentTimeMillis()
     val simulations = Counter()
 
-    val maxIterations = MAX_SIMULATION_ITERATIONS
-
     //return the board copy and the number of lines cleared
     def placeMe(piece: Piece, theBoard: Board, loc: (Int, Int)): (Board, PieceLocCleared) = {
       val boardCopy = Board.copy("simulationBoard", theBoard)
@@ -211,7 +202,11 @@ class Game(val highScore: Int) {
       val paralegal = board.legalPlacements(piece).par
 
       for (loc <- paralegal) {
-        if (simulations.value < maxIterations) {
+
+        // maxSimulations is configured at runtime
+        // if we are profiling it uses a smaller number
+        // otherwise it is going to be the maximum possible simulations
+        if (simulations.value < maxSimulations) {
 
           val result = placeMe(piece, board, loc)
           val boardCopy = result._1
@@ -463,8 +458,13 @@ object Game {
 
   // one of the optimizations is to ensure that the maximum number of
   // maximum pieces can fit on a board from all the boards simulated in the permutation of a set of pieces
-  protected val maximizer = new Box("Maximizer", GameUtil.CYAN, 3)
+  protected val maximizer = new Box("Maximizer", GameUtil.CYAN, 3, 0)
   val BOARD_SIZE = 10
+
+  // max simulations if you had 3 singletons chosen on an empty board:
+  private val BOARD_UNOCCUPIED = BOARD_SIZE * BOARD_SIZE
+  val MAX_SIMULATION_ITERATIONS: Int = BOARD_UNOCCUPIED * (BOARD_UNOCCUPIED - 1) * (BOARD_UNOCCUPIED - 2)
+  val MAX_SIMULATION_ITERATIONS_UNDER_PROFILER: Int = 10000
 
   def showGameStart(): Unit = {
 

@@ -3,9 +3,14 @@
  * Main is just the stub to get it all off the ground
  */
 
-object Main extends App {
+object Main {
 
-  GameRunner.play()
+  def main(args: Array[String]): Unit = {
+    println("Hello, world!")
+
+    GameRunner.play(args)
+
+  }
 
 }
 
