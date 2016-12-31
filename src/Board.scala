@@ -9,7 +9,6 @@
 import scala.annotation.tailrec
 
 class Board(val layout: Array[Array[Cell]], val name: String, val color: String) extends Piece {
-  override val weight = 0
 
   // initial board creation just requires a size
   def this(size: Int) {
@@ -26,35 +25,123 @@ class Board(val layout: Array[Array[Cell]], val name: String, val color: String)
   // this method is mapped in from Piece.show
   override def cellShowMapFunction(cell: Cell): String = cell.show
 
-  // todo - right now we're using a scale value of 3 - maybe we want to try multiple values such as 3 and 4 and return the sum...
-  // temporary disable
-  def entropy: Double = 0.0 // Entropy.scaledEntropy(3, this.layout)
 
-  private def islands: List[Int] = Islands.findIslands(this.layout, Board.allLocations)
+  lazy val islands: List[Int] = Islands.findIslands(this.layout, Board.allLocations)
 
-  def islandMax: Int = islands.max
+  // optimizing max with a while loop
+  // Before
+  // Execution Time: 29%, 5,917/s
+  // After
+  // Execution Time: 31%, 6,522/s - 10% increase
+  //
+  // After optimizing findIslands we are at
+  // Execution Time: 17%, 11,950/s
+  //
+  // now let's try a slightly different algo and see if there is any improvement
+  def islandMax: Int = 0 /* temporarily disabled = {
+    val theseIslands = islands
+    var max = 0
+    var i = 0
+    val length = theseIslands.length
+    while(i<length) {
+      if (theseIslands(i)>max) {max = theseIslands(i)}
+      i += 1
+    }
+    max
+  }*/
 
+  // start optimization run
+  // Execution Time: 24%, 3,378/s
+  //
+  // take same approach as in clearlines - remove the for comprehensions and maps that were in place previously
+  // based on earlier experience passing lambdas around slows things down so it so right now just factored out
+  // a common test used by both openLines and clearLines
+  // Execution Time: .8%, 140,276/s - 4,000% increase - openLines is now inconsequential
   def openLines: Int = {
+    testRows(false).size + testCols(false).size
+  }
 
-    val openRows = layout.count(row => row.forall(!_.occupied))
+  private def testRows(testForFull: Boolean): Seq[Int] = {
 
-    def openCol(col: Int): Boolean = layout.forall(row => !row(col).occupied)
+    def testRow(row: Array[Cell], testForFull: Boolean): Boolean = { //row.forall(cell => cell.occupied)
 
-    val openCols: Int = {
-      for {
-        i <- this.layout.indices
-        if openCol(i)
-      } yield i
-    }.length
+      var i = 0
 
-    openRows + openCols
+      // if you find any unoccupied then the row can't be full
+      var stopTesting = false
 
+      // replaced a return when unoccupied with a conditional that evaluates for it
+      // returns are bad in scala
+      // https://tpolecat.github.io/2014/05/09/return.html
+      while ((i < row.length) && !stopTesting) {
+        if (((testForFull && row(i).unoccupied)) || ((!testForFull && row(i).occupied))) {
+          stopTesting = true
+        }
+        i += 1
+      }
+
+      if (stopTesting) // if a cell is unoccupied then we can't be full
+        false
+      else
+        true
+    }
+
+    @tailrec def testRowLoop(index: Int, acc: List[Int]): List[Int] = {
+      index match {
+        case n if n < layout.length =>
+          if (testRow(layout(n), testForFull))
+            testRowLoop(n + 1, n :: acc)
+          else
+            testRowLoop(n + 1, acc)
+        case _ => acc
+      }
+
+    }
+
+    testRowLoop(0, List())
+  }
+
+  private def testCols(testForFull: Boolean): Seq[Int] = {
+
+    def testCol(col: Int, testForFull: Boolean): Boolean = { //layout.forall(row => row(col).occupied)
+      var i = 0
+
+      // if you find any unoccupied then the row can't be full
+      var stopTesting = false
+
+      while ((i < layout.length) && !stopTesting) {
+        if (((testForFull && layout(i)(col).unoccupied)) || ((!testForFull && layout(i)(col).occupied))) {
+          stopTesting = true // true
+        }
+        i += 1
+      }
+
+      if (stopTesting) // if we had to stop testing then the answer is false
+        false
+      else
+        true
+
+    }
+
+    @tailrec def testColLoop(index: Int, acc: List[Int]): List[Int] = {
+      index match {
+        case n if n < layout.length =>
+          if (testCol(n, testForFull))
+            testColLoop(n + 1, n :: acc)
+          else
+            testColLoop(n + 1, acc)
+        case _ => acc
+      }
+
+    }
+
+    testColLoop(0, List())
   }
 
   // changed to not use a rotated copy of the board
   // slight increase in LOC but definite decrease in % of code execution time
   // from ~24% with the original version - now it's 226102 / 1543684 = 0.146469096 = 14.6% of code execution time
-
+  //
   // next level of optimization.
   // start: clearLines takes 58% of placeMe at 2,992 per second in the profiler
   // fullRow and fullCol eliminate forall:  now 35% of placeMe at 5,344 per second in the profiler
@@ -65,9 +152,6 @@ class Board(val layout: Array[Array[Cell]], val name: String, val color: String)
   // at start of this optimization, clearLines was 11% of overall execution time at end, it was .3%
   // this is a super strong argument for using while loops and buildings things tail recursively when performance
   // is on the line in tight loops
-  //
-  // todo: att tailrec annotation
-
   def clearLines(): (Int, Int) = {
 
     def clearCol(col: Int): Unit = { /*{ for (i <- layout.indices) layout(i)(col) = new Cell(false, this.color, true) }*/
@@ -86,88 +170,8 @@ class Board(val layout: Array[Array[Cell]], val name: String, val color: String)
       }
     }
 
-    // todo - get rid of while loop duplication in general.  You can pass in functions to do the right thing
-    //        also have a while loop elimination that allows for early exit - which might just be you provide the
-    //        test situation as a lambda
-    def fullRow(row: Array[Cell]): Boolean = { //row.forall(cell => cell.occupied)
-
-      var i = 0
-
-      // if you find any unoccupied then the row can't be full
-      var unoccupied = false
-
-      // replaced a return when unoccupied with a conditional that evaluates for it
-      // returns are bad in scala
-      // https://tpolecat.github.io/2014/05/09/return.html
-      while ((i < row.length) && !unoccupied) {
-        if (row(i).unoccupied) {
-          unoccupied = true
-        }
-        i += 1
-      }
-
-      if (unoccupied) // if a cell is unoccupied then we can't be full
-        false
-      else
-        true
-    }
-
-    def fullCol(col: Int): Boolean = { //layout.forall(row => row(col).occupied)
-      var i = 0
-
-      // if you find any unoccupied then the row can't be full
-      var unoccupied = false
-
-      while ((i < layout.length) & !unoccupied) {
-        if (!layout(i)(col).occupied) {
-          unoccupied = true
-        }
-        i += 1
-      }
-
-      if (unoccupied) // if a cell is unoccupied then we can't be full
-        false
-      else
-        true
-
-    }
-
-    def fullRows(): Seq[Int] = {
-
-      @tailrec def fullRowLoop(index: Int, acc: List[Int]): List[Int] = {
-        index match {
-          case n if n < layout.length =>
-            if (fullRow(layout(n)))
-              fullRowLoop(n + 1, n :: acc)
-            else
-              fullRowLoop(n + 1, acc)
-          case _ => acc
-        }
-
-      }
-
-      fullRowLoop(0, List())
-    }
-
-    def fullCols(): Seq[Int] = {
-
-      @tailrec def fullColLoop(index: Int, acc: List[Int]): List[Int] = {
-        index match {
-          case n if n < layout.length =>
-            if (fullCol(n))
-              fullColLoop(n + 1, n :: acc)
-            else
-              fullColLoop(n + 1, acc)
-          case _ => acc
-        }
-
-      }
-
-      fullColLoop(0, List())
-    }
-
-    val clearableRows = fullRows()
-    val clearableCols = fullCols()
+    val clearableRows = testRows(true)
+    val clearableCols = testCols(true)
 
     val fClearRow = (i: Int) => clearRow(this.layout(i))
     val fClearCol = (i: Int) => clearCol(i)
@@ -188,6 +192,7 @@ class Board(val layout: Array[Array[Cell]], val name: String, val color: String)
     (clearableRows.length, clearableCols.length)
   }
 
+  // called so rarely that it doesn't need optimization
   def clearPieceUnderlines(piece: Piece, loc: (Int, Int)): Unit = {
 
     val pieceRowStart = loc._1
@@ -204,19 +209,36 @@ class Board(val layout: Array[Array[Cell]], val name: String, val color: String)
 
   }
 
+  // start optimization
+  // Execution Time: 26%, 5,212/s
+  //
+  // eliminate for comprehension version / replace with tail recur
+  // Execution Time: 2%, 108,793/s - 1900% speedup
   def place(piece: Piece, loc: (Int, Int)): Unit = {
 
-    // walk through every occupied location in the piece
-    // and map it to the appropriate location on the underlying board
-    for {
-      r <- piece.layout.indices
-      c <- piece.layout(0).indices
-      cell = piece.layout(r)(c)
-      if cell.occupied
-    } {
-      val replaceCell = new Cell(cell.occupied, cell.color, true)
-      this.layout(r + loc._1)(c + loc._2) = replaceCell
+    val (locRow, locCol) = loc
+
+    val rows = piece.layout.length
+    val cols = piece.layout(0).length
+
+    def checkCell(row: Int, col: Int): Unit = {
+      val cell = piece.layout(row)(col)
+      if (cell.occupied) {
+        val replaceCell = new Cell(cell.occupied, cell.color, true)
+        this.layout(row + locRow)(col + locCol) = replaceCell
+      }
     }
+
+    @tailrec def placeLoop(row: Int, col: Int): Unit = {
+      (row, col) match {
+        case (-1, _) => Unit
+        case (_, 0) => { checkCell(row, col); placeLoop(row - 1, cols - 1) }
+        case _ => { checkCell(row, col); placeLoop(row, col - 1) }
+      }
+    }
+
+    placeLoop(rows - 1, cols - 1)
+
   }
 
   // optimize this
@@ -306,7 +328,7 @@ object Board {
   // probably you can put the tabulate mechanism back if you wish
   //
   // now with getLocations calculated once, copyBoard is about 3.1% of the overall time
-  private def getLocations(boardSize: Int): Array[(Int, Int)] = /*Array.tabulate(layout.length, layout.length)((i, j) => (i, j)).flatten.toList*/ {
+  private def getLocations(boardSize: Int): List[(Int, Int)] = /*Array.tabulate(layout.length, layout.length)((i, j) => (i, j)).flatten.toList*/ {
 
     @tailrec def loop(row: Int, col: Int, acc: List[(Int, Int)]): List[(Int, Int)] = {
       (row, col) match {
@@ -317,25 +339,42 @@ object Board {
     }
 
     val size = boardSize
-    val locs = loop(size - 1, size - 1, List())
-    // changed getLocations to Array so that access is constant time rather than linear time for items in the list
-    locs.toArray
+    loop(size - 1, size - 1, List())
 
   }
 
-  lazy val allLocations: Array[(Int, Int)] = getLocations(Game.BOARD_SIZE)
-  lazy val allLocationsList: List[(Int, Int)] = allLocations.toList
+
+  lazy val allLocationsList: List[(Int, Int)] = getLocations(Game.BOARD_SIZE)
+  lazy val allLocations: Array[(Int, Int)] = allLocationsList.toArray
 
   private val BOARD_COLOR = GameUtil.BRIGHT_WHITE
+  private def layoutTemplate:Array[Array[Cell]] = Array(null,null,null,null,null,null,null,null,null,null)
 
   def copy(newName: String, boardToCopy: Board): Board = {
 
-    // mapping the clones gives a new array
-    // it holds all of the same references but it you change a cell the original board's layout doesn't change
-    // so this is the goods - it will work
-    // oh - and by the way - simulations got about 5 times faster
-    val layout = boardToCopy.layout.map(_.clone)
-    new Board(layout, newName)
+    // mapping the .clone gives a new array
+    // it holds all of the same references but if you put a new cell in place the original board's layout doesn't change
+    // so this is the good - it will work
+    /*val layout = boardToCopy.layout.map(_.clone)*/
+
+    // using while loop rather than map as we went from
+    // Execution Time: 10%, 19,527/s
+    //
+    // To
+    // Execution Time:  3%, 69.491/s
+    //
+    // replaced Array.ofDim with a call to a template method
+    // to instantiate a new Array...
+    // Execution Time; 1.6%, 116,579/s ~500% improvement over start
+    val newLayout = layoutTemplate// Array.ofDim[Array[Cell]](Game.BOARD_SIZE)
+    var i = 0
+    while (i<Game.BOARD_SIZE) {
+      newLayout(i) = boardToCopy.layout(i).clone
+      i += 1
+    }
+
+   /* new Board(layout, newName)*/
+    new Board(newLayout,newName)
 
   }
 }

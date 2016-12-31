@@ -30,7 +30,6 @@ object GameUtil {
   val numberFormat = "%,7d"
   val numberFormatShort = "%,d"
   val labelNumberFormat: String = labelFormat + numberFormat
-  val entropyFormat = "%1.4f"
 
   // Color code strings from:
   // http://www.topmudsites.com/forums/mud-coding/413-java-ansi.html

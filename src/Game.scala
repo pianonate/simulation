@@ -1,7 +1,18 @@
 /**
  * Created by nathan on 12/10/16.
  * Game will hold a reference to the current board and will also invoke simulations
+ *
+ *
+ * Todo: for debugging - create a verison that runs parallel (default) and one that runs serial
+ *     this could aid in debugging basic performance issues
+ *
+ * Todo: change -p argument to -profile - be more descriptive
+ *
+ * Todo: add game # to prefix each Score so you can no which iteration your in when you leave this
+ *       plaing over night
+ *
  * Todo: fix the Round x,xxx to have comma format
+ *
  * Todo: at end of game you can often place one or two pieces, but we don't place any - find out why
  *
  * TODO: Kevin suggests assigning values from 0 to 5 to 0 on both axes and minimize for placement on higher valued squares
@@ -33,7 +44,7 @@ class Game(val highScore: Int, val maxSimulations: Int) {
   // Todo: create a manifest object that specifies the ordering and participation of
   //       various algorithms used in this simulation (openLines, maximizer, etc.
   //       this will allow you to quickly turn them off or on (or potentially provide them at the command line)
-  private val BYATCH_THRESHOLD = 300000 // your system has some cred if it is doing more than this number of simulations / second
+  private val BYATCH_THRESHOLD = 550000 // your system has some cred if it is doing more than this number of simulations / second
 
   private val CONTINUOUS_MODE = true // set to false to have the user advance through each board placement by hitting enter
 
@@ -113,7 +124,7 @@ class Game(val highScore: Int, val maxSimulations: Int) {
     val simulateHead: Simulation = pieceSequenceSimulation(permutations.head)
 
     if (simulateHead.plcList.exists(plc => plc.clearedLines)) {
-      val simulateTail: List[Simulation] = permutations.tail.map(pieceSequenceSimulation)
+      val simulateTail: List[Simulation] = permutations.tail.map(pieces => pieceSequenceSimulation(pieces))
       (simulateHead :: simulateTail).sorted.head
     } else {
 
@@ -159,7 +170,6 @@ class Game(val highScore: Int, val maxSimulations: Int) {
     val maximizerCount: Int = board.legalPlacements(Game.maximizer).length
     val openLines: Int = board.openLines
     val islandMax: Int = board.islandMax
-    val entropy: Double = board.entropy
 
     // the following provides tuple ordering to ordered to make the tuple comparison work
     import scala.math.Ordered.orderingToOrdered
@@ -168,8 +178,12 @@ class Game(val highScore: Int, val maxSimulations: Int) {
 
     // new algo - lowest boardCount followed by largest island
     def compare(that: Simulation): Int = {
-      (this.boardCount, that.maximizerCount, that.openLines, that.islandMax, this.entropy)
-        .compare(that.boardCount, this.maximizerCount, this.openLines, this.islandMax, that.entropy)
+     /* (this.boardCount, that.maximizerCount, that.openLines, that.islandMax)
+        .compare(that.boardCount, this.maximizerCount, this.openLines, this.islandMax)*/
+
+      // under test maximizer, then openlines, then boardcount
+      (that.maximizerCount, that.openLines,  this.boardCount, that.islandMax)
+        .compare(this.maximizerCount,  this.openLines, that.boardCount, this.islandMax)
     }
 
   }
@@ -184,6 +198,7 @@ class Game(val highScore: Int, val maxSimulations: Int) {
       val boardCopy = Board.copy("simulationBoard", theBoard)
       boardCopy.place(piece, loc)
       val cleared = boardCopy.clearLines()
+      // return the board with an instance of a PieceLocCleared class
       (boardCopy, PieceLocCleared(piece, loc, (cleared._1 + cleared._2) > 0))
 
     }
@@ -283,7 +298,6 @@ class Game(val highScore: Int, val maxSimulations: Int) {
 
     val openFormat = "%2d"
     val parenFormat = " (" + openFormat + ")"
-    val parenEntropyFormat = " (" + entropyFormat + ")"
     val labelFormat = " %s: "
     val longLabelFormat = "     " + labelFormat
 
@@ -291,7 +305,6 @@ class Game(val highScore: Int, val maxSimulations: Int) {
     val maximizerLabel = "maximizer"
     val openLabel = "openRowsCols"
     val islandMaxLabel = "islandMax"
-    val entropyLabel = "entropy"
 
     val results = (best, worst) match {
       case (b: Simulation, w: Some[Simulation]) =>
@@ -308,8 +321,6 @@ class Game(val highScore: Int, val maxSimulations: Int) {
           + greenify(b.islandMax > w.get.islandMax, b.islandMax, openFormat, islandMaxLabel, labelFormat)
           + greenify(false, w.get.islandMax, parenFormat, "", "")
 
-          + greenify(b.entropy < w.get.entropy, b.entropy, entropyFormat, entropyLabel, labelFormat)
-          + greenify(false, w.get.entropy, parenEntropyFormat, "", "")
         )
       case (b: Simulation, None) =>
         (
@@ -317,7 +328,6 @@ class Game(val highScore: Int, val maxSimulations: Int) {
           + greenify(true, b.maximizerCount, openFormat, maximizerLabel, longLabelFormat)
           + greenify(true, b.openLines, openFormat, openLabel, longLabelFormat)
           + greenify(true, b.islandMax, openFormat, islandMaxLabel, longLabelFormat)
-          + greenify(true, b.entropy, entropyFormat, entropyLabel, longLabelFormat)
         )
 
     }
@@ -365,8 +375,7 @@ class Game(val highScore: Int, val maxSimulations: Int) {
       + " - occupied: " + board.occupiedCount
       + " - maximizer positions available: " + board.legalPlacements(Game.maximizer).length
       + " - open lines: " + board.openLines
-      + " - largest contiguous unoccupied: " + board.islandMax // a little unusual - todo: you could put islandMax on the board - makes more sense there
-      + " - disorder (aka entropy): " + entropyFormat.format(board.entropy))
+      + " - largest contiguous unoccupied: " + board.islandMax)
 
   }
 

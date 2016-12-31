@@ -9,7 +9,7 @@ abstract class Piece {
   val name: String
   val color: String
   val layout: Array[Array[Cell]]
-  val weight: Int
+  val weight: Int = 0 // defined so subclasses (such as Board) don't have to provide an implementation
 
   val usage = Counter()
 
@@ -76,7 +76,7 @@ abstract class Piece {
 
 // generic line class - let's you create a bunch of different lines
 // length is not marked as val because it is not a field we retain
-class Line(val name: String, val color: String, length: Int, val weight: Int) extends Piece {
+class Line(val name: String, val color: String, length: Int, override val weight: Int) extends Piece {
   private val a = Array.fill(length)(true)
   val layout: Array[Array[Cell]] = Piece.getLayout(color, Array(a))
 }
@@ -84,13 +84,13 @@ class Line(val name: String, val color: String, length: Int, val weight: Int) ex
 // generic box class - let's you create boxes of different sizes
 // size is not marked as val because it is not a field we retain
 // although size does matter
-class Box(val name: String, val color: String, size: Int, val weight: Int) extends Piece {
+class Box(val name: String, val color: String, size: Int, override val weight: Int) extends Piece {
   val layout: Array[Array[Cell]] = Piece.getLayout(color, Piece.getBoxTemplateOfSize(size))
 }
 
 // generic El class - let's you create L's of different sizes
 // size is not marked as val because it is not a field we retain
-class El(val name: String, val color: String, size: Int, val weight: Int) extends Piece {
+class El(val name: String, val color: String, size: Int, override val weight: Int) extends Piece {
   private val a = Piece.getBoxTemplateOfSize(size)
 
   for {
@@ -127,7 +127,7 @@ object Piece {
   // take a piece, and create a new piece, rotated 90 degrees
   def rotate90(newName: String, pieceToCopy: Piece): Piece = {
 
-    class Rotated(val name: String, val color: String, val layout: Array[Array[Cell]], val weight: Int) extends Piece
+    class Rotated(val name: String, val color: String, val layout: Array[Array[Cell]], override val weight: Int) extends Piece
 
     val rotatedLayout = pieceToCopy.layout.transpose.map(_.reverse).map(_.toArray)
     new Rotated(newName, pieceToCopy.color, rotatedLayout, pieceToCopy.weight)
