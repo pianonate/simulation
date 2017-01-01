@@ -9,9 +9,13 @@ import java.io.PrintWriter
 //todo:  right align scores correctly
 object GameRunner {
 
+  // todo high score can go on the context maybe
   val HIGH_SCORE_FILE = ".highscore"
 
+
   def play(args: Array[String]): Unit = {
+
+    val context = new Context(args)
 
     // after open lines optimization 22,603
     // playing it many times, sped up with some luck - 26,914
@@ -32,17 +36,11 @@ object GameRunner {
     // run the game, my friend
     do {
 
+      // todo, put machineHighScore on the context
+      // no need to pass machineHighScore to run
       val machineHighScore = getHighScore
 
-      val profiling = if (args.contains("-p")) true else false
-      val maxSimulations = {
-        if (profiling)
-          Game.MAX_SIMULATION_ITERATIONS_UNDER_PROFILER
-        else
-          Game.MAX_SIMULATION_ITERATIONS
-      }
-
-      val game = new Game(if (scores.isEmpty) 0 else scores.max, maxSimulations)
+      val game = new Game(if (scores.isEmpty) 0 else scores.max, context)
       val results = game.run(machineHighScore)
 
       scores.append(results._1)

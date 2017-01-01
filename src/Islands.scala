@@ -9,6 +9,8 @@ object Islands {
 
   // call dfs in all directions - only acting on valid locations - until it can't find any more islands
   private val directions = Array((-1, 0), (0, -1), (1, 0), (0, 1))
+  private val labels = getLabelsArray
+  private val counter = Counter
 
   // start optimization
   // ExecutionTime: 27%, 2,542/second

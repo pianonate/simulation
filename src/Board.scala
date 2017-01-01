@@ -314,6 +314,8 @@ class Board(val layout: Array[Array[Cell]], val name: String, val color: String)
 
 object Board {
 
+  val BOARD_SIZE = 10
+
   // calculate all locations for a board once - at class Board construction
   // copyBoard was originally: 21.5% of execution time with the tabulate functionality
   // moved to a while loop with a ListBuffer and that was...31.6% - worse!!
@@ -344,7 +346,7 @@ object Board {
   }
 
 
-  lazy val allLocationsList: List[(Int, Int)] = getLocations(Game.BOARD_SIZE)
+  lazy val allLocationsList: List[(Int, Int)] = getLocations(BOARD_SIZE)
   lazy val allLocations: Array[(Int, Int)] = allLocationsList.toArray
 
   private val BOARD_COLOR = GameUtil.BRIGHT_WHITE
@@ -368,7 +370,7 @@ object Board {
     // Execution Time; 1.6%, 116,579/s ~500% improvement over start
     val newLayout = layoutTemplate// Array.ofDim[Array[Cell]](Game.BOARD_SIZE)
     var i = 0
-    while (i<Game.BOARD_SIZE) {
+    while (i < BOARD_SIZE) {
       newLayout(i) = boardToCopy.layout(i).clone
       i += 1
     }

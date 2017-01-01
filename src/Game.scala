@@ -39,7 +39,8 @@ import GameUtil._
 //    todo consider making this a service and you show the actual game simulation in an ios app or browser with angular. which is even more useful
 object GameOver extends Exception
 
-class Game(val highScore: Int, val maxSimulations: Int) {
+class Game(val highScore: Int, context:Context) {
+
 
   // Todo: create a manifest object that specifies the ordering and participation of
   //       various algorithms used in this simulation (openLines, maximizer, etc.
@@ -48,7 +49,7 @@ class Game(val highScore: Int, val maxSimulations: Int) {
 
   private val CONTINUOUS_MODE = true // set to false to have the user advance through each board placement by hitting enter
 
-  private val board: Board = new Board(Game.BOARD_SIZE)
+  private val board: Board = new Board(Board.BOARD_SIZE)
   private val gamePieces: Pieces = new Pieces
 
   private val score = Counter()
@@ -59,6 +60,8 @@ class Game(val highScore: Int, val maxSimulations: Int) {
 
   import scala.collection.mutable.ListBuffer
   private val simulationsPerSecond = new ListBuffer[Int]
+
+  val maxSimulations: Int = context.maxSimulations
 
   def run(machineHighScore: Int): (Int, Int, Int) = {
 
@@ -468,12 +471,6 @@ object Game {
   // one of the optimizations is to ensure that the maximum number of
   // maximum pieces can fit on a board from all the boards simulated in the permutation of a set of pieces
   protected val maximizer = new Box("Maximizer", GameUtil.CYAN, 3, 0)
-  val BOARD_SIZE = 10
-
-  // max simulations if you had 3 singletons chosen on an empty board:
-  private val BOARD_UNOCCUPIED = BOARD_SIZE * BOARD_SIZE
-  val MAX_SIMULATION_ITERATIONS: Int = BOARD_UNOCCUPIED * (BOARD_UNOCCUPIED - 1) * (BOARD_UNOCCUPIED - 2)
-  val MAX_SIMULATION_ITERATIONS_UNDER_PROFILER: Int = 10000
 
   def showGameStart(): Unit = {
 
