@@ -9,8 +9,12 @@ import com.sun.javaws.exceptions.InvalidArgumentException
 
 class Context (args: Array[String]) {
 
-  private val validArguments = Set("-maxSimulations")
-  private val argMap: Map[String, String] = args.map(_.split(":")).map({case a if a.length==1 => (a(0),"true");case b if b.length==2 => (b(0),b(1))}).toMap
+  private val validArguments = Set("-maxSimulations", "-serial")
+  private val argMap: Map[String, String] = args.map(_.split(":"))
+    .map({
+      case a if a.length==1 => (a(0),"true")
+      case b if b.length==2 => (b(0),b(1))})
+    .toMap
 
   argMap.keys.foreach(key => { if (!validArguments(key)) throw new InvalidArgumentException(Array(key))})
 
@@ -29,8 +33,11 @@ class Context (args: Array[String]) {
 
   }
 
-  lazy val maxSimulations = getIntArgValue("-maxSimulations", MAX_SIMULATION_ITERATIONS)
+  private def getBooleanArgValue(arg:String, default:Boolean):Boolean = {
+    if (argMap.contains(arg)) true else default
+  }
 
-
+  val maxSimulations = getIntArgValue("-maxSimulations", MAX_SIMULATION_ITERATIONS)
+  val serialMode = getBooleanArgValue("-serial", false) // by default we are not in serial mode
 
 }

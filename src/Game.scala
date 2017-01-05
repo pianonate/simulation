@@ -36,11 +36,12 @@
 
 import GameUtil._
 
+import scala.collection.GenSeq
+
 //    todo consider making this a service and you show the actual game simulation in an ios app or browser with angular. which is even more useful
 object GameOver extends Exception
 
-class Game(val highScore: Int, context:Context) {
-
+class Game(val highScore: Int, context: Context) {
 
   // Todo: create a manifest object that specifies the ordering and participation of
   //       various algorithms used in this simulation (openLines, maximizer, etc.
@@ -71,6 +72,14 @@ class Game(val highScore: Int, context:Context) {
     try {
 
       do {
+
+        /*     val l = gamePieces.getNamedPiece("BigLowerLL")
+        board.place(l,(0,0))
+        board.place(l,(4,0))
+        board.place(l,(7,0))
+        println(board.show)
+        board.openLines
+*/
 
         // get 3 random pieces
         val pieces = getPiecesForRound
@@ -155,8 +164,8 @@ class Game(val highScore: Int, context:Context) {
        Piece.getNamedPieces("BigUpperLeftEl", "BigBox", "VerticalLine5")
       else*/
 
-      // List.fill(3)(gamePieces.getNamedPiece("VLine5"))
-
+      //List.fill(3)(gamePieces.getNamedPiece("VLine5"))
+      //gamePieces.getNamedPieces("BigLowerLL","BigLowerLL","BigLowerLL")
       List.fill(3)(gamePieces.getRandomPiece)
 
     }
@@ -171,7 +180,7 @@ class Game(val highScore: Int, context:Context) {
 
     val boardCount: Int = board.occupiedCount
     val maximizerCount: Int = board.legalPlacements(Game.maximizer).length
-    val openLines: Int = board.openLines
+    val (openLines, openContiguous) = board.openLines
     val islandMax: Int = board.islandMax
 
     // the following provides tuple ordering to ordered to make the tuple comparison work
@@ -181,12 +190,9 @@ class Game(val highScore: Int, context:Context) {
 
     // new algo - lowest boardCount followed by largest island
     def compare(that: Simulation): Int = {
-     /* (this.boardCount, that.maximizerCount, that.openLines, that.islandMax)
-        .compare(that.boardCount, this.maximizerCount, this.openLines, this.islandMax)*/
+      (this.boardCount, that.maximizerCount, that.openContiguous, that.islandMax, that.openLines )
+        .compare(that.boardCount, this.maximizerCount, this.openContiguous, this.islandMax, this.openLines )
 
-      // under test maximizer, then openlines, then boardcount
-      (that.maximizerCount, that.openLines,  this.boardCount, that.islandMax)
-        .compare(this.maximizerCount,  this.openLines, that.boardCount, this.islandMax)
     }
 
   }
@@ -194,7 +200,7 @@ class Game(val highScore: Int, context:Context) {
   private def pieceSequenceSimulation(pieces: List[Piece]): Simulation = {
 
     val t1 = System.currentTimeMillis()
-    val simulations = Counter()
+    val simulationCount = Counter()
 
     //return the board copy and the number of lines cleared
     def placeMe(piece: Piece, theBoard: Board, loc: (Int, Int)): (Board, PieceLocCleared) = {
@@ -206,37 +212,40 @@ class Game(val highScore: Int, context:Context) {
 
     }
 
+    def getLegal(board: Board, piece: Piece) = {
+      if (context.serialMode)
+        board.legalPlacements(piece)
+      else
+        board.legalPlacements(piece).par
+    }
+
     // i can't see how to not have this ListBuffer
-    // i can accumulate locations because you generate on each time through the recursion
+    // i can accumulate locations because you generate one each time through the recursion
     // but you only store the last simulation - so there's nothing to accumulate...
-    // Todo: Wait, can't you just pass it as is?  otherwise push another simulation on it?
-    //       i might be tired...
     val listBuffer = new ListBuffer[Simulation]
 
     def createSimulations(board: Board, pieces: List[Piece], plcAccumulator: List[PieceLocCleared]): Unit = {
 
       val piece = pieces.head
 
-      val paralegal = board.legalPlacements(piece).par
+      val paralegal = getLegal(board, piece)
 
-      for (loc <- paralegal) {
-
+      def processLoc(loc: (Int, Int)) = {
         // maxSimulations is configured at runtime
-        // if we are profiling it uses a smaller number
-        // otherwise it is going to be the maximum possible simulations
-        if (simulations.value < maxSimulations) {
+        // if we are profiling it uses a smaller number so tracing doesn't slow things down that we can't get a few rounds
+        if (simulationCount.value < maxSimulations) {
 
           val result = placeMe(piece, board, loc)
-          val boardCopy = result._1
-          val plc = result._2
+          val (boardCopy, plc) = result
 
           if (pieces.tail.nonEmpty) {
             // recurse
             createSimulations(boardCopy, pieces.tail, plc :: plcAccumulator)
           } else {
+
             val plcList = plc :: plcAccumulator
             val simulation = Simulation(plcList.reverse, boardCopy)
-            simulations.inc // simulation counter increased
+            simulationCount.inc // increment simulation counter
 
             synchronized {
               // only append simulation when we've reached the last legal location on this path
@@ -245,6 +254,9 @@ class Game(val highScore: Int, context:Context) {
           }
         }
       }
+
+      paralegal.foreach(processLoc)
+
     }
 
     createSimulations(board, pieces, List())
@@ -271,9 +283,9 @@ class Game(val highScore: Int, context:Context) {
 
     val largeValuesFormat = "%,5d"
 
-    val simulationCount = largeValuesFormat.format(simulations.value)
+    val simulationCountString = largeValuesFormat.format(simulationCount.value)
 
-    val perSecond = if (duration > 0) (simulations.value * 1000) / duration else 0
+    val perSecond = if (duration > 0) (simulationCount.value * 1000) / duration else 0
 
     simulationsPerSecond append perSecond.toInt
 
@@ -284,7 +296,7 @@ class Game(val highScore: Int, context:Context) {
 
     println(
       getSimulationResultsString(prefix, best, Some(worst))
-        + " - simulations: " + simulationCount + " in " + durationString
+        + " - simulations: " + simulationCountString + " in " + durationString
         + " (" + sPerSecond + "/second" + (if (perSecond > BYATCH_THRESHOLD) " b-yatch" else "") + ")"
     )
 
@@ -306,6 +318,7 @@ class Game(val highScore: Int, context:Context) {
 
     val occupiedLabel = "occupied"
     val maximizerLabel = "maximizer"
+    val contiguousLabel = "contiguous open lines"
     val openLabel = "openRowsCols"
     val islandMaxLabel = "islandMax"
 
@@ -315,11 +328,14 @@ class Game(val highScore: Int, context:Context) {
           greenify(b.boardCount < w.get.boardCount, b.boardCount, openFormat, occupiedLabel, labelFormat)
           + greenify(false, w.get.boardCount, parenFormat, "", "")
 
-          + greenify(b.maximizerCount > w.get.maximizerCount, b.maximizerCount, openFormat, maximizerLabel, labelFormat)
-          + greenify(false, w.get.maximizerCount, parenFormat, "", "")
+          + greenify(b.openContiguous > w.get.openContiguous, b.openContiguous, openFormat, contiguousLabel, labelFormat)
+          + greenify(false, w.get.openContiguous, parenFormat, "", "")
 
-          + greenify(b.openLines > w.get.openLines, b.openLines, openFormat, openLabel, labelFormat)
-          + greenify(false, w.get.openLines, parenFormat, "", "")
+            + greenify(b.openLines > w.get.openLines, b.openLines, openFormat, openLabel, labelFormat)
+            + greenify(false, w.get.openLines, parenFormat, "", "")
+
+            + greenify(b.maximizerCount > w.get.maximizerCount, b.maximizerCount, openFormat, maximizerLabel, labelFormat)
+          + greenify(false, w.get.maximizerCount, parenFormat, "", "")
 
           + greenify(b.islandMax > w.get.islandMax, b.islandMax, openFormat, islandMaxLabel, labelFormat)
           + greenify(false, w.get.islandMax, parenFormat, "", "")
@@ -328,8 +344,9 @@ class Game(val highScore: Int, context:Context) {
       case (b: Simulation, None) =>
         (
           greenify(true, b.boardCount, openFormat, occupiedLabel, labelFormat)
+          + greenify(true, b.openContiguous, openFormat, contiguousLabel, longLabelFormat)
+            + greenify(true, b.openLines, openFormat, openLabel, longLabelFormat)
           + greenify(true, b.maximizerCount, openFormat, maximizerLabel, longLabelFormat)
-          + greenify(true, b.openLines, openFormat, openLabel, longLabelFormat)
           + greenify(true, b.islandMax, openFormat, islandMaxLabel, longLabelFormat)
         )
 
@@ -376,8 +393,9 @@ class Game(val highScore: Int, context:Context) {
 
     println("Score: " + getScoreString(numberFormatShort, score.value) + " (" + getScoreString(numberFormatShort, highScore) + ")" + " (" + getScoreString(numberFormatShort, machineHighScore) + ")"
       + " - occupied: " + board.occupiedCount
+      + " - contiguous lines: " + board.openLines._2
+      + " - open lines: " + board.openLines._1
       + " - maximizer positions available: " + board.legalPlacements(Game.maximizer).length
-      + " - open lines: " + board.openLines
       + " - largest contiguous unoccupied: " + board.islandMax)
 
   }
