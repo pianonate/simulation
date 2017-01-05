@@ -22,9 +22,9 @@ http://stackoverflow.com/questions/1441373/increase-jvm-heap-size-for-scala - I'
 Yeah: both java and scala are new to me :)
 
 Stats:
-* right now my top score is just over 2,000
-* top score goal:  >10,000 
-* long term goal:  >1,000,000
+* right now my human top score is ~24K.  
+* simulation top score:  ~209K!!
+* long term goal - simulation never loses
 
 Also - feel free to contribute. 
 
