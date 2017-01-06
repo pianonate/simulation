@@ -182,6 +182,7 @@ class Game(val highScore: Int, context: Context) {
     override def toString: String = this.plcList.map(plc => plc.piece.name).mkString(", ")
 
     // new algo - lowest boardCount followed by largest island
+    // new high score
     // format: OFF
     def compare(that: Simulation): Int = {
 
