@@ -69,29 +69,29 @@
  */
 class Pieces {
 
-  private val singleton = new Line("Singleton", GameUtil.BLACK, 1, 4)
+  private val singleton = new Line("Singleton", Game.BLACK, 1, 4)
 
-  private val h2line = new Line("HLine2", GameUtil.BRIGHT_YELLOW, 2, 6)
+  private val h2line = new Line("HLine2", Game.BRIGHT_YELLOW, 2, 6)
   private val v2line = Piece.rotate90("VLine2", h2line)
 
-  private val h3line = new Line("HLine3", GameUtil.YELLOW, 3, 6)
+  private val h3line = new Line("HLine3", Game.YELLOW, 3, 6)
   private val v3line = Piece.rotate90("VLine3", h3line)
 
-  private val h4line = new Line("HLine4", GameUtil.BRIGHT_RED, 4, 4)
+  private val h4line = new Line("HLine4", Game.BRIGHT_RED, 4, 4)
   private val v4line = Piece.rotate90("VLine4", h4line)
 
-  private val h5line = new Line("HLine5", GameUtil.RED, 5, 4)
+  private val h5line = new Line("HLine5", Game.RED, 5, 4)
   private val v5line = Piece.rotate90("VLine5", h5line)
 
-  private val box = new Box("Box", GameUtil.GREEN, 2, 12)
-  private val bigBox = new Box("BigBox", GameUtil.CYAN, 3, 4)
+  private val box = new Box("Box", Game.GREEN, 2, 12)
+  private val bigBox = new Box("BigBox", Game.CYAN, 3, 4)
 
-  private val lowerLeftEl = new El("LowerLL", GameUtil.BRIGHT_CYAN, 2, 3)
+  private val lowerLeftEl = new El("LowerLL", Game.BRIGHT_CYAN, 2, 3)
   private val upperLeftEl = Piece.rotate90("UpperLL", lowerLeftEl)
   private val upperRightEl = Piece.rotate90("UpperRL", upperLeftEl)
   private val lowerRightEl = Piece.rotate90("LowerRL", upperRightEl)
 
-  private val bigLowerLeftEl = new El("BigLowerLL", GameUtil.BLUE, 3, 2)
+  private val bigLowerLeftEl = new El("BigLowerLL", Game.BLUE, 3, 2)
   private val bigUpperLeftEl = Piece.rotate90("BigUpperLL", bigLowerLeftEl)
   private val bigUpperRightEl = Piece.rotate90("BigUpperRL", bigUpperLeftEl)
   private val bigLowerRightEl = Piece.rotate90("BigLowerRL", bigUpperRightEl)
@@ -140,7 +140,7 @@ class Pieces {
 
     pieceList
       .sortBy(piece => (piece.usage.value, piece.name))
-      .map(piece => GameUtil.labelNumberFormat.format(piece.name, piece.usage.value))
+      .map(piece => Game.labelNumberFormat.format(piece.name, piece.usage.value))
       .mkString("\n")
   }
 

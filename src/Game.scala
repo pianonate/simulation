@@ -2,16 +2,8 @@
  * Created by nathan on 12/10/16.
  * Game will hold a reference to the current board and will also invoke simulations
  *
- *
- * Todo: for debugging - create a verison that runs parallel (default) and one that runs serial
- *     this could aid in debugging basic performance issues
- *
- * Todo: change -p argument to -profile - be more descriptive
- *
  * Todo: add game # to prefix each Score so you can no which iteration your in when you leave this
  *       plaing over night
- *
- * Todo: fix the Round x,xxx to have comma format
  *
  * Todo: at end of game you can often place one or two pieces, but we don't place any - find out why
  *
@@ -34,9 +26,7 @@
  *        round for each of them.  then you'll have a dataset to run a machine learning algorithm of of our stats to better pick the best options
  */
 
-import GameUtil._
-
-import scala.collection.GenSeq
+import Game._
 
 //    todo consider making this a service and you show the actual game simulation in an ios app or browser with angular. which is even more useful
 object GameOver extends Exception
@@ -180,8 +170,10 @@ class Game(val highScore: Int, context: Context) {
 
     val boardCount: Int = board.occupiedCount
     val maximizerCount: Int = board.legalPlacements(Game.maximizer).length
-    val (openLines, openContiguous) = board.openLines
+    val (openLines: Int, openContiguous: Int) = board.openLines
     val islandMax: Int = board.islandMax
+    val neighborCounts: Array[Int] = board.neighborCount
+    val fourNeighbors: Int = neighborCounts(4)
 
     // the following provides tuple ordering to ordered to make the tuple comparison work
     import scala.math.Ordered.orderingToOrdered
@@ -189,9 +181,12 @@ class Game(val highScore: Int, context: Context) {
     override def toString: String = this.plcList.map(plc => plc.piece.name).mkString(", ")
 
     // new algo - lowest boardCount followed by largest island
+    // format: OFF
     def compare(that: Simulation): Int = {
-      (this.boardCount, that.maximizerCount, that.openContiguous, that.islandMax, that.openLines )
-        .compare(that.boardCount, this.maximizerCount, this.openContiguous, this.islandMax, this.openLines )
+                (this.boardCount, that.maximizerCount, this.fourNeighbors, that.openContiguous, that.islandMax, that.openLines)
+        .compare(that.boardCount, this.maximizerCount, that.fourNeighbors, this.openContiguous, this.islandMax, this.openLines)
+
+      // format: ON
 
     }
 
@@ -306,9 +301,9 @@ class Game(val highScore: Int, context: Context) {
 
   private def getSimulationResultsString(prefix: String, best: Simulation, worst: Option[Simulation] = None): String = {
 
-    val greenify = (b: Boolean, v: AnyVal, valFormat: String, label: String, labelFormat: String) => {
+    val greenify = (isGreen: Boolean, v: AnyVal, valFormat: String, label: String, labelFormat: String) => {
       val result = valFormat.format(v)
-      labelFormat.format(label) + (if (b) GameUtil.GREEN + result + GameUtil.SANE else result)
+      labelFormat.format(label) + (if (isGreen) Game.GREEN + result + Game.SANE else result)
     }
 
     val openFormat = "%2d"
@@ -321,6 +316,7 @@ class Game(val highScore: Int, context: Context) {
     val contiguousLabel = "contiguous open lines"
     val openLabel = "openRowsCols"
     val islandMaxLabel = "islandMax"
+    val fourNeighborsLabel = "four neighbors"
 
     val results = (best, worst) match {
       case (b: Simulation, w: Some[Simulation]) =>
@@ -328,26 +324,31 @@ class Game(val highScore: Int, context: Context) {
           greenify(b.boardCount < w.get.boardCount, b.boardCount, openFormat, occupiedLabel, labelFormat)
           + greenify(false, w.get.boardCount, parenFormat, "", "")
 
+          + greenify(b.maximizerCount > w.get.maximizerCount, b.maximizerCount, openFormat, maximizerLabel, labelFormat)
+          + greenify(false, w.get.maximizerCount, parenFormat, "", "")
+
+          + greenify(b.fourNeighbors < w.get.fourNeighbors, b.fourNeighbors, openFormat, fourNeighborsLabel, labelFormat)
+          + greenify(false, w.get.fourNeighbors, parenFormat, "", "")
+
           + greenify(b.openContiguous > w.get.openContiguous, b.openContiguous, openFormat, contiguousLabel, labelFormat)
           + greenify(false, w.get.openContiguous, parenFormat, "", "")
 
-            + greenify(b.openLines > w.get.openLines, b.openLines, openFormat, openLabel, labelFormat)
-            + greenify(false, w.get.openLines, parenFormat, "", "")
-
-            + greenify(b.maximizerCount > w.get.maximizerCount, b.maximizerCount, openFormat, maximizerLabel, labelFormat)
-          + greenify(false, w.get.maximizerCount, parenFormat, "", "")
-
           + greenify(b.islandMax > w.get.islandMax, b.islandMax, openFormat, islandMaxLabel, labelFormat)
           + greenify(false, w.get.islandMax, parenFormat, "", "")
+
+          + greenify(b.openLines > w.get.openLines, b.openLines, openFormat, openLabel, labelFormat)
+          + greenify(false, w.get.openLines, parenFormat, "", "")
 
         )
       case (b: Simulation, None) =>
         (
           greenify(true, b.boardCount, openFormat, occupiedLabel, labelFormat)
-          + greenify(true, b.openContiguous, openFormat, contiguousLabel, longLabelFormat)
-            + greenify(true, b.openLines, openFormat, openLabel, longLabelFormat)
           + greenify(true, b.maximizerCount, openFormat, maximizerLabel, longLabelFormat)
+          + greenify(true, b.fourNeighbors, openFormat, fourNeighborsLabel, longLabelFormat)
+          + greenify(true, b.openContiguous, openFormat, contiguousLabel, longLabelFormat)
           + greenify(true, b.islandMax, openFormat, islandMaxLabel, longLabelFormat)
+          + greenify(true, b.openLines, openFormat, openLabel, longLabelFormat)
+
         )
 
     }
@@ -471,7 +472,7 @@ class Game(val highScore: Int, context: Context) {
 
     }
 
-    println("\nRound: " + (rounds.value + 1) + " - Candidate pieces:")
+    println("\nRound: " + numberFormatShort.format(rounds.value + 1) + " - Candidate pieces:")
 
     // turn arrays into a list so you can transpose them
     // transpose will create a list of 1st rows, a list of 2nd rows, etc.
@@ -486,9 +487,59 @@ class Game(val highScore: Int, context: Context) {
 
 object Game {
 
+  // these are used in the end game
+  val labelFormat = "%-24s: "
+  val numberFormat = "%,7d"
+  val numberFormatShort = "%,d"
+  val labelNumberFormat: String = labelFormat + numberFormat
+
+  // Color code strings from:
+  // http://www.topmudsites.com/forums/mud-coding/413-java-ansi.html
+  val SANE = "\u001B[0m"
+
+  val HIGH_INTENSITY = "\u001B[1m"
+  val LOW_INTENSITY = "\u001B[2m"
+
+  val ITALIC = "\u001B[3m"
+  val UNDERLINE = "\u001B[4m"
+  val BLINK = "\u001B[5m"
+  val RAPID_BLINK = "\u001B[6m"
+  val REVERSE_VIDEO = "\u001B[7m"
+  val INVISIBLE_TEXT = "\u001B[8m"
+
+  val BLACK = "\u001B[30m"
+  val RED = "\u001B[31m"
+  val GREEN = "\u001B[32m"
+  val YELLOW = "\u001B[33m"
+  val BLUE = "\u001B[34m"
+  val MAGENTA = "\u001B[35m"
+  val CYAN = "\u001B[36m"
+  val WHITE = "\u001B[37m"
+
+  val BRIGHT_BLACK = "\u001B[90m"
+  val BRIGHT_RED = "\u001B[91m"
+  val BRIGHT_GREEN = "\u001B[92m"
+  val BRIGHT_YELLOW = "\u001B[93m"
+  val BRIGHT_BLUE = "\u001B[94m"
+  val BRIGHT_MAGENTA = "\u001B[95m"
+  val BRIGHT_CYAN = "\u001B[96m"
+  val BRIGHT_WHITE = "\u001B[97m"
+
+  val BACKGROUND_BLACK = "\u001B[40m"
+  val BACKGROUND_RED = "\u001B[41m"
+  val BACKGROUND_GREEN = "\u001B[42m"
+  val BACKGROUND_YELLOW = "\u001B[43m"
+  val BACKGROUND_BLUE = "\u001B[44m"
+  val BACKGROUND_MAGENTA = "\u001B[45m"
+  val BACKGROUND_CYAN = "\u001B[46m"
+  val BACKGROUND_WHITE = "\u001B[47m"
+
   // one of the optimizations is to ensure that the maximum number of
   // maximum pieces can fit on a board from all the boards simulated in the permutation of a set of pieces
-  protected val maximizer = new Box("Maximizer", GameUtil.CYAN, 3, 0)
+  // apparently it's important that this be declared after Game.CYAN is declared above :)
+  private val maximizer = new Box("Maximizer", Game.CYAN, 3, 0)
+
+  def getScoreString(formatString: String, score: Int): String = GREEN + formatString.format(score) + SANE
 
   def showGameStart(): Unit = {
 
@@ -513,4 +564,24 @@ object Game {
     println("Each combination for each permutation is called a 'simulation'.")
 
   }
+
+  // print the character colors that we have available to us
+  def printPossibleColors(): Unit = {
+    for (i <- 30 to 37) {
+      val code = i.toString
+      print(f"\u001b[38;5;$code%sm$code%3s")
+    }
+
+    println("")
+
+    for (i <- 90 to 97) {
+      val code = i.toString
+      print(f"\u001b" +
+        f"[38;5;$code%sm$code%3s")
+    }
+
+    println
+
+  }
+
 }

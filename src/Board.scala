@@ -27,6 +27,8 @@ class Board(val layout: Array[Array[Cell]], val name: String, val color: String)
 
   def islandMax: Int = findLargestConnectedComponent(this.layout, Board.allLocationsList)
 
+  def neighborCount: Array[Int] = countNeighbors(Board.allLocations)
+
   // start optimization run
   // Execution Time: 24%, 3,378/s
   //
@@ -34,10 +36,10 @@ class Board(val layout: Array[Array[Cell]], val name: String, val color: String)
   // based on earlier experience passing lambdas around slows things down so it so right now just factored out
   // a common test used by both openLines and clearLines
   // Execution Time: .8%, 140,276/s - 4,000% increase - openLines is now inconsequential
-  def openLines: (Int,Int) = {
+  def openLines: (Int, Int) = {
     val openRows = testRows(false)
     val openCols = testCols(false)
-    val max = if(openRows._2 > openCols._2) openRows._2 else openCols._2
+    val max = if (openRows._2 > openCols._2) openRows._2 else openCols._2
 
     ((openRows._1.size + openCols._1.size), max)
 
@@ -136,17 +138,16 @@ class Board(val layout: Array[Array[Cell]], val name: String, val color: String)
         true
     }
 
-    @tailrec def testRowLoop(index: Int, currentMax:Int, max:Int, acc: List[Int]): (List[Int], Int) = {
+    @tailrec def testRowLoop(index: Int, currentMax: Int, max: Int, acc: List[Int]): (List[Int], Int) = {
       index match {
         case n if n < layout.length =>
           if (testRow(layout(n), testForFull)) {
             //current = 1
             // add 1 to currentMax and see if we need to create a new max
-            val newMax = if ( (currentMax + 1) > max) currentMax + 1 else max
+            val newMax = if ((currentMax + 1) > max) currentMax + 1 else max
 
-            testRowLoop(n + 1, currentMax+1, newMax, n :: acc)
-          }
-          else {
+            testRowLoop(n + 1, currentMax + 1, newMax, n :: acc)
+          } else {
             // current = 0
             // reset currentMax, pass along max
             testRowLoop(n + 1, 0, max, acc)
@@ -156,10 +157,10 @@ class Board(val layout: Array[Array[Cell]], val name: String, val color: String)
 
     }
 
-    testRowLoop(0,0,0,List())
+    testRowLoop(0, 0, 0, List())
   }
 
-  private def testCols(testForFull: Boolean): (Seq[Int], Int)  = {
+  private def testCols(testForFull: Boolean): (Seq[Int], Int) = {
 
     def testCol(col: Int, testForFull: Boolean): Boolean = { //layout.forall(row => row(col).occupied)
       var i = 0
@@ -181,17 +182,16 @@ class Board(val layout: Array[Array[Cell]], val name: String, val color: String)
 
     }
 
-    @tailrec def testColLoop(index: Int, currentMax:Int, max:Int, acc: List[Int]): (List[Int], Int) = {
+    @tailrec def testColLoop(index: Int, currentMax: Int, max: Int, acc: List[Int]): (List[Int], Int) = {
       index match {
         case n if n < layout.length =>
           if (testCol(n, testForFull)) {
             //current = 1
             // add 1 to currentMax and see if we need to create a new max
-            val newMax = if ( (currentMax + 1) > max) currentMax + 1 else max
+            val newMax = if ((currentMax + 1) > max) currentMax + 1 else max
 
-            testColLoop(n + 1, currentMax + 1, newMax,  n :: acc)
-          }
-          else {
+            testColLoop(n + 1, currentMax + 1, newMax, n :: acc)
+          } else {
             // current = 0
             // reset currentMax, pass along max
             testColLoop(n + 1, 0, max, acc)
@@ -212,7 +212,7 @@ class Board(val layout: Array[Array[Cell]], val name: String, val color: String)
   // start: clearLines takes 58% of placeMe at 2,992 per second in the profiler
   // fullRow and fullCol eliminate forall:  now 35% of placeMe at 5,344 per second in the profiler
   // fullRows and fullCols built with tail recursion: now 4% of placeMe at 89,635 / second in the profiler
-  // final clearing removed foreach on clearableRows and clearableCols:  3% of placeMe at 104,000 / second in the profiler
+  // final  removed foreach on clearableRows and clearableCols:  3% of placeMe at 104,000 / second in the profiler
   // overall improvement = 3300%
   //
   // at start of this optimization, clearLines was 11% of overall execution time at end, it was .3%
@@ -299,7 +299,7 @@ class Board(val layout: Array[Array[Cell]], val name: String, val color: String)
       (row, col) match {
         case (-1, _) => Unit
         case (_, 0) => { checkCell(row, col); placeLoop(row - 1, cols - 1) }
-        case _ => { checkCell(row, col); placeLoop(row, col - 1) }
+        case _ => checkCell(row, col); placeLoop(row, col - 1)
       }
     }
 
@@ -327,18 +327,18 @@ class Board(val layout: Array[Array[Cell]], val name: String, val color: String)
     // see if the piece fits at that position, if it does, add that position to the list
     /*for { loc <- Board.allLocationsList if legalPlacement(piece, loc) } yield loc*/
 
-    @tailrec def legalPlacementsLoop(locs: List[(Int, Int)], acc: List[(Int, Int)]): List[(Int, Int)] = {
+    @tailrec def legalPlacements1(locs: List[(Int, Int)], acc: List[(Int, Int)]): List[(Int, Int)] = {
       locs match {
         case head :: tail =>
           if (legalPlacement(piece, head))
-            legalPlacementsLoop(tail, head :: acc)
+            legalPlacements1(tail, head :: acc)
           else
-            legalPlacementsLoop(tail, acc)
+            legalPlacements1(tail, acc)
         case Nil => acc
       }
     }
 
-    legalPlacementsLoop(Board.allLocationsList, List())
+    legalPlacements1(Board.allLocationsList, List())
 
   }
 
@@ -398,6 +398,26 @@ class Board(val layout: Array[Array[Cell]], val name: String, val color: String)
     )
 
   private val labelsLength = connectedCountLabelsArray.length
+  private val directions = Array((-1, 0), (0, -1), (1, 0), (0, 1))
+
+  private def getCountsArray = Array(0, 0, 0, 0, 0)
+
+  private def getTryLoc(loc: (Int, Int), i: Int) = {
+    val (offsetRow, offsetCol) = directions(i)
+    val tryLoc = (loc._1 + offsetRow, loc._2 + offsetCol)
+    tryLoc
+  }
+
+  // is this location occupied?
+  private def isOccupied(loc: (Int, Int)): Boolean = layout(loc._1)(loc._2).occupied
+
+  private def isOutOfBounds(loc: (Int, Int)) = {
+    val i = loc._1
+    val j = loc._2
+
+    val inbounds = i >= 0 && i < layout.length && j >= 0 && j < layout(0).length
+    !inbounds
+  }
 
   // find largest connected component on the board
   // based on https://en.wikipedia.org/wiki/Connected-component_labeling#One_component_at_a_time
@@ -424,11 +444,10 @@ class Board(val layout: Array[Array[Cell]], val name: String, val color: String)
   // calculation
   // regressed to 10,603 after switching to labelling mechanism.  but it uses a list, so maybe use an array?
   //
-  def findLargestConnectedComponent(layout: Array[Array[Cell]], locations: List[(Int, Int)]): Int = {
+  private def findLargestConnectedComponent(layout: Array[Array[Cell]], locations: List[(Int, Int)]): Int = {
 
     //println("finding largest connected component.....................")
     // call dfs in all directions - only acting on valid locations - until it can't find any more islands
-    val directions = Array((-1, 0), (0, -1), (1, 0), (0, 1))
     val labels = connectedCountLabelsArray
     var componentCount = 0
 
@@ -454,24 +473,16 @@ class Board(val layout: Array[Array[Cell]], val name: String, val color: String)
     // is it safe to recurse into this location
     def isSafe(loc: (Int, Int)): Boolean = {
 
-      // is this location occupied?
-      def occupied(loc: (Int, Int)): Boolean = layout(loc._1)(loc._2).occupied
-
       // has this location been visited?
       def isVisited(loc: (Int, Int)): Boolean = labels(loc._1)(loc._2) > 0
 
-      val i = loc._1
-      val j = loc._2
-
-      val inbounds = i >= 0 && i < layout.length && j >= 0 && j < layout(0).length
-
-      if (!inbounds)
+      if (isOutOfBounds(loc))
         return false
 
       if (isVisited(loc))
         return false
 
-      if (occupied(loc))
+      if (isOccupied(loc))
         return false
 
       true
@@ -482,12 +493,10 @@ class Board(val layout: Array[Array[Cell]], val name: String, val color: String)
 
       label(loc, currentLabel)
 
-      val (row, col) = loc
       var i = 0
       val length = directions.length
       while (i < length) {
-        val (offsetRow, offsetCol) = directions(i)
-        val tryLoc = (row + offsetRow, col + offsetCol)
+        val tryLoc: (Int, Int) = getTryLoc(loc, i)
         if (isSafe(tryLoc)) {
           labelLocAndNeighbors(tryLoc, currentLabel)
         }
@@ -531,6 +540,52 @@ class Board(val layout: Array[Array[Cell]], val name: String, val color: String)
     findLargestLoop(locations, 0)
   }
 
+  private def countNeighbors(locs: Array[(Int, Int)]): Array[Int] = {
+
+    val counts = getCountsArray
+    val locLength = locs.length
+
+    def hasNeighbor(loc: (Int, Int)): Boolean = isOutOfBounds(loc) || isOccupied(loc)
+    // walk through all directions
+    def countLocationNeighbor(loc: (Int, Int)): Unit = {
+
+      val directionLength = directions.length
+      var i = 0
+      var count = 0
+      while (i < directionLength) {
+        val tryLoc = getTryLoc(loc, i)
+
+        if (hasNeighbor(tryLoc))
+          count += 1
+
+        i += 1
+      }
+
+      counts(count) += 1
+
+    }
+
+    def countNeighbors1 = {
+      var i = 0
+
+      while (i < locLength) {
+        val loc = locs(i)
+        if (isOccupied(loc))
+          ()
+        else {
+          countLocationNeighbor(loc)
+        }
+
+        i += 1
+      }
+    }
+
+    countNeighbors1
+
+    counts
+
+  }
+
 }
 
 object Board {
@@ -569,7 +624,7 @@ object Board {
   lazy val allLocationsList: List[(Int, Int)] = getLocations(BOARD_SIZE)
   lazy val allLocations: Array[(Int, Int)] = allLocationsList.toArray
 
-  private val BOARD_COLOR = GameUtil.BRIGHT_WHITE
+  private val BOARD_COLOR = Game.BRIGHT_WHITE
   private def layoutTemplate: Array[Array[Cell]] = Array(null, null, null, null, null, null, null, null, null, null)
 
   def copy(newName: String, boardToCopy: Board): Board = {

@@ -3,7 +3,7 @@
  * let Main be Main
  * GameRunner owns the responsibility of running Games and managing high score persistence
  */
-import GameUtil._
+import Game._
 import java.io.PrintWriter
 
 //todo:  right align scores correctly
