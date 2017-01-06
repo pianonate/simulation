@@ -325,7 +325,7 @@ class Board(val layout: Array[Array[Cell]], val name: String, val color: String)
   def legalPlacements(piece: Piece): List[(Int, Int)] = {
     // walk through each position on the board
     // see if the piece fits at that position, if it does, add that position to the list
-    /*for { loc <- Board.allLocationsList if legalPlacement(piece, loc) } yield loc*/
+    /*for { loc <- Board.allLocationsList.par if legalPlacement(piece, loc) } yield loc */
 
     @tailrec def legalPlacements1(locs: List[(Int, Int)], acc: List[(Int, Int)]): List[(Int, Int)] = {
       locs match {

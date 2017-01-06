@@ -171,9 +171,10 @@ class Game(val highScore: Int, context: Context) {
     val boardCount: Int = board.occupiedCount
     val maximizerCount: Int = board.legalPlacements(Game.maximizer).length
     val (openLines: Int, openContiguous: Int) = board.openLines
-    val islandMax: Int = board.islandMax
+    val islandMax: Int = 0 // board.islandMax
     val neighborCounts: Array[Int] = board.neighborCount
     val fourNeighbors: Int = neighborCounts(4)
+    val threeNeighbors: Int = neighborCounts(3)
 
     // the following provides tuple ordering to ordered to make the tuple comparison work
     import scala.math.Ordered.orderingToOrdered
@@ -183,8 +184,9 @@ class Game(val highScore: Int, context: Context) {
     // new algo - lowest boardCount followed by largest island
     // format: OFF
     def compare(that: Simulation): Int = {
-                (this.boardCount, that.maximizerCount, this.fourNeighbors, that.openContiguous, that.islandMax, that.openLines)
-        .compare(that.boardCount, this.maximizerCount, that.fourNeighbors, this.openContiguous, this.islandMax, this.openLines)
+
+                (this.boardCount,  that.maximizerCount, this.fourNeighbors, this.threeNeighbors, that.openContiguous/*, that.islandMax, that.openLines*/)
+        .compare(that.boardCount,  this.maximizerCount, that.fourNeighbors, that.threeNeighbors, this.openContiguous/*, this.islandMax, this.openLines*/)
 
       // format: ON
 
@@ -317,6 +319,7 @@ class Game(val highScore: Int, context: Context) {
     val openLabel = "openRowsCols"
     val islandMaxLabel = "islandMax"
     val fourNeighborsLabel = "four neighbors"
+    val threeNeighborsLabel = "three neighbors"
 
     val results = (best, worst) match {
       case (b: Simulation, w: Some[Simulation]) =>
@@ -330,24 +333,30 @@ class Game(val highScore: Int, context: Context) {
           + greenify(b.fourNeighbors < w.get.fourNeighbors, b.fourNeighbors, openFormat, fourNeighborsLabel, labelFormat)
           + greenify(false, w.get.fourNeighbors, parenFormat, "", "")
 
+          + greenify(b.threeNeighbors < w.get.threeNeighbors, b.threeNeighbors, openFormat, threeNeighborsLabel, labelFormat)
+          + greenify(false, w.get.threeNeighbors, parenFormat, "", "")
+
           + greenify(b.openContiguous > w.get.openContiguous, b.openContiguous, openFormat, contiguousLabel, labelFormat)
           + greenify(false, w.get.openContiguous, parenFormat, "", "")
 
-          + greenify(b.islandMax > w.get.islandMax, b.islandMax, openFormat, islandMaxLabel, labelFormat)
+        /*          + greenify(b.islandMax > w.get.islandMax, b.islandMax, openFormat, islandMaxLabel, labelFormat)
           + greenify(false, w.get.islandMax, parenFormat, "", "")
 
           + greenify(b.openLines > w.get.openLines, b.openLines, openFormat, openLabel, labelFormat)
-          + greenify(false, w.get.openLines, parenFormat, "", "")
+          + greenify(false, w.get.openLines, parenFormat, "", "")*/
 
         )
       case (b: Simulation, None) =>
         (
           greenify(true, b.boardCount, openFormat, occupiedLabel, labelFormat)
           + greenify(true, b.maximizerCount, openFormat, maximizerLabel, longLabelFormat)
+
           + greenify(true, b.fourNeighbors, openFormat, fourNeighborsLabel, longLabelFormat)
+          + greenify(true, b.threeNeighbors, openFormat, threeNeighborsLabel, longLabelFormat)
+
           + greenify(true, b.openContiguous, openFormat, contiguousLabel, longLabelFormat)
-          + greenify(true, b.islandMax, openFormat, islandMaxLabel, longLabelFormat)
-          + greenify(true, b.openLines, openFormat, openLabel, longLabelFormat)
+        /*          + greenify(true, b.islandMax, openFormat, islandMaxLabel, longLabelFormat)
+          + greenify(true, b.openLines, openFormat, openLabel, longLabelFormat)*/
 
         )
 
