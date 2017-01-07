@@ -492,7 +492,6 @@ object Game {
   val BACKGROUND_CYAN = "\u001B[46m"
   val BACKGROUND_WHITE = "\u001B[47m"
 
-
   def getScoreString(formatString: String, score: Int): String = GREEN + formatString.format(score) + SANE
 
   def showGameStart(): Unit = {
