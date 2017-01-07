@@ -28,7 +28,6 @@
 
 import Game._
 
-//    todo consider making this a service and you show the actual game simulation in an ios app or browser with angular. which is even more useful
 object GameOver extends Exception
 
 class Game(val highScore: Int, context: Context) {
@@ -36,6 +35,8 @@ class Game(val highScore: Int, context: Context) {
   // Todo: create a manifest object that specifies the ordering and participation of
   //       various algorithms used in this simulation (openLines, maximizer, etc.
   //       this will allow you to quickly turn them off or on (or potentially provide them at the command line)
+  //       also, it would allow for reconfiguring the console output automatically, which right now is a PITA
+
   private val BYATCH_THRESHOLD = 550000 // your system has some cred if it is doing more than this number of simulations / second
 
   private val CONTINUOUS_MODE = true // set to false to have the user advance through each board placement by hitting enter
@@ -62,14 +63,6 @@ class Game(val highScore: Int, context: Context) {
     try {
 
       do {
-
-        /*     val l = gamePieces.getNamedPiece("BigLowerLL")
-        board.place(l,(0,0))
-        board.place(l,(4,0))
-        board.place(l,(7,0))
-        println(board.show)
-        board.openLines
-*/
 
         // get 3 random pieces
         val pieces = getPiecesForRound
@@ -141,18 +134,6 @@ class Game(val highScore: Int, context: Context) {
   private def getPiecesForRound: List[Piece] = {
 
     val pieces = {
-      // this code provides specific pieces for the (probable) last iteration
-      // was used as a condition to debug a situation in the end game
-      // if (board.occupiedCount > 50)
-
-      // used to test a few rounds...
-      /*if (rounds.head ==1)
-        Piece.getNamedPieces("VerticalLine5", "LowerLeftEl", "HorizontalLine3")
-      else if (rounds.head == 2)
-        Piece.getNamedPieces("Box", "VerticalLine3", "BigUpperRightEl")
-      else if (rounds.head == 3)
-       Piece.getNamedPieces("BigUpperLeftEl", "BigBox", "VerticalLine5")
-      else*/
 
       //List.fill(3)(gamePieces.getNamedPiece("VLine5"))
       //gamePieces.getNamedPieces("BigLowerLL","BigLowerLL","BigLowerLL")
@@ -160,39 +141,6 @@ class Game(val highScore: Int, context: Context) {
 
     }
     pieces
-  }
-
-  case class PieceLocCleared(piece: Piece, loc: (Int, Int), clearedLines: Boolean)
-
-  case class Simulation(plcList: List[PieceLocCleared], board: Board) extends Ordered[Simulation] {
-
-    val pieceCount: Int = plcList.length
-
-    val boardCount: Int = board.occupiedCount
-    val maximizerCount: Int = board.legalPlacements(Game.maximizer).length
-    val (openLines: Int, openContiguous: Int) = board.openLines
-    val islandMax: Int = 0 // board.islandMax
-    val neighborCounts: Array[Int] = board.neighborCount
-    val fourNeighbors: Int = neighborCounts(4)
-    val threeNeighbors: Int = neighborCounts(3)
-
-    // the following provides tuple ordering to ordered to make the tuple comparison work
-    import scala.math.Ordered.orderingToOrdered
-
-    override def toString: String = this.plcList.map(plc => plc.piece.name).mkString(", ")
-
-    // new algo - lowest boardCount followed by largest island
-    // new high score
-    // format: OFF
-    def compare(that: Simulation): Int = {
-
-                (this.boardCount,  that.maximizerCount, this.fourNeighbors, this.threeNeighbors, that.openContiguous/*, that.islandMax, that.openLines*/)
-        .compare(that.boardCount,  this.maximizerCount, that.fourNeighbors, that.threeNeighbors, this.openContiguous/*, this.islandMax, this.openLines*/)
-
-      // format: ON
-
-    }
-
   }
 
   private def pieceSequenceSimulation(pieces: List[Piece]): Simulation = {
@@ -269,10 +217,10 @@ class Game(val highScore: Int, context: Context) {
 
     }
 
-    // with the new optimization, sorted should be the slowest thing as it lazy val's the fields of the Simulation
     val best = options.sorted.head
 
     // invert the default comparison and take that as the result for worst
+    // god i love Ordered trait
     val worst = options.sortWith(_ > _).head
 
     val t2 = System.currentTimeMillis
@@ -319,8 +267,8 @@ class Game(val highScore: Int, context: Context) {
     val contiguousLabel = "contiguous open lines"
     val openLabel = "openRowsCols"
     val islandMaxLabel = "islandMax"
-    val fourNeighborsLabel = "four neighbors"
-    val threeNeighborsLabel = "three neighbors"
+    val fourNeighborsLabel = "4 neighbors"
+    val threeNeighborsLabel = "3 neighbors"
 
     val results = (best, worst) match {
       case (b: Simulation, w: Some[Simulation]) =>
@@ -406,7 +354,7 @@ class Game(val highScore: Int, context: Context) {
       + " - occupied: " + board.occupiedCount
       + " - contiguous lines: " + board.openLines._2
       + " - open lines: " + board.openLines._1
-      + " - maximizer positions available: " + board.legalPlacements(Game.maximizer).length
+      + " - maximizer positions available: " + board.legalPlacements(Simulation.maximizer).length
       + " - largest contiguous unoccupied: " + board.islandMax)
 
   }
@@ -544,16 +492,13 @@ object Game {
   val BACKGROUND_CYAN = "\u001B[46m"
   val BACKGROUND_WHITE = "\u001B[47m"
 
-  // one of the optimizations is to ensure that the maximum number of
-  // maximum pieces can fit on a board from all the boards simulated in the permutation of a set of pieces
-  // apparently it's important that this be declared after Game.CYAN is declared above :)
-  private val maximizer = new Box("Maximizer", Game.CYAN, 3, 0)
 
   def getScoreString(formatString: String, score: Int): String = GREEN + formatString.format(score) + SANE
 
   def showGameStart(): Unit = {
 
     //todo - rewrite to include what you do with the occupied, etc. - also this can provide a key for it
+    //todo - ask Simulation for its current straegy
 
     println("GAME START")
     println("\nThis game works by first selecting 3 pieces from the set of all possible pieces.")
@@ -566,7 +511,7 @@ object Game {
     println("of clearing lines for this last piece.")
     println("\nEach of these combinations of placements will then store the maximum number of legal positions")
     println("available for this piece (called the maximizer):\n")
-    println(maximizer.toString)
+    println(Simulation.maximizer.toString)
     println("\nThe game uses the maximizer because it generally is a good choice for making sure there is")
     println("plenty of space available.")
     println("\nThe combination of piece placements with the least number of board positions occupied and the most")

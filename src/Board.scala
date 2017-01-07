@@ -43,8 +43,6 @@ class Board(val layout: Array[Array[Cell]], val name: String, val color: String)
 
     ((openRows._1.size + openCols._1.size), max)
 
-    // passing in a lambda makes the refactored code about 3x slower
-    // testLine(testR, false).size + testLine(testC, false).size
   }
 
   /*
@@ -95,7 +93,8 @@ class Board(val layout: Array[Array[Cell]], val name: String, val color: String)
 
   val testC = (i:Int, testForFull:Boolean) => testCol(i, testForFull)
 
-  // passing in tester rather than keeping the logic separate makes this thing 3x slower
+  // passing in tester lambda rather than keeping the logic separate makes this thing 3x slower
+  // it would be nice to get the refactoring but not at the expense of the performance hit
   private def testLine(tester: (Int,Boolean) => Boolean, testForFull:Boolean): Seq[Int] = {
     @tailrec def testLineLoop(index: Int, acc: List[Int]): List[Int] = {
       index match {
@@ -170,12 +169,15 @@ class Board(val layout: Array[Array[Cell]], val name: String, val color: String)
 
       while ((i < layout.length) && !stopTesting) {
         if (((testForFull && layout(i)(col).unoccupied)) || ((!testForFull && layout(i)(col).occupied))) {
-          stopTesting = true // true
+          stopTesting = true
         }
         i += 1
       }
 
-      if (stopTesting) // if we had to stop testing then the answer is false
+      // whenever a test is halted prematurely the test didn't pass
+      // bummer that scala isn't fast enough such that I had to write code that requires explanation
+      // this could have been written in one or two lines of scala code probably but performance was too slow
+      if (stopTesting)
         false
       else
         true
@@ -338,14 +340,17 @@ class Board(val layout: Array[Array[Cell]], val name: String, val color: String)
       }
     }
 
+    // building a list tail recursively so the result is a list that
+    // can be used to drive the simulation loop - which turns the list into a ParSeq to
+    // take advantage of multiple CPU cores and generate many more simulations / second
     legalPlacements1(Board.allLocationsList, List())
 
   }
 
+  // todo, eliminate the return
   private def legalPlacement(piece: Piece, loc: (Int, Int)): Boolean = {
 
-    val locRow = loc._1
-    val locCol = loc._2
+    val (locRow, locCol) = loc
 
     if ((piece.rows + locRow) > rows) return false // exceeds the bounds of the board - no point in checking any further
     if ((piece.cols + locCol) > cols) return false // exceeds the bounds of the board - no point in checking any further
@@ -376,11 +381,13 @@ class Board(val layout: Array[Array[Cell]], val name: String, val color: String)
 
   }
 
-  // prior to this would clone visitedArray and return - but this one method
-  // was taking up 15% of overall execution time.  So just return a predefined Array layout
+  // prior to this would clone the following array and return - but this one method
+  // was taking up 15% of overall execution time.
+  // even when constructing an array with fill, took a high % (i didn't record)
+  // So now, just return a predefined Array
   // as this takes almost no time at all
-  // update - change to Int in order to use a labelling scheme
 
+  // todo, test this mechanism to see how much slower it is and record it for posterity
   /*private val visitedArray = Array.fill(Game.BOARD_SIZE)(Array.fill(Game.BOARD_SIZE)(false))*/
 
   private def connectedCountLabelsArray = // Array.fill(10)(Array.fill[Int](10)(0))
