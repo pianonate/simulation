@@ -19,13 +19,16 @@ abstract class Piece {
   lazy val printFillString: String = List.fill(cols * 2 + 1)(" ").mkString // used by the game to output a blank row when printed side by side with other pieces
 
   // point value is calculated once and used to know the point of a piece
-  lazy val pointValue: Int = onPositions
+  // it's not just a convenience as we will call pointValue a lot and don't need to
+  // recalculate it each time
+  lazy val pointValue: Int = getOccupiedPositions
 
   // todo - can you improve the while loop to be more scala like and retain the perf?
+  // boards can have their Cell's changed so that the occupied status will change
   // with the original for comprehension the onPositions method took about 10% of the overall
   // execution time.  with the while loop, it takes <1% of execution time
   // layout.flatten.count(_.occupied) takes 5.6% of execution time
-  private def onPositions: Int = {
+  def getOccupiedPositions: Int = {
     /*
     layout.flatten.count(_.occupied)
 */
@@ -46,9 +49,6 @@ abstract class Piece {
     count.value
 
   }
-
-  // boards can have their Cell's changed so that the occupied status will change
-  def occupiedCount: Int = onPositions
 
   override def toString: String = this.name
 

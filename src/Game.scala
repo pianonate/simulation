@@ -32,11 +32,6 @@ object GameOver extends Exception
 
 class Game(val highScore: Int, context: Context) {
 
-  // Todo: create a manifest object that specifies the ordering and participation of
-  //       various algorithms used in this simulation (openLines, maximizer, etc.
-  //       this will allow you to quickly turn them off or on (or potentially provide them at the command line)
-  //       also, it would allow for reconfiguring the console output automatically, which right now is a PITA
-
   private val BYATCH_THRESHOLD = 550000 // your system has some cred if it is doing more than this number of simulations / second
 
   private val CONTINUOUS_MODE = true // set to false to have the user advance through each board placement by hitting enter
@@ -48,38 +43,23 @@ class Game(val highScore: Int, context: Context) {
   private val rowsCleared = Counter()
   private val colsCleared = Counter()
   private val rounds = Counter()
-  private val placed = Counter()
 
   import scala.collection.mutable.ListBuffer
   private val simulationsPerSecond = new ListBuffer[Int]
 
+  // maximum allowed simulations for this game
+  // mostly used in profiling to limit the number of simulations to a reasonable number
   val maxSimulations: Int = context.maxSimulations
 
   def run(machineHighScore: Int): (Int, Int, Int) = {
 
-    // val t1 = System.currentTimeMillis()
-    val duration = new Timer
+    val gameDuration = new Timer
 
     try {
 
       do {
 
-        // get 3 random pieces
-        val pieces = getPiecesForRound
-
-        // show the pieces in the order they were randomly chosen
-        showPieces(pieces)
-
-        val best = getBestPermutation(pieces)
-
-        println(getSimulationResultsString("     Chosen: " + piecesToString(best.plcList.map(plc => plc.piece)), best, None))
-
-        best.plcList.foreach(plc => handleThePiece(best, plc.piece, plc.loc, machineHighScore))
-
-        if (best.pieceCount < 3)
-          throw GameOver
-
-        showBoardFooter()
+        roundhandler(machineHighScore)
 
       } while (CONTINUOUS_MODE || (!CONTINUOUS_MODE && (Console.in.read != 'q')))
 
@@ -89,17 +69,52 @@ class Game(val highScore: Int, context: Context) {
       case e: Throwable =>
         println("abnormal run termination:\n" + e.toString)
         // todo: find out what type of error assert is throwing and match it
+        //       currently assert is used at least in pieceHandler to ensure occupiedcounts are
+        //       not messed up
         throw new IllegalStateException()
 
     }
 
-    showGameOver(duration)
+    showGameOver(gameDuration)
 
     // return the score and the number of rounds to Main - where such things are tracked across game instances
-
-    // this would be more clear - then Main's only purpose is to be the application entry point
     (score.value, rounds.value, simulationsPerSecond.max)
 
+  }
+
+  private def roundhandler(machineHighScore: Int) = {
+
+    // get 3 random pieces
+    val pieces = getPiecesForRound
+
+    // show the pieces in the order they were randomly chosen
+    showPieces(pieces)
+
+    val best = getBestPermutation(pieces)
+
+    println(
+      "     Chosen: "
+        + piecesToString(best.plcList.map(plc => plc.piece))
+        + " -"
+        + best.getSimulationResultsString(None)
+    )
+
+    // zip the piece location cleared list it's index so we don't have to keep a
+    // global track of placed pieces
+    best.plcList.zipWithIndex.foreach(
+      plc => pieceHandler(
+        plc._1.piece,
+        plc._1.loc,
+        plc._2 + 1,
+        machineHighScore
+      )
+    )
+
+    if (best.pieceCount < 3) {
+      throw GameOver
+    }
+
+    showBoardFooter()
   }
 
   private def getBestPermutation(pieces: List[Piece]): Simulation = {
@@ -118,6 +133,7 @@ class Game(val highScore: Int, context: Context) {
 
     val simulateHead: Simulation = pieceSequenceSimulation(permutations.head)
 
+    // if there were cleared lines in this simulation then continue
     if (simulateHead.plcList.exists(plc => plc.clearedLines)) {
       val simulateTail: List[Simulation] = permutations.tail.map(pieces => pieceSequenceSimulation(pieces))
       (simulateHead :: simulateTail).sorted.head
@@ -140,12 +156,13 @@ class Game(val highScore: Int, context: Context) {
       List.fill(3)(gamePieces.getRandomPiece)
 
     }
+
     pieces
   }
 
   private def pieceSequenceSimulation(pieces: List[Piece]): Simulation = {
 
-    val t1 = System.currentTimeMillis()
+    val simulationDuration = new Timer
     val simulationCount = Counter()
 
     //return the board copy and the number of lines cleared
@@ -210,6 +227,7 @@ class Game(val highScore: Int, context: Context) {
     val options = {
       val grouped = listBuffer.toList.groupBy(_.pieceCount)
 
+      // we only want to return simulations that have all 3 pieces placed if there are any
       if (grouped.contains(3)) grouped(3)
       else if (grouped.contains(2)) grouped(2)
       else if (grouped.contains(1)) grouped(1)
@@ -220,119 +238,65 @@ class Game(val highScore: Int, context: Context) {
     val best = options.sorted.head
 
     // invert the default comparison and take that as the result for worst
-    // god i love Ordered trait
+    // god i love the Ordered trait
     val worst = options.sortWith(_ > _).head
 
-    val t2 = System.currentTimeMillis
-    // todo: create a timer class that starts, stops and does a toString
-    val duration = t2 - t1
+    // now we know how long this one took - don't need to include the time to show or return it
+    val elapsed = simulationDuration.elapsed
 
-    val largeValuesFormat = "%,5d"
-
-    val simulationCountString = largeValuesFormat.format(simulationCount.value)
-
-    val perSecond = if (duration > 0) (simulationCount.value * 1000) / duration else 0
-
-    simulationsPerSecond append perSecond.toInt
-
-    val durationString = largeValuesFormat.format(duration) + "ms"
-    val sPerSecond = largeValuesFormat.format(perSecond)
-
-    val prefix = "permutation: " + piecesToString(pieces)
-
-    println(
-      getSimulationResultsString(prefix, best, Some(worst))
-        + " - simulations: " + simulationCountString + " in " + durationString
-        + " (" + sPerSecond + "/second" + (if (perSecond > BYATCH_THRESHOLD) " b-yatch" else "") + ")"
-    )
+    // extracted for readability
+    showSimulationResults(pieces, simulationCount, best, worst, elapsed)
 
     best
 
   }
 
-  private def getSimulationResultsString(prefix: String, best: Simulation, worst: Option[Simulation] = None): String = {
+  private def showSimulationResults(pieces: List[Piece], simulationCount: Counter, best: Simulation, worst: Simulation, elapsed: Long) = {
 
-    val greenify = (isGreen: Boolean, v: AnyVal, valFormat: String, label: String, labelFormat: String) => {
-      val result = valFormat.format(v)
-      labelFormat.format(label) + (if (isGreen) Game.GREEN + result + Game.SANE else result)
-    }
+    val largeValuesFormat = "%,5d"
 
-    val openFormat = "%2d"
-    val parenFormat = " (" + openFormat + ")"
-    val labelFormat = " %s: "
-    val longLabelFormat = "     " + labelFormat
+    val simulationCountString = largeValuesFormat.format(simulationCount.value)
 
-    val occupiedLabel = "occupied"
-    val maximizerLabel = "maximizer"
-    val contiguousLabel = "contiguous open lines"
-    val openLabel = "openRowsCols"
-    val islandMaxLabel = "islandMax"
-    val fourNeighborsLabel = "4 neighbors"
-    val threeNeighborsLabel = "3 neighbors"
+    val perSecond = if (elapsed > 0) (simulationCount.value * 1000) / elapsed else 0
 
-    val results = (best, worst) match {
-      case (b: Simulation, w: Some[Simulation]) =>
-        (
-          greenify(b.boardCount < w.get.boardCount, b.boardCount, openFormat, occupiedLabel, labelFormat)
-          + greenify(false, w.get.boardCount, parenFormat, "", "")
+    // keep track of best per second value to get a sense of how things are performing across simulations
+    simulationsPerSecond append perSecond.toInt
 
-          + greenify(b.maximizerCount > w.get.maximizerCount, b.maximizerCount, openFormat, maximizerLabel, labelFormat)
-          + greenify(false, w.get.maximizerCount, parenFormat, "", "")
+    val durationString = largeValuesFormat.format(elapsed) + "ms"
+    val perSecondString = largeValuesFormat.format(perSecond)
 
-          + greenify(b.fourNeighbors < w.get.fourNeighbors, b.fourNeighbors, openFormat, fourNeighborsLabel, labelFormat)
-          + greenify(false, w.get.fourNeighbors, parenFormat, "", "")
-
-          + greenify(b.threeNeighbors < w.get.threeNeighbors, b.threeNeighbors, openFormat, threeNeighborsLabel, labelFormat)
-          + greenify(false, w.get.threeNeighbors, parenFormat, "", "")
-
-          + greenify(b.openContiguous > w.get.openContiguous, b.openContiguous, openFormat, contiguousLabel, labelFormat)
-          + greenify(false, w.get.openContiguous, parenFormat, "", "")
-
-        /*          + greenify(b.islandMax > w.get.islandMax, b.islandMax, openFormat, islandMaxLabel, labelFormat)
-          + greenify(false, w.get.islandMax, parenFormat, "", "")
-
-          + greenify(b.openLines > w.get.openLines, b.openLines, openFormat, openLabel, labelFormat)
-          + greenify(false, w.get.openLines, parenFormat, "", "")*/
-
-        )
-      case (b: Simulation, None) =>
-        (
-          greenify(true, b.boardCount, openFormat, occupiedLabel, labelFormat)
-          + greenify(true, b.maximizerCount, openFormat, maximizerLabel, longLabelFormat)
-
-          + greenify(true, b.fourNeighbors, openFormat, fourNeighborsLabel, longLabelFormat)
-          + greenify(true, b.threeNeighbors, openFormat, threeNeighborsLabel, longLabelFormat)
-
-          + greenify(true, b.openContiguous, openFormat, contiguousLabel, longLabelFormat)
-        /*          + greenify(true, b.islandMax, openFormat, islandMaxLabel, longLabelFormat)
-          + greenify(true, b.openLines, openFormat, openLabel, longLabelFormat)*/
-
-        )
-
-    }
-
-    prefix + " -" + results
-
+    println(
+      "permutation: "
+        + piecesToString(pieces)
+        + " -"
+        + best.getSimulationResultsString(Some(worst))
+        + " - simulations: " + simulationCountString + " in " + durationString
+        + " ("
+        + perSecondString + "/second"
+        + (if (perSecond > BYATCH_THRESHOLD) " b-yatch" else "")
+        + ")"
+    )
   }
 
   // todo:  can this be turned into an implicit for a List[Piece].toString call?  if so, that would be nice
   private def piecesToString(pieces: List[Piece]): String = pieces.map(_.name).mkString(", ")
 
-  private def handleThePiece(best: Simulation, piece: Piece, loc: (Int, Int), machineHighScore: Int): Unit = {
+  private def pieceHandler(piece: Piece, loc: (Int, Int), index: Int, machineHighScore: Int): Unit = {
 
-    val currentOccupied = board.occupiedCount
+    val currentOccupied = board.getOccupiedPositions
+
     val curRowsCleared = rowsCleared.value
     val curColsCleared = colsCleared.value
 
-    println("\nAttempting piece: " + ((placed.value % 3) + 1) + "\n" + piece.show + "\n")
+    println("\nAttempting piece: " + index + "\n" + piece.show + "\n")
 
     // a function designed to throw GameOver if it receives no valid locations
     board.place(piece, loc)
 
-    placed.inc
+    // increment piece usage
     piece.usage.inc
 
-    score.incrementMultiple(piece.pointValue)
+    score.inc(piece.pointValue)
 
     // placing a piece puts underlines on it to highlight it
     println(board.show)
@@ -348,14 +312,25 @@ class Game(val highScore: Int, context: Context) {
 
     val expectedOccupiedCount = currentOccupied + piece.pointValue - positionsCleared
 
-    assert(expectedOccupiedCount == board.occupiedCount, "Expected occupied: " + expectedOccupiedCount + " actual occupied: " + board.occupiedCount)
+    assert(expectedOccupiedCount == board.getOccupiedPositions, "Expected occupied: " + expectedOccupiedCount + " actual occupied: " + board.occupiedCount)
 
-    println("Score: " + getScoreString(numberFormatShort, score.value) + " (" + getScoreString(numberFormatShort, highScore) + ")" + " (" + getScoreString(numberFormatShort, machineHighScore) + ")"
-      + " - occupied: " + board.occupiedCount
-      + " - contiguous lines: " + board.openLines._2
-      + " - open lines: " + board.openLines._1
-      + " - maximizer positions available: " + board.legalPlacements(Simulation.maximizer).length
-      + " - largest contiguous unoccupied: " + board.islandMax)
+    // todo - get this from Simulation
+    // you'll have to evaluate all current values for board and then
+    // pass them as some collection to Simulation.specification and ask it to
+    // provide the results back in the right order
+
+    println(
+      "Score: "
+        + getScoreString(numberFormatShort, score.value)
+        + " (" + getScoreString(numberFormatShort, highScore) + ")"
+        + " (" + getScoreString(numberFormatShort, machineHighScore) + ")"
+
+        + " - occupied: " + board.occupiedCount
+        + " - contiguous lines: " + board.getOpenAndContiguousLines._2
+        + " - open lines: " + board.getOpenAndContiguousLines._1
+        + " - maximizer positions available: " + board.maximizerCount
+        + " - largest contiguous unoccupied: " + board.islandMax
+    )
 
   }
 
@@ -373,16 +348,30 @@ class Game(val highScore: Int, context: Context) {
       // show an updated board reflecting the cleared lines
       println("\n" + board.show)
 
-      rowsCleared.incrementMultiple(result._1)
-      colsCleared.incrementMultiple(result._2)
+      rowsCleared.inc(result._1)
+      colsCleared.inc(result._2)
 
     }
 
-    score.incrementMultiple((result._1 + result._2) * board.layout.length)
+    score.inc((result._1 + result._2) * board.layout.length)
 
   }
 
-  private def showGameOver(duration: Timer) = {
+  private def showBoardFooter() = {
+
+    // increment the number of rounds
+    rounds.inc
+
+    println("\nAfter " + "%,d".format(rounds.value) + " rounds"
+      + " - rows cleared: " + "%,d".format(rowsCleared.value)
+      + " - columns cleared: " + "%,d".format(colsCleared.value)
+      + " - best simulations per second: " + "%,d".format(simulationsPerSecond.max))
+
+    if (!CONTINUOUS_MODE)
+      println("type enter to place another piece and 'q' to quit")
+  }
+
+  private def showGameOver(gameDuration: Timer) = {
 
     println
 
@@ -394,21 +383,7 @@ class Game(val highScore: Int, context: Context) {
     println(labelNumberFormat.format("Rounds", rounds.value))
     println(labelNumberFormat.format("Rows Cleared", rowsCleared.value))
     println(labelNumberFormat.format("Cols Cleared", colsCleared.value))
-    println(duration.toString) // toString stops the timer
-  }
-
-  private def showBoardFooter() = {
-    val bestPerSecond = simulationsPerSecond.max
-
-    rounds.inc
-
-    println("\nAfter " + "%,d".format(rounds.value) + " rounds"
-      + " - rows cleared: " + "%,d".format(rowsCleared.value)
-      + " - columns cleared: " + "%,d".format(colsCleared.value)
-      + " - best simulations per second: " + "%,d".format(bestPerSecond))
-
-    if (!CONTINUOUS_MODE)
-      println("type enter to place another piece and 'q' to quit")
+    println(gameDuration.showElapsed)
   }
 
   private def showPieces(pieces: List[Piece]): Unit = {
@@ -496,29 +471,43 @@ object Game {
 
   def showGameStart(): Unit = {
 
-    //todo - rewrite to include what you do with the occupied, etc. - also this can provide a key for it
-    //todo - ask Simulation for its current straegy
+    //todo - ask Simulation for its current strategy and interpolate
+    //       into the list of factors considered in the output string below
 
-    println("GAME START")
-    println("\nThis game works by first selecting 3 pieces from the set of all possible pieces.")
-    println("Then it will try all possible orderings (permutations) of placements of those 3 pieces")
-    println("(up to six permutations will be selected depending on whether there are any duplicates).")
-    println("\nThen for each permutation, it will try each position on the board for the first piece")
-    println("and will determine the outcome of clearing lines for that piece piece, then it will place")
-    println("the second piece at all possible locations and check the outcome of clearing lines for the second")
-    println("and finally it will check the third piece at all possible locations and check the outcome")
-    println("of clearing lines for this last piece.")
-    println("\nEach of these combinations of placements will then store the maximum number of legal positions")
-    println("available for this piece (called the maximizer):\n")
-    println(Simulation.maximizer.toString)
-    println("\nThe game uses the maximizer because it generally is a good choice for making sure there is")
-    println("plenty of space available.")
-    println("\nThe combination of piece placements with the least number of board positions occupied and the most")
-    println("number of legal positions for the maximizer piece is the one that will be selected to play.")
-    println("Each combination for each permutation is called a 'simulation'.")
+    val begin =
+      """GAME START
+        |
+        |This game works by first selecting 3 pieces from the set of all possible pieces.
+        |Then it will try all possible orderings (permutations) of placements of those 3 pieces
+        |(up to six permutations will be selected depending on whether there are any duplicates).
+        |If no lines are cleared then only the first permutation will be evaluated as piece order
+        |won't matter so no reason in simulating any other orderings.
+        |
+        |Then for each permutation, it will try each of the 3 pieces in order on all possible
+        |locations on the board, checking to see whether any lines are cleared between each piece placement.
+        |Each placement of three pieces along with the board state after placing the third piece is
+        |called a Simulation.
+        |
+        |Each of the following will be evaluated on the final board state:""".stripMargin
+
+    val end = """
+        |
+        |Taking all of these factors into account, in the order listed above, the best simulation will be chosen.  The
+        |ordering of the factors will indicate the optimization strategy.  The factors
+        |are output at the end of each simulation run for a permutation - in the order in which they
+        |are considered.
+        |
+        |The best simulation is then used to place pieces and continue onto the next round.""".stripMargin
+
+    val descriptions = Simulation.getSpecDescriptions
+
+    println(
+      begin + "\n" + descriptions + end
+    )
 
   }
 
+  /*
   // print the character colors that we have available to us
   def printPossibleColors(): Unit = {
     for (i <- 30 to 37) {
@@ -536,6 +525,6 @@ object Game {
 
     println
 
-  }
+  }*/
 
 }

@@ -13,13 +13,12 @@ class Counter {
 
   private val iterator = intIterator().buffered
 
-  def inc: Int = iterator.next()
-
   override def toString: String = value.toString
 
   def value: Int = iterator.head
 
-  def incrementMultiple(count: Int): Int = { for (_ <- 0 until count) iterator.next; iterator.head }
+  def inc: Int = inc(1)
+  def inc(count: Int): Int = { for (_ <- 0 until count) iterator.next; iterator.head }
 
 }
 

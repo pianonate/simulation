@@ -20,13 +20,22 @@ class Board(val layout: Array[Array[Cell]], val name: String, val color: String)
     this(layout, name, Board.BOARD_COLOR)
   }
 
-  // the board outputs unoccupied cells so just call toString on every cell
+  // the board outputs unoccupied cells so just call toString ono every cell
   // different than the Piece.show which will not output unoccupied Cell's in other pieces
   // this method is mapped in from Piece.show
   override def cellShowMapFunction(cell: Cell): String = cell.show
 
+  def maximizerCount: Int = legalPlacements(Simulation.maximizer).length
+
   def islandMax: Int = findLargestConnectedComponent(this.layout, Board.allLocationsList)
 
+  // used by Simulation and Board to problem showed up because
+  // Simulation just asks once but Game asks multiple times
+  // because the new specification for the simulation uses reflection (invokeGet)
+  // to get this value, it has to be a val
+  def occupiedCount: Int = getOccupiedPositions
+
+  // private def getNeighborCount: Array[Int] = countNeighbors(Board.allLocations)
   def neighborCount: Array[Int] = countNeighbors(Board.allLocations)
 
   // start optimization run
@@ -36,7 +45,7 @@ class Board(val layout: Array[Array[Cell]], val name: String, val color: String)
   // based on earlier experience passing lambdas around slows things down so it so right now just factored out
   // a common test used by both openLines and clearLines
   // Execution Time: .8%, 140,276/s - 4,000% increase - openLines is now inconsequential
-  def openLines: (Int, Int) = {
+  def getOpenAndContiguousLines: (Int, Int) = {
     val openRows = testRows(false)
     val openCols = testCols(false)
     val max = if (openRows._2 > openCols._2) openRows._2 else openCols._2

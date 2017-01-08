@@ -1,6 +1,8 @@
 /**
  * Created by nathan on 12/18/16.
  * keep track of important durations
+ * Timer's are single use.  Once you stop the timer, it is stopped for good
+ * Timer is stopped by invoking elapsed or calling toString (which calls elapsed)
  */
 class Timer {
 
@@ -13,7 +15,7 @@ class Timer {
   // don't think this is a super great way to go, but it works for the current usages
   def elapsed: Long = t1 - t0
 
-  override def toString: String = {
+  def showElapsed: String = {
     val now = elapsed
     val hour: Long = 60 * 60 * 1000
     val minute: Long = 60 * 1000
