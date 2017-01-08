@@ -10,6 +10,7 @@ case class PieceLocCleared(piece: Piece, loc: (Int, Int), clearedLines: Boolean)
 case class Simulation(plcList: List[PieceLocCleared], board: Board) extends Ordered[Simulation] {
 
   val pieceCount: Int = plcList.length
+  val results = board.results
 
   val occupiedCount: Int = board.occupiedCount
   val maximizerCount: Int = board.maximizerCount
@@ -25,7 +26,7 @@ case class Simulation(plcList: List[PieceLocCleared], board: Board) extends Orde
   // the following provides tuple ordering to ordered to make the tuple comparison work
   import scala.math.Ordered.orderingToOrdered
 
-  override def toString: String = this.plcList.map(plc => plc.piece.name).mkString(", ")
+  override def toString: String = this.plcList.map(plc => plc.piece.name).mkString(", ") // visible in debugger
 
   // format: OFF
   def compare(that: Simulation): Int = {
@@ -82,6 +83,14 @@ object Simulation {
   private val minimize = true
   private val maximize = false
 
+  val occupiedCountName = "occupiedCount"
+  val maximizerCountName = "maximizerCount"
+  val fourNeighborsName = "fourNeighbors"
+  val threeNeighborsName = "threeNeighbors"
+  val openContiguousName = "openContiguous"
+  val islandMaxName = "islandMax"
+  val openLInesName = "openLines"
+
   // extract to a utility object? maybe...
   private def invokeGet(instance: Simulation, fieldName: String) = {
     try {
@@ -96,13 +105,14 @@ object Simulation {
 
   // specification provides the ordering of the optimization as well as whether a particular optimization is maximized or minimized
   private val specification = Array(
-    Spec("occupiedCount", minimize, "occupied", "occupied positions"),
-    Spec("maximizerCount", maximize, "maximizer", "positions in which a 3x3 piece can fit"),
-    Spec("fourNeighbors", minimize, "4 neighbors", "number of positions surrounded on all 4 sides"),
-    Spec("threeNeighbors", minimize, "3 neighbors", "number of positions surrounded on 3 of 4 sides"),
-    Spec("openContiguous", maximize, "contiguous open lines", "number of lines (either horizontal or vertical) that are open and contiguous") /*,
-    Spec("islandMax", maximize, "islandMax", "largest number of connected, unnoccupied positions"),
-    Spec("openLines", maximize, "openRowsCols", "count of open rows plus open columns")*/
+    Spec(occupiedCountName, minimize, "occupied", "occupied positions"),
+    Spec(maximizerCountName, maximize, "maximizer", "positions in which a 3x3 piece can fit"),
+    Spec(fourNeighborsName, minimize, "4 neighbors", "number of positions surrounded on all 4 sides"),
+    Spec(threeNeighborsName, minimize, "3 neighbors", "number of positions surrounded on 3 of 4 sides"),
+    Spec(openContiguousName, maximize, "contiguous open lines", "number of lines (either horizontal or vertical) that are open and contiguous") /*,
+    // todo - add active/inactive?
+    Spec(islandMaxName, maximize, "islandMax", "largest number of connected, unnoccupied positions"),
+    Spec(openLinesName, maximize, "openRowsCols", "count of open rows plus open columns")*/
   )
 
   // used by showGameStart

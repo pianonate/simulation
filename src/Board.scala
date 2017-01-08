@@ -10,17 +10,17 @@ import scala.annotation.tailrec
 
 class Board(val layout: Array[Array[Cell]], val name: String, val color: String) extends Piece {
 
-  // initial board creation just requires a size
   def this(size: Int) {
+    // initial board creation just requires a size
     this(Piece.getBoardLayout(Board.BOARD_COLOR, size), "Board", Board.BOARD_COLOR)
   }
 
-  // provides ability to name a board copy
   def this(layout: Array[Array[Cell]], name: String) {
+    // provides ability to name a board copy
     this(layout, name, Board.BOARD_COLOR)
   }
 
-  // the board outputs unoccupied cells so just call toString ono every cell
+  // the board output shows unoccupied cells so just call .show on every cell
   // different than the Piece.show which will not output unoccupied Cell's in other pieces
   // this method is mapped in from Piece.show
   override def cellShowMapFunction(cell: Cell): String = cell.show
@@ -29,10 +29,6 @@ class Board(val layout: Array[Array[Cell]], val name: String, val color: String)
 
   def islandMax: Int = findLargestConnectedComponent(this.layout, Board.allLocationsList)
 
-  // used by Simulation and Board to problem showed up because
-  // Simulation just asks once but Game asks multiple times
-  // because the new specification for the simulation uses reflection (invokeGet)
-  // to get this value, it has to be a val
   def occupiedCount: Int = getOccupiedPositions
 
   // private def getNeighborCount: Array[Int] = countNeighbors(Board.allLocations)
@@ -53,73 +49,6 @@ class Board(val layout: Array[Array[Cell]], val name: String, val color: String)
     ((openRows._1.size + openCols._1.size), max)
 
   }
-
-  /*
-  def testRow(row: Array[Cell], testForFull: Boolean): Boolean = { //row.forall(cell => cell.occupied)
-
-    var i = 0
-
-    // if you find any unoccupied then the row can't be full
-    var stopTesting = false
-
-    // replaced a return when unoccupied with a conditional that evaluates for it
-    // returns are bad in scala
-    // https://tpolecat.github.io/2014/05/09/return.html
-    while ((i < row.length) && !stopTesting) {
-      if (((testForFull && row(i).unoccupied)) || ((!testForFull && row(i).occupied))) {
-        stopTesting = true
-      }
-      i += 1
-    }
-
-    if (stopTesting) // if a cell is unoccupied then we can't be full
-      false
-    else
-      true
-  }
-
-  val testR = (i:Int, testForFull:Boolean) => testRow(layout(i), testForFull)
-
-  def testCol(col: Int, testForFull: Boolean): Boolean = { //layout.forall(row => row(col).occupied)
-  var i = 0
-
-    // if you find any unoccupied then the row can't be full
-    var stopTesting = false
-
-    while ((i < layout.length) && !stopTesting) {
-      if (((testForFull && layout(i)(col).unoccupied)) || ((!testForFull && layout(i)(col).occupied))) {
-        stopTesting = true // true
-      }
-      i += 1
-    }
-
-    if (stopTesting) // if we had to stop testing then the answer is false
-      false
-    else
-      true
-
-  }
-
-  val testC = (i:Int, testForFull:Boolean) => testCol(i, testForFull)
-
-  // passing in tester lambda rather than keeping the logic separate makes this thing 3x slower
-  // it would be nice to get the refactoring but not at the expense of the performance hit
-  private def testLine(tester: (Int,Boolean) => Boolean, testForFull:Boolean): Seq[Int] = {
-    @tailrec def testLineLoop(index: Int, acc: List[Int]): List[Int] = {
-      index match {
-        case n if n < layout.length =>
-          if (tester(n, testForFull))
-            testLineLoop(n + 1, n :: acc)
-          else
-            testLineLoop(n + 1, acc)
-        case _ => acc
-      }
-
-    }
-
-    testLineLoop(0, List())
-  }
-*/
 
   private def testRows(testForFull: Boolean): (Seq[Int], Int) = {
 
@@ -601,6 +530,30 @@ class Board(val layout: Array[Array[Cell]], val name: String, val color: String)
     counts
 
   }
+
+  def results:Map[String,Int] = {
+    import Simulation._
+    val neighbors = neighborCount
+    val openAndContiguousnLines = getOpenAndContiguousLines
+
+    // tried to use reflection to get values from simulation and values from board
+    // but board needs to be dynamic (def)
+    // and Simulations is static (val)
+    // so besides being slightly more dificult,
+    // reflection is slow anyway, so using a Map instead to provide results
+    // to both the Simulation and the Board
+    // to show results after simulations and piece placements
+    Map(occupiedCountName -> occupiedCount,
+      maximizerCountName -> maximizerCount,
+      fourNeighborsName -> neighbors(4),
+      threeNeighborsName -> neighbors(3),
+      openContiguousName -> openAndContiguousnLines._2,
+      islandMaxName -> islandMax,
+      openLInesName -> openAndContiguousnLines._1
+    )
+  }
+
+
 
 }
 

@@ -319,6 +319,8 @@ class Game(val highScore: Int, context: Context) {
     // pass them as some collection to Simulation.specification and ask it to
     // provide the results back in the right order
 
+    val results = board.results
+
     println(
       "Score: "
         + getScoreString(numberFormatShort, score.value)
