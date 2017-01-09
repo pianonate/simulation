@@ -314,11 +314,6 @@ class Game(val highScore: Int, context: Context) {
 
     assert(expectedOccupiedCount == board.getOccupiedPositions, "Expected occupied: " + expectedOccupiedCount + " actual occupied: " + board.occupiedCount)
 
-    // todo - get this from Simulation
-    // you'll have to evaluate all current values for board and then
-    // pass them as some collection to Simulation.specification and ask it to
-    // provide the results back in the right order
-
     println(
       "Score: "
         + getScoreString(numberFormatShort, score.value)
@@ -358,10 +353,22 @@ class Game(val highScore: Int, context: Context) {
     // increment the number of rounds
     rounds.inc
 
+    def avg(xs:ListBuffer[Int]):Float={
+      val (sum,length)=xs.foldLeft((0,0))( { case ((s,l),x)=> (x+s,1+l) })
+      sum/length
+    }
+
+    val average = avg(simulationsPerSecond)
+
+
+
     println("\nAfter " + "%,d".format(rounds.value) + " rounds"
       + " - rows cleared: " + "%,d".format(rowsCleared.value)
       + " - columns cleared: " + "%,d".format(colsCleared.value)
-      + " - best simulations per second: " + "%,d".format(simulationsPerSecond.max))
+      + " - best simulations per second: " + numberFormatShort.format(simulationsPerSecond.max)
+      + " (average: " + numberFormatShort.format(average.toInt) + ")"
+    )
+
 
     if (!CONTINUOUS_MODE)
       println("type enter to place another piece and 'q' to quit")
@@ -466,9 +473,6 @@ object Game {
   def getScoreString(formatString: String, score: Int): String = GREEN + formatString.format(score) + SANE
 
   def showGameStart(): Unit = {
-
-    //todo - ask Simulation for its current strategy and interpolate
-    //       into the list of factors considered in the output string below
 
     val begin =
       """GAME START

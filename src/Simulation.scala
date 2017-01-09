@@ -77,7 +77,7 @@ object Simulation {
     OptimizationFactor(on, maximizerCountName, maximize, "maximizer", "positions in which a 3x3 piece can fit"),
     OptimizationFactor(on, fourNeighborsName, minimize, "4 neighbors", "number of positions surrounded on all 4 sides"),
     OptimizationFactor(on, threeNeighborsName, minimize, "3 neighbors", "number of positions surrounded on 3 of 4 sides"),
-    OptimizationFactor(off, openContiguousName, maximize, "contiguous open lines", "number of lines (either horizontal or vertical) that are open and contiguous"),
+    OptimizationFactor(on, openContiguousName, maximize, "contiguous open lines", "number of lines (either horizontal or vertical) that are open and contiguous"),
     OptimizationFactor(off, openLinesName, maximize, "openRowsCols", "count of open rows plus open columns"),
     OptimizationFactor(off, islandMaxName, maximize, "islandMax", "largest number of connected, unnoccupied positions")
   )
