@@ -37,7 +37,7 @@ class Board(val layout: Array[Array[Cell]], val name: String, val color: String)
   // start optimization run
   // Execution Time: 24%, 3,378/s
   //
-  // take same approach as in clearlines - remove the for comprehensions and maps that were in place previously
+  // take same approach as in clearLines - remove the for comprehensions and maps that were in place previously
   // based on earlier experience passing lambdas around slows things down so it so right now just factored out
   // a common test used by both openLines and clearLines
   // Execution Time: .8%, 140,276/s - 4,000% increase - openLines is now inconsequential
@@ -46,7 +46,7 @@ class Board(val layout: Array[Array[Cell]], val name: String, val color: String)
     val openCols = testCols(false)
     val max = if (openRows._2 > openCols._2) openRows._2 else openCols._2
 
-    ((openRows._1.size + openCols._1.size), max)
+    (openRows._1.size + openCols._1.size, max)
 
   }
 
@@ -63,7 +63,7 @@ class Board(val layout: Array[Array[Cell]], val name: String, val color: String)
       // returns are bad in scala
       // https://tpolecat.github.io/2014/05/09/return.html
       while ((i < row.length) && !stopTesting) {
-        if (((testForFull && row(i).unoccupied)) || ((!testForFull && row(i).occupied))) {
+        if ((testForFull && row(i).unoccupied) || (!testForFull && row(i).occupied)) {
           stopTesting = true
         }
         i += 1
@@ -105,8 +105,8 @@ class Board(val layout: Array[Array[Cell]], val name: String, val color: String)
       // if you find any unoccupied then the row can't be full
       var stopTesting = false
 
-      while ((i < layout.length) && !stopTesting) {
-        if (((testForFull && layout(i)(col).unoccupied)) || ((!testForFull && layout(i)(col).occupied))) {
+      while (i < layout.length && !stopTesting) {
+        if ((testForFull && layout(i)(col).unoccupied) || (!testForFull && layout(i)(col).occupied)) {
           stopTesting = true
         }
         i += 1
@@ -238,8 +238,9 @@ class Board(val layout: Array[Array[Cell]], val name: String, val color: String)
     @tailrec def placeLoop(row: Int, col: Int): Unit = {
       (row, col) match {
         case (-1, _) => Unit
-        case (_, 0) => { checkCell(row, col); placeLoop(row - 1, cols - 1) }
-        case _ => checkCell(row, col); placeLoop(row, col - 1)
+        case (_, 0)  =>
+          checkCell(row, col); placeLoop(row - 1, cols - 1)
+        case _       => checkCell(row, col); placeLoop(row, col - 1)
       }
     }
 
@@ -366,7 +367,7 @@ class Board(val layout: Array[Array[Cell]], val name: String, val color: String)
 
   // find largest connected component on the board
   // based on https://en.wikipedia.org/wiki/Connected-component_labeling#One_component_at_a_time
-  // except not using a queue, but rather doing a recursive search (labelNeig
+  // except not using a queue, but rather doing a recursive search
   //
   // start optimization
   // ExecutionTime: 27%, 2,542/second
@@ -378,7 +379,7 @@ class Board(val layout: Array[Array[Cell]], val name: String, val color: String)
   // ExecutionTime: 18%, 7,121/second
   //
   // round 2
-  // ExecutionTime: 30%, 6,719/s (expected Time(ms) to go up as a % given other optimizations but strangey, per second regressed)
+  // ExecutionTime: 30%, 6,719/s (expected Time(ms) to go up as a % given other optimizations but strangely, per second regressed)
   //
   // now get rid of the ListBuffer appends
   // Execution time: 16%, 12,585/second 395% speed up from unoptimized
@@ -406,8 +407,8 @@ class Board(val layout: Array[Array[Cell]], val name: String, val color: String)
 
         (row, col) match {
           case (-1, _) => acc
-          case (_, 0) => componentCountLoop(row - 1, labelsLength - 1, acc + (if (labels(row)(col) == label) 1 else 0))
-          case _ => componentCountLoop(row, col - 1, acc + (if (labels(row)(col) == label) 1 else 0))
+          case (_, 0)  => componentCountLoop(row - 1, labelsLength - 1, acc + (if (labels(row)(col) == label) 1 else 0))
+          case _       => componentCountLoop(row, col - 1, acc + (if (labels(row)(col) == label) 1 else 0))
         }
       }
 
@@ -465,7 +466,7 @@ class Board(val layout: Array[Array[Cell]], val name: String, val color: String)
       }
 
       locs match {
-        case head :: tail => {
+        case head :: tail =>
 
           if (isSafe(head)) {
             componentCount += 1
@@ -476,7 +477,7 @@ class Board(val layout: Array[Array[Cell]], val name: String, val color: String)
 
             findLargestLoop(tail, largestComponent)
           }
-        }
+
         case Nil => largestComponent
       }
 
@@ -510,7 +511,7 @@ class Board(val layout: Array[Array[Cell]], val name: String, val color: String)
 
     }
 
-    def countNeighbors1 = {
+    def countNeighbors1() = {
       var i = 0
 
       while (i < locLength) {
@@ -525,38 +526,38 @@ class Board(val layout: Array[Array[Cell]], val name: String, val color: String)
       }
     }
 
-    countNeighbors1
+    countNeighbors1()
 
     counts
 
   }
 
-  def results = {
+  def results: Array[Int] = {
 
     import Simulation._ // necessary for matching labels
+    // todo: these may not be necessary to call if the specification doesn't require them
+    //       turn specification into a class and have it identify whether or not these need to be called
     val neighbors = this.neighborCount
-    val openAndContiguousnLines = this.getOpenAndContiguousLines
+    val openAndContiguous = this.getOpenAndContiguousLines
 
-    def getResult(name:String):Int = {
+    def getResult(name: String): Int = {
       name match {
-        case s if s==occupiedCountName => this.occupiedCount
-        case s if s==maximizerCountName => this.maximizerCount
-        case s if s==fourNeighborsName => neighbors(4)
-        case s if s==threeNeighborsName => neighbors(3)
-        case s if s==openContiguousName => openAndContiguousnLines._2
-        case s if s==islandMaxName => this.islandMax
-        case s if s==openLinesName => openAndContiguousnLines._1
+        case s if s == occupiedCountName  => this.occupiedCount
+        case s if s == maximizerCountName => this.maximizerCount
+        case s if s == fourNeighborsName  => neighbors(4)
+        case s if s == threeNeighborsName => neighbors(3)
+        case s if s == openContiguousName => openAndContiguous._2
+        case s if s == islandMaxName      => this.islandMax
+        case s if s == openLinesName      => openAndContiguous._1
       }
     }
 
     // return only results for enabled fields
-    Simulation.specification.collect { case spec:Spec if spec.enabled => getResult(spec.fieldName)}
+    Simulation.specification.map(spec => getResult(spec.fieldName))
 
   }
 
 }
-
-
 
 object Board {
 
@@ -581,8 +582,8 @@ object Board {
     @tailrec def loop(row: Int, col: Int, acc: List[(Int, Int)]): List[(Int, Int)] = {
       (row, col) match {
         case (-1, _) => acc
-        case (_, 0) => loop(row - 1, boardSize - 1, (row, col) :: acc)
-        case _ => loop(row, col - 1, (row, col) :: acc)
+        case (_, 0)  => loop(row - 1, boardSize - 1, (row, col) :: acc)
+        case _       => loop(row, col - 1, (row, col) :: acc)
       }
     }
 

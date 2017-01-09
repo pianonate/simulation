@@ -2,8 +2,8 @@
  * Created by nathan on 12/10/16.
  * Game will hold a reference to the current board and will also invoke simulations
  *
- * Todo: add game # to prefix each Score so you can no which iteration your in when you leave this
- *       plaing over night
+ * Todo: add game # to prefix each Score so you can know which iteration your in when you leave this
+ *       running over night
  *
  * Todo: at end of game you can often place one or two pieces, but we don't place any - find out why
  *
@@ -23,7 +23,7 @@
  *       and hope for something better!
  *
  * Todo:  save datasets of all of the top say 90% of boards for each of your stats in games where you lose.  then keep track of whether or not you lose in the next
- *        round for each of them.  then you'll have a dataset to run a machine learning algorithm of of our stats to better pick the best options
+ *        round for each of them.  then you'll have a data set to run a machine learning algorithm of of our stats to better pick the best options
  */
 
 import Game._
@@ -59,7 +59,7 @@ class Game(val highScore: Int, context: Context) {
 
       do {
 
-        roundhandler(machineHighScore)
+        roundHandler(machineHighScore)
 
       } while (CONTINUOUS_MODE || (!CONTINUOUS_MODE && (Console.in.read != 'q')))
 
@@ -69,7 +69,7 @@ class Game(val highScore: Int, context: Context) {
       case e: Throwable =>
         println("abnormal run termination:\n" + e.toString)
         // todo: find out what type of error assert is throwing and match it
-        //       currently assert is used at least in pieceHandler to ensure occupiedcounts are
+        //       currently assert is used at least in pieceHandler to ensure occupied counts are
         //       not messed up
         throw new IllegalStateException()
 
@@ -82,7 +82,7 @@ class Game(val highScore: Int, context: Context) {
 
   }
 
-  private def roundhandler(machineHighScore: Int) = {
+  private def roundHandler(machineHighScore: Int) = {
 
     // get 3 random pieces
     val pieces = getPiecesForRound
@@ -319,14 +319,12 @@ class Game(val highScore: Int, context: Context) {
     // pass them as some collection to Simulation.specification and ask it to
     // provide the results back in the right order
 
-    val results = board.results
-
     println(
       "Score: "
         + getScoreString(numberFormatShort, score.value)
         + " (" + getScoreString(numberFormatShort, highScore) + ")"
         + " (" + getScoreString(numberFormatShort, machineHighScore) + ")"
-        + " -" + Simulation.getSpecResultsString(board.results)
+        + " -" + Simulation.getResultsString(board.results)
 
     )
 
@@ -497,10 +495,10 @@ object Game {
         |
         |The best simulation is then used to place pieces and continue onto the next round.""".stripMargin
 
-    val descriptions = Simulation.getSpecDescriptions
+    val explanations = Simulation.getOptimizationFactorExplanations
 
     println(
-      begin + "\n" + descriptions + end
+      begin + "\n" + explanations + end
     )
 
   }
