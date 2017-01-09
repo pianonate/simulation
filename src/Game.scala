@@ -269,7 +269,7 @@ class Game(val highScore: Int, context: Context) {
       "permutation: "
         + piecesToString(pieces)
         + " -"
-        + best.getSimulationResultsString(Some(worst))
+        + best.getSimulationResultsString(Some(worst.results))
         + " - simulations: " + simulationCountString + " in " + durationString
         + " ("
         + perSecondString + "/second"
@@ -326,12 +326,8 @@ class Game(val highScore: Int, context: Context) {
         + getScoreString(numberFormatShort, score.value)
         + " (" + getScoreString(numberFormatShort, highScore) + ")"
         + " (" + getScoreString(numberFormatShort, machineHighScore) + ")"
+        + " -" + Simulation.getSpecResultsString(board.results)
 
-        + " - occupied: " + board.occupiedCount
-        + " - contiguous lines: " + board.getOpenAndContiguousLines._2
-        + " - open lines: " + board.getOpenAndContiguousLines._1
-        + " - maximizer positions available: " + board.maximizerCount
-        + " - largest contiguous unoccupied: " + board.islandMax
     )
 
   }

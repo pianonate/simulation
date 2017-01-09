@@ -9,29 +9,33 @@ case class PieceLocCleared(piece: Piece, loc: (Int, Int), clearedLines: Boolean)
 
 case class Simulation(plcList: List[PieceLocCleared], board: Board) extends Ordered[Simulation] {
 
+  override def toString: String = this.plcList.map(plc => plc.piece.name).mkString(", ") // visible in debugger
+
   val pieceCount: Int = plcList.length
   val results = board.results
 
-  val occupiedCount: Int = board.occupiedCount
+/*  val occupiedCount: Int = board.occupiedCount
   val maximizerCount: Int = board.maximizerCount
 
   val (openLines: Int, openContiguous: Int) = board.getOpenAndContiguousLines
 
-  val islandMax: Int = 0 // board.islandMax
+  val islandMax: Int = board.islandMax
 
   val neighborCounts: Array[Int] = board.neighborCount
   val fourNeighbors = neighborCounts(4)
-  val threeNeighbors = neighborCounts(3)
+  val threeNeighbors = neighborCounts(3)*/
 
-  // the following provides tuple ordering to ordered to make the tuple comparison work
-  import scala.math.Ordered.orderingToOrdered
+/*  val test = Array(occupiedCount, maximizerCount, fourNeighbors, threeNeighbors, openContiguous)
+  val test2 = results.test*/
 
-  override def toString: String = this.plcList.map(plc => plc.piece.name).mkString(", ") // visible in debugger
 
   // format: OFF
   def compare(that: Simulation): Int = {
 
-/*    // for now, not using dynamic tuple creation as reflection is too slow for the compare method
+    // the following provides tuple ordering to ordered to make the tuple comparison work
+    import scala.math.Ordered.orderingToOrdered
+
+  // for now, not using dynamic tuple creation as reflection is too slow for the compare method
     // vaulting compare to ~13% of overall execution time which would slow things down to much
     // even though it would be very convenient if we could dynamically construct
     // the calls here
@@ -51,31 +55,32 @@ case class Simulation(plcList: List[PieceLocCleared], board: Board) extends Orde
       Simulation.getCompareValue(4,false,this,that)
     )
 
-    val firstTuple = (this.occupiedCount, that.maximizerCount, this.fourNeighbors, this.threeNeighbors, that.openContiguous /*, that.islandMax, that.openLines )
-    val secondTuple = (that.occupiedCount, this.maximizerCount, that.fourNeighbors, that.threeNeighbors, this.openContiguous , that.islandMax, that.openLines )
+    //val firstTuple = (this.occupiedCount, that.maximizerCount, this.fourNeighbors, this.threeNeighbors, that.openContiguous /*, that.islandMax, that.openLines */ )
+    //val secondTuple = (that.occupiedCount, this.maximizerCount, that.fourNeighbors, that.threeNeighbors, this.openContiguous /*, that.islandMax, that.openLines */)
 
-    assert(firstTuple==firstNew, "first doesn't match")
-    assert(secondTuple==secondNew, "second doesn't match")
+    //assert(firstTuple==firstNew, "first doesn't match")
+    //assert(secondTuple==secondNew, "second doesn't match")
 
 
-    firstNew compare secondNew */*/
+    firstNew compare secondNew
 
-              (this.occupiedCount, that.maximizerCount, this.fourNeighbors, this.threeNeighbors, that.openContiguous /*, that.islandMax, that.openLines */ )
-      .compare(that.occupiedCount, this.maximizerCount, that.fourNeighbors, that.threeNeighbors, this.openContiguous /*, that.islandMax, that.openLines */ )
+    //            (this.occupiedCount, that.maximizerCount, this.fourNeighbors, this.threeNeighbors, that.openContiguous /*, that.islandMax, that.openLines */ )
+    //    .compare(that.occupiedCount, this.maximizerCount, that.fourNeighbors, that.threeNeighbors, this.openContiguous /*, that.islandMax, that.openLines*/  )
 
     // format: ON
 
   }
 
-  def getSimulationResultsString(worst: Option[Simulation] = None): String = Simulation.getSpecResultsString(this, worst)
+  def getSimulationResultsString(worst: Option[Array[Int]]): String = Simulation.getSpecResultsString(this.results, worst)
 
 }
 
-private case class Spec(
+case class Spec(
   val fieldName: String,
   minimize: Boolean,
   resultsLabel: String,
-  explanation: String
+  explanation: String,
+  enabled: Boolean
 )
 
 object Simulation {
@@ -89,30 +94,17 @@ object Simulation {
   val threeNeighborsName = "threeNeighbors"
   val openContiguousName = "openContiguous"
   val islandMaxName = "islandMax"
-  val openLInesName = "openLines"
-
-  // extract to a utility object? maybe...
-  private def invokeGet(instance: Simulation, fieldName: String) = {
-    try {
-      val field = instance.getClass.getDeclaredField(fieldName)
-      field.setAccessible(true)
-      field.get(instance).asInstanceOf[Int]
-    } catch {
-      case e: Throwable => throw new java.lang.IllegalStateException("invokeGet couldn't resolve: " + fieldName)
-      case _: Throwable => throw new IllegalArgumentException("fuck")
-    }
-  }
+  val openLinesName = "openLines"
 
   // specification provides the ordering of the optimization as well as whether a particular optimization is maximized or minimized
-  private val specification = Array(
-    Spec(occupiedCountName, minimize, "occupied", "occupied positions"),
-    Spec(maximizerCountName, maximize, "maximizer", "positions in which a 3x3 piece can fit"),
-    Spec(fourNeighborsName, minimize, "4 neighbors", "number of positions surrounded on all 4 sides"),
-    Spec(threeNeighborsName, minimize, "3 neighbors", "number of positions surrounded on 3 of 4 sides"),
-    Spec(openContiguousName, maximize, "contiguous open lines", "number of lines (either horizontal or vertical) that are open and contiguous") /*,
-    // todo - add active/inactive?
-    Spec(islandMaxName, maximize, "islandMax", "largest number of connected, unnoccupied positions"),
-    Spec(openLinesName, maximize, "openRowsCols", "count of open rows plus open columns")*/
+  val specification = Array(
+    Spec(occupiedCountName, minimize, "occupied", "occupied positions", true),
+    Spec(maximizerCountName, maximize, "maximizer", "positions in which a 3x3 piece can fit", true),
+    Spec(fourNeighborsName, minimize, "4 neighbors", "number of positions surrounded on all 4 sides", true),
+    Spec(threeNeighborsName, minimize, "3 neighbors", "number of positions surrounded on 3 of 4 sides", true),
+    Spec(openContiguousName, maximize, "contiguous open lines", "number of lines (either horizontal or vertical) that are open and contiguous", true),
+    Spec(islandMaxName, maximize, "islandMax", "largest number of connected, unnoccupied positions", false),
+    Spec(openLinesName, maximize, "openRowsCols", "count of open rows plus open columns", false)
   )
 
   // used by showGameStart
@@ -121,7 +113,7 @@ object Simulation {
 
   }
 
-  def getSpecResultsString(instance: Simulation, worst: Option[Simulation] = None): String = {
+  def getSpecResultsString(best: Array[Int], worst: Option[Array[Int]] = None): String = {
 
     def greenify(isGreen: Boolean, value: Int, valFormat: String, label: String, labelFormat: String) = {
       val result = valFormat.format(value)
@@ -135,14 +127,15 @@ object Simulation {
 
     var first = true
 
-    def handleSpec(spec: Spec): String = {
+    def handleSpec(arg: (Spec, (Int, Option[Int]))): String = {
 
-      val bestVal = invokeGet(instance, spec.fieldName)
+      val spec = arg._1
+      val bestVal = arg._2._1
 
       worst match {
-        case w: Some[Simulation] => {
+        case w: Some[Array[Int]] => {
 
-          val worstVal = invokeGet(w.get, spec.fieldName)
+          val worstVal = arg._2._2.get
           val greenBest = if (spec.minimize) bestVal < worstVal else bestVal > worstVal
           val greenWorst = if (spec.minimize) bestVal > worstVal else bestVal < worstVal
 
@@ -160,7 +153,14 @@ object Simulation {
       }
     }
 
-    specification.map(handleSpec).mkString
+    val filtered = specification.filter(_.enabled)
+
+    val worstValues = worst match {
+      case w: Some[Array[Int]] => w.get.map(i => Some(i))
+      case None => filtered.map(_ => None)
+    }
+
+    filtered.zip(best.zip(worstValues)).map(handleSpec).mkString
 
   }
 
@@ -170,12 +170,13 @@ object Simulation {
 
     val spec = specification(index)
     val (name, minimize) = (spec.fieldName, spec.minimize)
+    val (thisResults, thatResults) = (thisSimulation.results, thatSimulation.results)
 
     (first, minimize) match {
-      case (true, true) => invokeGet(thisSimulation, name)
-      case (true, false) => invokeGet(thatSimulation, name)
-      case (false, true) => invokeGet(thatSimulation, name)
-      case (false, false) => invokeGet(thisSimulation, name)
+      case (true, true) => thisResults(index)
+      case (true, false) => thatResults(index)
+      case (false, true) => thatResults(index)
+      case (false, false) => thisResults(index)
     }
 
   }

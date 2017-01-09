@@ -531,31 +531,32 @@ class Board(val layout: Array[Array[Cell]], val name: String, val color: String)
 
   }
 
-  def results:Map[String,Int] = {
-    import Simulation._
-    val neighbors = neighborCount
-    val openAndContiguousnLines = getOpenAndContiguousLines
+  def results = {
 
-    // tried to use reflection to get values from simulation and values from board
-    // but board needs to be dynamic (def)
-    // and Simulations is static (val)
-    // so besides being slightly more dificult,
-    // reflection is slow anyway, so using a Map instead to provide results
-    // to both the Simulation and the Board
-    // to show results after simulations and piece placements
-    Map(occupiedCountName -> occupiedCount,
-      maximizerCountName -> maximizerCount,
-      fourNeighborsName -> neighbors(4),
-      threeNeighborsName -> neighbors(3),
-      openContiguousName -> openAndContiguousnLines._2,
-      islandMaxName -> islandMax,
-      openLInesName -> openAndContiguousnLines._1
-    )
+    import Simulation._ // necessary for matching labels
+    val neighbors = this.neighborCount
+    val openAndContiguousnLines = this.getOpenAndContiguousLines
+
+    def getResult(name:String):Int = {
+      name match {
+        case s if s==occupiedCountName => this.occupiedCount
+        case s if s==maximizerCountName => this.maximizerCount
+        case s if s==fourNeighborsName => neighbors(4)
+        case s if s==threeNeighborsName => neighbors(3)
+        case s if s==openContiguousName => openAndContiguousnLines._2
+        case s if s==islandMaxName => this.islandMax
+        case s if s==openLinesName => openAndContiguousnLines._1
+      }
+    }
+
+    // return only results for enabled fields
+    Simulation.specification.collect { case spec:Spec if spec.enabled => getResult(spec.fieldName)}
+
   }
 
-
-
 }
+
+
 
 object Board {
 
