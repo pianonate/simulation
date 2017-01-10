@@ -12,7 +12,6 @@ object GameRunner {
   // todo high score can go on the context maybe
   val HIGH_SCORE_FILE = ".highscore"
 
-
   def play(args: Array[String]): Unit = {
 
     val context = new Context(args)
@@ -30,6 +29,7 @@ object GameRunner {
     val scores = new ListBuffer[Int]
     val rounds = new ListBuffer[Int]
     val simulationsPerSecond = new ListBuffer[Int]
+    val gameCount = Counter()
 
     Game.showGameStart()
 
@@ -40,8 +40,10 @@ object GameRunner {
       // no need to pass machineHighScore to run
       val machineHighScore = getHighScore
 
+      gameCount.inc
+
       val game = new Game(if (scores.isEmpty) 0 else scores.max, context)
-      val results = game.run(machineHighScore)
+      val results = game.run(machineHighScore, gameCount.value)
 
       scores.append(results._1)
       rounds.append(results._2)
@@ -59,7 +61,7 @@ object GameRunner {
       println
       println("MULTIPLE GAME STATS")
       println
-      println(labelFormat.format("Games Played") + numberFormat.format(scores.size))
+      println(labelFormat.format("Games Played") + numberFormat.format(gameCount.value))
       println(labelFormat.format("High Score") + getScoreString(numberFormat, sessionHighScore))
       println(labelFormat.format("All Time High Score") + getScoreString(numberFormat, allTimeHighScore))
       println(labelFormat.format("Most Rounds") + numberFormat.format(mostRounds))

@@ -27,7 +27,7 @@ class Board(val layout: Array[Array[Cell]], val name: String, val color: String)
 
   def maximizerCount: Int = legalPlacements(Simulation.maximizer).length
 
-  def islandMax: Int = findLargestConnectedComponent(this.layout, Board.allLocationsList)
+  def islandMax: Int = findLargestConnectedComponent
 
   def occupiedCount: Int = getOccupiedPositions
 
@@ -238,9 +238,9 @@ class Board(val layout: Array[Array[Cell]], val name: String, val color: String)
     @tailrec def placeLoop(row: Int, col: Int): Unit = {
       (row, col) match {
         case (-1, _) => Unit
-        case (_, 0)  =>
+        case (_, 0) =>
           checkCell(row, col); placeLoop(row - 1, cols - 1)
-        case _       => checkCell(row, col); placeLoop(row, col - 1)
+        case _ => checkCell(row, col); placeLoop(row, col - 1)
       }
     }
 
@@ -289,16 +289,17 @@ class Board(val layout: Array[Array[Cell]], val name: String, val color: String)
   // todo, eliminate the return
   private def legalPlacement(piece: Piece, loc: (Int, Int)): Boolean = {
 
+    // 607K/s with the returns inline vs. 509K/s with the returns removed.  the returns stay
     val (locRow, locCol) = loc
 
     if ((piece.rows + locRow) > rows) return false // exceeds the bounds of the board - no point in checking any further
     if ((piece.cols + locCol) > cols) return false // exceeds the bounds of the board - no point in checking any further
 
     // find all instances
-    // where the piece has an occupied value and the board has an unoccupied value
-    // to yield the unoccupied status of each corresponding position on the board
+    // where the piece has an occupied value and the board has an occupied value - that is illegal, so bail
+    // otherwise it's leg
 
-    // using a while loop rather than a for comprehension because even with -optimize,
+    // using a while loop rather than a for comprehension because
     // the while loop is a LOT faster
     var r = 0
     var c = 0
@@ -307,7 +308,7 @@ class Board(val layout: Array[Array[Cell]], val name: String, val color: String)
         val pieceOccupied = piece.layout(r)(c).occupied
         val boardOccupied = layout(r + locRow)(c + locCol).occupied
         if (pieceOccupied && boardOccupied) {
-          return false // you can move this into the while loop eval if you use a var - only if perf warrants
+          return false
         }
         c += 1
       }
@@ -326,9 +327,6 @@ class Board(val layout: Array[Array[Cell]], val name: String, val color: String)
   // So now, just return a predefined Array
   // as this takes almost no time at all
 
-  // todo, test this mechanism to see how much slower it is and record it for posterity
-  /*private val visitedArray = Array.fill(Game.BOARD_SIZE)(Array.fill(Game.BOARD_SIZE)(false))*/
-
   private def connectedCountLabelsArray = // Array.fill(10)(Array.fill[Int](10)(0))
     Array(
       Array(0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
@@ -344,15 +342,6 @@ class Board(val layout: Array[Array[Cell]], val name: String, val color: String)
     )
 
   private val labelsLength = connectedCountLabelsArray.length
-  private val directions = Array((-1, 0), (0, -1), (1, 0), (0, 1))
-
-  private def getCountsArray = Array(0, 0, 0, 0, 0)
-
-  private def getTryLoc(loc: (Int, Int), i: Int) = {
-    val (offsetRow, offsetCol) = directions(i)
-    val tryLoc = (loc._1 + offsetRow, loc._2 + offsetCol)
-    tryLoc
-  }
 
   // is this location occupied?
   private def isOccupied(loc: (Int, Int)): Boolean = layout(loc._1)(loc._2).occupied
@@ -361,6 +350,7 @@ class Board(val layout: Array[Array[Cell]], val name: String, val color: String)
     val i = loc._1
     val j = loc._2
 
+    // TODO OR would short circuit and return faster - and is checking all values
     val inbounds = i >= 0 && i < layout.length && j >= 0 && j < layout(0).length
     !inbounds
   }
@@ -390,20 +380,14 @@ class Board(val layout: Array[Array[Cell]], val name: String, val color: String)
   // calculation
   // regressed to 10,603 after switching to labelling mechanism.  but it uses a list, so maybe use an array?
   //
-  private def findLargestConnectedComponent(layout: Array[Array[Cell]], locations: List[(Int, Int)]): Int = {
+  private def findLargestConnectedComponent: Int = {
 
-    //println("finding largest connected component.....................")
-    // call dfs in all directions - only acting on valid locations - until it can't find any more islands
     val labels = connectedCountLabelsArray
-    var componentCount = 0
 
     def getComponentCount(label: Int): Int = {
-      /*island.map(a => a.count(_ == true)).sum*/
 
       @annotation.tailrec
       def componentCountLoop(row: Int, col: Int, acc: Int): Int = {
-
-        //val countMe = (r:Int, c:Int) => if (island(r)(c)) 1 else 0
 
         (row, col) match {
           case (-1, _) => acc
@@ -437,12 +421,15 @@ class Board(val layout: Array[Array[Cell]], val name: String, val color: String)
 
     def labelLocAndNeighbors(loc: (Int, Int), currentLabel: Int): Unit = {
 
-      label(loc, currentLabel)
+      val (row, col) = loc
+      labels(row)(col) = currentLabel
+
+      val neighbors = Board.allLocationNeighbors((row * 10) + col)
 
       var i = 0
-      val length = directions.length
+      val length = neighbors.length
       while (i < length) {
-        val tryLoc: (Int, Int) = getTryLoc(loc, i)
+        val tryLoc: (Int, Int) = neighbors(i)
         if (isSafe(tryLoc)) {
           labelLocAndNeighbors(tryLoc, currentLabel)
         }
@@ -452,57 +439,48 @@ class Board(val layout: Array[Array[Cell]], val name: String, val color: String)
 
     }
 
-    def label(loc: (Int, Int), label: Int): Unit = {
-      labels(loc._1)(loc._2) = label
-      //println("I just  labelled " + loc + " with: " + label)
+    var i = 0
+    var max = 0
+    var componentCount = 0
+    val locs = Board.allLocations
+    val length = locs.length
+    val minimumSizeComponent = length / 2
+
+    while (i < length && max < minimumSizeComponent) {
+
+      val loc = locs(i)
+
+      if (isSafe(loc)) {
+        componentCount += 1
+        labelLocAndNeighbors(loc, componentCount)
+        val size = getComponentCount(componentCount)
+        if (size > max) { max = size }
+      }
+      i += 1
     }
 
-    def findLargestLoop(locs: List[(Int, Int)], largestComponent: Int): Int = {
+    max
 
-      def processComponent(loc: (Int, Int), currentLabel: Int): Int = {
-        labelLocAndNeighbors(loc, currentLabel)
-        val currentCount = getComponentCount(currentLabel)
-        if (currentCount > largestComponent) currentCount else largestComponent
-      }
-
-      locs match {
-        case head :: tail =>
-
-          if (isSafe(head)) {
-            componentCount += 1
-            val max: Int = processComponent(head, componentCount)
-            findLargestLoop(tail, max)
-
-          } else {
-
-            findLargestLoop(tail, largestComponent)
-          }
-
-        case Nil => largestComponent
-      }
-
-    }
-
-    findLargestLoop(locations, 0)
   }
 
   private def countNeighbors(locs: Array[(Int, Int)]): Array[Int] = {
 
-    val counts = getCountsArray
+    val counts = Array(0, 0, 0, 0, 0)
     val locLength = locs.length
 
+    // todo: why does isOutOfBounds and isOccupied take only 12% each of hasNeighbor in th profiler?
     def hasNeighbor(loc: (Int, Int)): Boolean = isOutOfBounds(loc) || isOccupied(loc)
-    // walk through all directions
-    def countLocationNeighbor(loc: (Int, Int)): Unit = {
 
-      val directionLength = directions.length
+    // walk through all directions
+    def countLocationNeighbor(loc: (Int, Int), locNeighbors: Array[(Int, Int)]): Unit = {
+
+      val length = locNeighbors.length
       var i = 0
       var count = 0
-      while (i < directionLength) {
-        val tryLoc = getTryLoc(loc, i)
+      while (i < length) {
+        val tryLoc = locNeighbors(i)
 
-        if (hasNeighbor(tryLoc))
-          count += 1
+        if (hasNeighbor(tryLoc)) { count += 1 }
 
         i += 1
       }
@@ -511,22 +489,21 @@ class Board(val layout: Array[Array[Cell]], val name: String, val color: String)
 
     }
 
-    def countNeighbors1() = {
+    def countAllLocationNeighbors() = {
       var i = 0
-
       while (i < locLength) {
         val loc = locs(i)
         if (isOccupied(loc))
           ()
         else {
-          countLocationNeighbor(loc)
+          countLocationNeighbor(loc, Board.allLocationNeighbors(i))
         }
 
         i += 1
       }
     }
 
-    countNeighbors1()
+    countAllLocationNeighbors()
 
     counts
 
@@ -534,7 +511,18 @@ class Board(val layout: Array[Array[Cell]], val name: String, val color: String)
 
   def results: Array[Int] = {
 
-    import Simulation._ // necessary for matching labels
+    import Simulation._
+
+    def getResultArray = specification.length match {
+      case 1 => Array(0)
+      case 2 => Array(0, 0)
+      case 3 => Array(0, 0, 0)
+      case 4 => Array(0, 0, 0, 0)
+      case 5 => Array(0, 0, 0, 0, 0)
+      case 6 => Array(0, 0, 0, 0, 0, 0)
+      case 7 => Array(0, 0, 0, 0, 0, 0, 0)
+    }
+
     // todo: these may not be necessary to call if the specification doesn't require them
     //       turn specification into a class and have it identify whether or not these need to be called
     val neighbors = this.neighborCount
@@ -542,18 +530,30 @@ class Board(val layout: Array[Array[Cell]], val name: String, val color: String)
 
     def getResult(name: String): Int = {
       name match {
+        // multiply times -1 to make compare work without having to 
+        // move this._ and that._ values around
         case s if s == occupiedCountName  => this.occupiedCount
-        case s if s == maximizerCountName => this.maximizerCount
+        case s if s == maximizerCountName => this.maximizerCount * -1
         case s if s == fourNeighborsName  => neighbors(4)
         case s if s == threeNeighborsName => neighbors(3)
-        case s if s == openContiguousName => openAndContiguous._2
-        case s if s == islandMaxName      => this.islandMax
-        case s if s == openLinesName      => openAndContiguous._1
+        case s if s == openContiguousName => openAndContiguous._2 * -1
+        case s if s == islandMaxName      => this.islandMax * -1
+        case s if s == openLinesName      => openAndContiguous._1 * -1
       }
     }
 
-    // return only results for enabled fields
-    Simulation.specification.map(spec => getResult(spec.fieldName))
+    // getResults is 3,915/second with while loop
+    // vs. 3,133/second with this map - good golly
+    //specification.map(spec => getResult(spec.fieldName))
+
+    val a = getResultArray
+    var i = 0
+    while (i < specification.length) {
+      a(i) = getResult(specification(i).fieldName)
+      i += 1
+    }
+
+    a
 
   }
 
@@ -592,8 +592,22 @@ object Board {
 
   }
 
+  private val directions = Array((-1, 0), (0, -1), (1, 0), (0, 1))
+
   lazy val allLocationsList: List[(Int, Int)] = getLocations(BOARD_SIZE)
   lazy val allLocations: Array[(Int, Int)] = allLocationsList.toArray
+
+  lazy val allLocationNeighbors: Array[Array[(Int, Int)]] = {
+
+    // stashing all location neighbors once at the beginning rather than calculating it each time has saved about 15% of execution time:
+    // on countNeihbors alone it sped up the number of times per second by 1948% (~20x)
+    def getNeighbors(loc: (Int, Int)): Array[(Int, Int)] = {
+      List.fill[Int](directions.length)(0).indices.map(n => (loc._1 + directions(n)._1, loc._2 + directions(n)._2)).toArray
+    }
+
+    val a = allLocations.map(getNeighbors)
+    a
+  }
 
   private val BOARD_COLOR = Game.BRIGHT_WHITE
   private def layoutTemplate: Array[Array[Cell]] = Array(null, null, null, null, null, null, null, null, null, null)

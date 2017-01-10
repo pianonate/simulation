@@ -34,11 +34,11 @@ abstract class Piece {
 */
     var i = 0
     var j = 0
-    val count = Counter()
+    var count = 0
     while (i < layout.length) {
       while (j < layout(0).length) {
         if (layout(i)(j).occupied) {
-          count.inc
+          count += 1
         }
         j += 1
       }
@@ -46,11 +46,11 @@ abstract class Piece {
       i += 1
     }
 
-    count.value
+    count
 
   }
 
-  override def toString: String = this.name
+  override def toString: String = this.name // for the debugger
 
   def show: String = {
 

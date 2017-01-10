@@ -17,9 +17,7 @@ class Context(args: Array[String]) {
     })
     .toMap
 
-  import com.sun.javaws.exceptions.InvalidArgumentException
-
-  argMap.keys.foreach(key => { if (!validArguments(key)) throw new InvalidArgumentException(Array(key)) })
+  argMap.keys.foreach(key => { if (!validArguments(key)) throw new IllegalArgumentException(key) })
 
   // max simulations if you had 3 singletons chosen on an empty board:
   private val BOARD_UNOCCUPIED = Board.BOARD_SIZE * Board.BOARD_SIZE

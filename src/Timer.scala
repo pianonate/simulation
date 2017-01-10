@@ -28,9 +28,9 @@ class Timer {
 
     // 3h 4m 53s 42ms
     val s: String = (
-      (if (hours > 0) hours.toString + "hours " else "")
-      + minutes.toString + "minutes "
-      + seconds.toString + "seconds "
+      (if (hours > 0) hours.toString + "h " else "")
+      + minutes.toString + "m "
+      + seconds.toString + "s "
       + millis.toString + "ms"
     )
 

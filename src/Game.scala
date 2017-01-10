@@ -2,9 +2,6 @@
  * Created by nathan on 12/10/16.
  * Game will hold a reference to the current board and will also invoke simulations
  *
- * Todo: add game # to prefix each Score so you can know which iteration your in when you leave this
- *       running over night
- *
  * Todo: at end of game you can often place one or two pieces, but we don't place any - find out why
  *
  * TODO: Kevin suggests assigning values from 0 to 5 to 0 on both axes and minimize for placement on higher valued squares
@@ -51,7 +48,7 @@ class Game(val highScore: Int, context: Context) {
   // mostly used in profiling to limit the number of simulations to a reasonable number
   val maxSimulations: Int = context.maxSimulations
 
-  def run(machineHighScore: Int): (Int, Int, Int) = {
+  def run(machineHighScore: Int, gameCount: Int): (Int, Int, Int) = {
 
     val gameDuration = new Timer
 
@@ -59,7 +56,7 @@ class Game(val highScore: Int, context: Context) {
 
       do {
 
-        roundHandler(machineHighScore)
+        roundHandler(machineHighScore, gameCount)
 
       } while (CONTINUOUS_MODE || (!CONTINUOUS_MODE && (Console.in.read != 'q')))
 
@@ -82,7 +79,10 @@ class Game(val highScore: Int, context: Context) {
 
   }
 
-  private def roundHandler(machineHighScore: Int) = {
+  private def roundHandler(machineHighScore: Int, gameCount: Int) = {
+
+    // increment the number of rounds
+    rounds.inc
 
     // get 3 random pieces
     val pieces = getPiecesForRound
@@ -114,7 +114,7 @@ class Game(val highScore: Int, context: Context) {
       throw GameOver
     }
 
-    showBoardFooter()
+    showBoardFooter(gameCount: Int)
   }
 
   private def getBestPermutation(pieces: List[Piece]): Simulation = {
@@ -235,11 +235,9 @@ class Game(val highScore: Int, context: Context) {
 
     }
 
-    val best = options.sorted.head
-
-    // invert the default comparison and take that as the result for worst
-    // god i love the Ordered trait
-    val worst = options.sortWith(_ > _).head
+    val sortedOptions = options.sorted
+    val best = sortedOptions.head
+    val worst = sortedOptions.reverse.head
 
     // now we know how long this one took - don't need to include the time to show or return it
     val elapsed = simulationDuration.elapsed
@@ -348,27 +346,25 @@ class Game(val highScore: Int, context: Context) {
 
   }
 
-  private def showBoardFooter() = {
+  private def showBoardFooter(gameCount: Int) = {
 
-    // increment the number of rounds
-    rounds.inc
-
-    def avg(xs:ListBuffer[Int]):Float={
-      val (sum,length)=xs.foldLeft((0,0))( { case ((s,l),x)=> (x+s,1+l) })
-      sum/length
+    def avg(xs: ListBuffer[Int]): Double = {
+      val (sum, length) = xs.foldLeft((0l, 0))({ case ((s, l), x) => (x + s, 1 + l) })
+      sum / length
     }
 
     val average = avg(simulationsPerSecond)
 
+    def formatNumber(value: Int) = numberFormatShort.format(value)
 
-
-    println("\nAfter " + "%,d".format(rounds.value) + " rounds"
-      + " - rows cleared: " + "%,d".format(rowsCleared.value)
-      + " - columns cleared: " + "%,d".format(colsCleared.value)
-      + " - best simulations per second: " + numberFormatShort.format(simulationsPerSecond.max)
-      + " (average: " + numberFormatShort.format(average.toInt) + ")"
+    println("\nGame: " + formatNumber(gameCount) + " - "
+      + "After " + formatNumber(rounds.value) + " rounds"
+      + " - rows cleared: " + formatNumber(rowsCleared.value)
+      + " - columns cleared: " + formatNumber(colsCleared.value)
+      + " - best simulations per second: " + formatNumber(simulationsPerSecond.max)
+      + " (average: " + formatNumber(average.toInt) + ")"
+    // + " " + numberFormatShort.format(simulationsPerSecond.sum)
     )
-
 
     if (!CONTINUOUS_MODE)
       println("type enter to place another piece and 'q' to quit")
@@ -408,7 +404,7 @@ class Game(val highScore: Int, context: Context) {
 
     }
 
-    println("\nRound: " + numberFormatShort.format(rounds.value + 1) + " - Candidate pieces:")
+    println("\nRound: " + numberFormatShort.format(rounds.value) + " - Candidate pieces:")
 
     // turn arrays into a list so you can transpose them
     // transpose will create a list of 1st rows, a list of 2nd rows, etc.

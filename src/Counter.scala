@@ -2,26 +2,14 @@
  * Created by nathan mccoy on 12/24/16.
  * encapsulate counter logic
  */
-class Counter {
+case class Counter(val from: Int = 0) {
 
-  // you could also use Stream.from(0
-  private def intIterator(): Iterator[Int] = intIteratorFrom(0)
+  private var counter: Int = from
 
-  // creates an infinite iterator on a long value starting at the given and incrementing by 1
-  // you could also implement a stepBy if you wanted...
-  private def intIteratorFrom(start: Int): Iterator[Int] = Iterator.iterate(start)(num => num + 1)
-
-  private val iterator = intIterator().buffered
-
+  def value: Int = counter
   override def toString: String = value.toString
 
-  def value: Int = iterator.head
+  def inc: Unit = counter += 1
+  def inc(count: Int): Unit = counter += count
 
-  def inc: Int = inc(1)
-  def inc(count: Int): Int = { for (_ <- 0 until count) iterator.next; iterator.head }
-
-}
-
-object Counter {
-  def apply(): Counter = new Counter()
 }

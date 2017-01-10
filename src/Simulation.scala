@@ -18,11 +18,10 @@ case class Simulation(plcList: List[PieceLocCleared], board: Board) extends Orde
     // the following provides tuple ordering to ordered to make the tuple comparison work
     import scala.math.Ordered.orderingToOrdered
     
-    val first = true
-    val second = false
+    // any result to be maximized is negated so that it will work with default Int sort
 
-    val a = Simulation.getCompareValues(first, this.results, that.results)
-    val b = Simulation.getCompareValues(second, this.results, that.results)
+    val a = this.results
+    val b = that.results
 
     Simulation.specification.length match {
       case 1 => a(0)                                       compare b(0)
@@ -85,22 +84,12 @@ object Simulation {
   val specification: Array[OptimizationFactor] = fullSpecification.filter(_.enabled)
   private val specificationMinimized = specification.map(_.minimize)
 
-  private def getCompareTupleArray = specification.length match {
-    case 1 => Array(0)
-    case 2 => Array(0, 0)
-    case 3 => Array(0, 0, 0)
-    case 4 => Array(0, 0, 0, 0)
-    case 5 => Array(0, 0, 0, 0, 0)
-    case 6 => Array(0, 0, 0, 0, 0, 0)
-    case 7 => Array(0, 0, 0, 0, 0, 0, 0)
-
-  }
-
-  // used by showGameStart
   def getOptimizationFactorExplanations: String = {
+    // used by showGameStart
     specification.map(optFactor => "* " + optFactor.resultsLabel + " - " + optFactor.explanation).mkString("\n")
   }
 
+  // todo - collect all results and do a columnwise coloration of best and worst rather than one at a time
   def getResultsString(best: Array[Int], worst: Option[Array[Int]] = None): String = {
     // this is not implemented on simulation as it can be called from a simulation result or
     // from a board placement result during the actual placing of pieces post-simulation
@@ -113,7 +102,10 @@ object Simulation {
     // there was a lot of duplication and gnashing of teeth
 
     def greenify(isGreen: Boolean, value: Int, valFormat: String, label: String, labelFormat: String): String = {
-      val result = valFormat.format(value)
+      // maximized results are negated to work with Simulation.compare so
+      // as not to have to jump through hoops in that method
+      // use math.abs to show them to the user in a way that makes sense
+      val result = valFormat.format(math.abs(value))
       labelFormat.format(label) + (if (isGreen) Game.GREEN + result + Game.SANE else Game.RED + result + Game.SANE)
     }
 
@@ -130,8 +122,8 @@ object Simulation {
         case w: Some[Int] =>
 
           val worstVal = w.get
-          val greenBest = if (optFactor.minimize) bestVal <= worstVal else bestVal >= worstVal
-          val greenWorst = if (optFactor.minimize) bestVal >= worstVal else bestVal <= worstVal
+          val greenBest = bestVal <= worstVal // if (optFactor.minimize) bestVal <= worstVal else bestVal >= worstVal
+          val greenWorst = worstVal <= bestVal // if (optFactor.minimize) bestVal >= worstVal else bestVal <= worstVal
 
           greenify(greenBest, bestVal, openFormat, optFactor.resultsLabel, labelFormat) + greenify(greenWorst, worstVal, parenFormat, "", "")
 
@@ -154,34 +146,6 @@ object Simulation {
       .map(tup => (tup._1, tup._2._1, tup._2._2))
       .map(tup => handleOptFactor(tup._1, tup._2, tup._3))
       .mkString
-
-  }
-
-  private def getCompareValues(first: Boolean, thisResults: Array[Int], thatResults: Array[Int]): Array[Int] = {
-
-    val result = getCompareTupleArray
-
-    var i = 0
-
-    while (i < specification.length) {
-      val minimize = specificationMinimized(i)
-      val thisVal = thisResults(i)
-      val thatVal = thatResults(i)
-      result(i) = getValue(minimize, thisVal, thatVal)
-      i += 1
-    }
-
-    def getValue(minimize: Boolean, thisVal: Int, thatVal: Int): Int = {
-
-      (first, minimize) match {
-        case (true, true)   => thisVal
-        case (true, false)  => thatVal
-        case (false, true)  => thatVal
-        case (false, false) => thisVal
-      }
-    }
-
-    result
 
   }
 
