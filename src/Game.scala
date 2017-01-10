@@ -165,6 +165,13 @@ class Game(val highScore: Int, context: Context) {
     val simulationDuration = new Timer
     val simulationCount = Counter()
 
+    // todo - dynamically calculate
+
+    // i can't see how to not have this Array
+    // i can accumulate locations because you generate one each time through the recursion
+    // but you only store the last simulation - so there's nothing to accumulate...
+    val simulations = new Array[Simulation](1000000)
+
     //return the board copy and the number of lines cleared
     def placeMe(piece: Piece, theBoard: Board, loc: (Int, Int)): (Board, PieceLocCleared) = {
       val boardCopy = Board.copy("simulationBoard", theBoard)
@@ -182,9 +189,6 @@ class Game(val highScore: Int, context: Context) {
         board.legalPlacements(piece).par
     }
 
-    // i can't see how to not have this ListBuffer
-    // i can accumulate locations because you generate one each time through the recursion
-    // but you only store the last simulation - so there's nothing to accumulate...
     val listBuffer = new ListBuffer[Simulation]
 
     def createSimulations(board: Board, pieces: List[Piece], plcAccumulator: List[PieceLocCleared]): Unit = {
@@ -193,7 +197,7 @@ class Game(val highScore: Int, context: Context) {
 
       val paralegal = getLegal(board, piece)
 
-      def processLoc(loc: (Int, Int)) = {
+      def simulationHandler(loc: (Int, Int)) = {
         // maxSimulations is configured at runtime
         // if we are profiling it uses a smaller number so tracing doesn't slow things down that we can't get a few rounds
         if (simulationCount.value < maxSimulations) {
@@ -208,31 +212,30 @@ class Game(val highScore: Int, context: Context) {
 
             val plcList = plc :: plcAccumulator
             val simulation = Simulation(plcList.reverse, boardCopy)
-            simulationCount.inc // increment simulation counter
 
             synchronized {
-              // only append simulation when we've reached the last legal location on this path
-              listBuffer append simulation
+              // only add simulation when we've reached the last legal location on this path
+              simulations(simulationCount.value) = simulation
+              simulationCount.inc // increment simulation counter
+
             }
           }
         }
       }
 
-      paralegal.foreach(processLoc)
+      paralegal.foreach(simulationHandler)
 
     }
 
     createSimulations(board, pieces, List())
 
     val options = {
-      val grouped = listBuffer.toList.groupBy(_.pieceCount)
+      val grouped = simulations.splitAt(simulationCount.value)._1.groupBy(_.pieceCount)
 
-      // we only want to return simulations that have all 3 pieces placed if there are any
       if (grouped.contains(3)) grouped(3)
       else if (grouped.contains(2)) grouped(2)
       else if (grouped.contains(1)) grouped(1)
-      else List(Simulation(List(), this.board))
-
+      else Array(Simulation(List(), this.board))
     }
 
     val sortedOptions = options.sorted
