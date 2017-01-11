@@ -27,7 +27,7 @@ import Game._
 
 object GameOver extends Exception
 
-class Game(val highScore: Int, context: Context) {
+class Game(val context: Context, val gameInfo:GameInfo) {
 
   private val BYATCH_THRESHOLD = 550000 // your system has some cred if it is doing more than this number of simulations / second
 
@@ -47,16 +47,15 @@ class Game(val highScore: Int, context: Context) {
   // maximum allowed simulations for this game
   // mostly used in profiling to limit the number of simulations to a reasonable number
   val maxSimulations: Int = context.maxSimulations
+  val gameDuration = new GameTimer
 
-  def run(machineHighScore: Int, gameCount: Int): (Int, Int, Int) = {
-
-    val gameDuration = new Timer
+  def run: (Int, Int, Int) = {
 
     try {
 
       do {
 
-        roundHandler(machineHighScore, gameCount)
+        roundHandler
 
       } while (CONTINUOUS_MODE || (!CONTINUOUS_MODE && (Console.in.read != 'q')))
 
@@ -72,14 +71,14 @@ class Game(val highScore: Int, context: Context) {
 
     }
 
-    showGameOver(gameDuration)
+    showGameOver
 
     // return the score and the number of rounds to Main - where such things are tracked across game instances
     (score.value, rounds.value, simulationsPerSecond.max)
 
   }
 
-  private def roundHandler(machineHighScore: Int, gameCount: Int) = {
+  private def roundHandler = {
 
     // increment the number of rounds
     rounds.inc
@@ -105,8 +104,7 @@ class Game(val highScore: Int, context: Context) {
       plc => pieceHandler(
         plc._1.piece,
         plc._1.loc,
-        plc._2 + 1,
-        machineHighScore
+        plc._2 + 1
       )
     )
 
@@ -114,7 +112,7 @@ class Game(val highScore: Int, context: Context) {
       throw GameOver
     }
 
-    showBoardFooter(gameCount: Int)
+    showBoardFooter(gameInfo.gameCount: Int)
   }
 
   private def getBestPermutation(pieces: List[Piece]): Simulation = {
@@ -162,7 +160,7 @@ class Game(val highScore: Int, context: Context) {
 
   private def pieceSequenceSimulation(pieces: List[Piece]): Simulation = {
 
-    val simulationDuration = new Timer
+    val simulationDuration = new GameTimer
     val simulationCount = Counter()
 
     // todo - dynamically calculate
@@ -282,7 +280,7 @@ class Game(val highScore: Int, context: Context) {
   // todo:  can this be turned into an implicit for a List[Piece].toString call?  if so, that would be nice
   private def piecesToString(pieces: List[Piece]): String = pieces.map(_.name).mkString(", ")
 
-  private def pieceHandler(piece: Piece, loc: (Int, Int), index: Int, machineHighScore: Int): Unit = {
+  private def pieceHandler(piece: Piece, loc: (Int, Int), index: Int): Unit = {
 
     val currentOccupied = board.getOccupiedPositions
 
@@ -305,7 +303,7 @@ class Game(val highScore: Int, context: Context) {
     // so now clear any previously underlined cells for the next go around
     board.clearPieceUnderlines(piece, loc)
 
-    handleLineClearing()
+    handleLineClearing
 
     val rowsClearedThisRun = rowsCleared.value - curRowsCleared
     val colsClearedThisRun = colsCleared.value - curColsCleared
@@ -318,15 +316,15 @@ class Game(val highScore: Int, context: Context) {
     println(
       "Score: "
         + getScoreString(numberFormatShort, score.value)
-        + " (" + getScoreString(numberFormatShort, highScore) + ")"
-        + " (" + getScoreString(numberFormatShort, machineHighScore) + ")"
+        + " (" + getScoreString(numberFormatShort, gameInfo.sessionHighScore) + ")"
+        + " (" + getScoreString(numberFormatShort, gameInfo.machineHighScore) + ")"
         + " -" + Simulation.getResultsString(board.results)
 
     )
 
   }
 
-  private def handleLineClearing() = {
+  private def handleLineClearing = {
 
     val result = board.clearLines()
 
@@ -363,9 +361,11 @@ class Game(val highScore: Int, context: Context) {
     println("\nGame: " + formatNumber(gameCount) + " - "
       + "After " + formatNumber(rounds.value) + " rounds"
       + " - rows cleared: " + formatNumber(rowsCleared.value)
-      + " - columns cleared: " + formatNumber(colsCleared.value)
-      + " - best simulations per second: " + formatNumber(simulationsPerSecond.max)
-      + " (average: " + formatNumber(average.toInt) + ")"
+      + " - cols cleared: " + formatNumber(colsCleared.value)
+      + " - best simulations/sec: " + formatNumber(simulationsPerSecond.max)
+      + " (avg: " + formatNumber(average.toInt) + ")"
+      + " - elapsed time: " + gameDuration.showElapsed
+      + " (" + gameInfo.totalTime.showElapsed + ")"
     // + " " + numberFormatShort.format(simulationsPerSecond.sum)
     )
 
@@ -373,7 +373,7 @@ class Game(val highScore: Int, context: Context) {
       println("type enter to place another piece and 'q' to quit")
   }
 
-  private def showGameOver(gameDuration: Timer) = {
+  private def showGameOver = {
 
     println
 
@@ -385,7 +385,7 @@ class Game(val highScore: Int, context: Context) {
     println(labelNumberFormat.format("Rounds", rounds.value))
     println(labelNumberFormat.format("Rows Cleared", rowsCleared.value))
     println(labelNumberFormat.format("Cols Cleared", colsCleared.value))
-    println(gameDuration.showElapsed)
+    println(labelFormat.format("Game Elapsed Time") + gameDuration.showElapsed)
   }
 
   private def showPieces(pieces: List[Piece]): Unit = {

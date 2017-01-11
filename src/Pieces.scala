@@ -96,29 +96,31 @@ class Pieces {
   private val bigUpperRightEl = Piece.rotate90("BigUpperRL", bigUpperLeftEl)
   private val bigLowerRightEl = Piece.rotate90("BigLowerRL", bigUpperRightEl)
 
+  // format: OFF
   // map as a convenience for requesting specific named pieces
   private val pieceMap = Map(
-    singleton.name -> singleton, // 0
-    h2line.name -> h2line, // 1
-    v2line.name -> v2line, // 2
-    h3line.name -> h3line, // 3
-    v3line.name -> v3line, // 4
-    h4line.name -> h4line, // 5
-    v4line.name -> v4line, // 6
-    h5line.name -> h5line, // 7
-    v5line.name -> v5line, // 8
-    box.name -> box, // 9
-    bigBox.name -> bigBox, // 10
-    lowerLeftEl.name -> lowerLeftEl, // 11
-    upperLeftEl.name -> upperLeftEl, // 12
-    upperRightEl.name -> upperRightEl, // 13
-    lowerRightEl.name -> lowerRightEl, // 14
-    bigLowerLeftEl.name -> bigLowerLeftEl, // 15
-    bigUpperLeftEl.name -> bigUpperLeftEl, // 16
-    bigUpperRightEl.name -> bigUpperRightEl, // 17
+    singleton.name       -> singleton,      // 0
+    h2line.name          -> h2line,         // 1
+    v2line.name          -> v2line,         // 2
+    h3line.name          -> h3line,         // 3
+    v3line.name          -> v3line,         // 4
+    h4line.name          -> h4line,         // 5
+    v4line.name          -> v4line,         // 6
+    h5line.name          -> h5line,         // 7
+    v5line.name          -> v5line,         // 8
+    box.name             -> box,            // 9
+    bigBox.name          -> bigBox,         // 10
+    lowerLeftEl.name     -> lowerLeftEl,    // 11
+    upperLeftEl.name     -> upperLeftEl,    // 12
+    upperRightEl.name    -> upperRightEl,   // 13
+    lowerRightEl.name    -> lowerRightEl,   // 14
+    bigLowerLeftEl.name  -> bigLowerLeftEl, // 15
+    bigUpperLeftEl.name  -> bigUpperLeftEl, // 16
+    bigUpperRightEl.name -> bigUpperRightEl,// 17
     bigLowerRightEl.name -> bigLowerRightEl // 18
-
   )
+
+  // format: ON
 
   val pieceList: List[Piece] = pieceMap.values.toList
 

@@ -30,6 +30,7 @@ object GameRunner {
     val rounds = new ListBuffer[Int]
     val simulationsPerSecond = new ListBuffer[Int]
     val gameCount = Counter()
+    val totalTime = new GameTimer
 
     Game.showGameStart()
 
@@ -39,18 +40,19 @@ object GameRunner {
       // todo, put machineHighScore on the context
       // no need to pass machineHighScore to run
       val machineHighScore = getHighScore
-
+      val sessionHighScore = if (scores.isEmpty) 0 else scores.max
       gameCount.inc
 
-      val game = new Game(if (scores.isEmpty) 0 else scores.max, context)
-      val results = game.run(machineHighScore, gameCount.value)
+      val gameInfo = GameInfo(sessionHighScore, machineHighScore, gameCount.value, totalTime )
+
+      val game = new Game(context, gameInfo)
+      val results = game.run
 
       scores.append(results._1)
       rounds.append(results._2)
       simulationsPerSecond.append(results._3)
 
-      val sessionHighScore = scores.max
-      val allTimeHighScore = List(machineHighScore, sessionHighScore).max
+      val allTimeHighScore = List(machineHighScore, scores.max).max
       val mostRounds = rounds.max
       val bestPerSecond = simulationsPerSecond.max
 
@@ -62,10 +64,12 @@ object GameRunner {
       println("MULTIPLE GAME STATS")
       println
       println(labelFormat.format("Games Played") + numberFormat.format(gameCount.value))
-      println(labelFormat.format("High Score") + getScoreString(numberFormat, sessionHighScore))
+      println(labelFormat.format("High Score") + getScoreString(numberFormat, scores.max))
       println(labelFormat.format("All Time High Score") + getScoreString(numberFormat, allTimeHighScore))
       println(labelFormat.format("Most Rounds") + numberFormat.format(mostRounds))
       println(labelFormat.format("Most Simulations/Second") + numberFormat.format(bestPerSecond))
+      println("")
+      println(labelFormat.format("Elapsed time") +  totalTime.showElapsed)
 
       if (CONTINUOUS_MODE) {
         println
@@ -74,7 +78,7 @@ object GameRunner {
         // countdown timer
         (1 to 10).reverse.foreach { i =>
           print(i + "...")
-          Thread.sleep(1000)
+          Thread.sleep(500)
         }
 
         println
