@@ -67,34 +67,10 @@
  ■ ■ ■
 
  */
+
 class Pieces {
 
-  private val singleton = new Line("Singleton", Game.BLACK, 1, 4)
-
-  private val h2line = new Line("HLine2", Game.BRIGHT_YELLOW, 2, 6)
-  private val v2line = Piece.rotate90("VLine2", h2line)
-
-  private val h3line = new Line("HLine3", Game.YELLOW, 3, 6)
-  private val v3line = Piece.rotate90("VLine3", h3line)
-
-  private val h4line = new Line("HLine4", Game.BRIGHT_RED, 4, 4)
-  private val v4line = Piece.rotate90("VLine4", h4line)
-
-  private val h5line = new Line("HLine5", Game.RED, 5, 4)
-  private val v5line = Piece.rotate90("VLine5", h5line)
-
-  private val box = new Box("Box", Game.GREEN, 2, 12)
-  private val bigBox = new Box("BigBox", Game.CYAN, 3, 4)
-
-  private val lowerLeftEl = new El("LowerLL", Game.BRIGHT_CYAN, 2, 3)
-  private val upperLeftEl = Piece.rotate90("UpperLL", lowerLeftEl)
-  private val upperRightEl = Piece.rotate90("UpperRL", upperLeftEl)
-  private val lowerRightEl = Piece.rotate90("LowerRL", upperRightEl)
-
-  private val bigLowerLeftEl = new El("BigLowerLL", Game.BLUE, 3, 2)
-  private val bigUpperLeftEl = Piece.rotate90("BigUpperLL", bigLowerLeftEl)
-  private val bigUpperRightEl = Piece.rotate90("BigUpperRL", bigUpperLeftEl)
-  private val bigLowerRightEl = Piece.rotate90("BigLowerRL", bigUpperRightEl)
+  import Pieces._
 
   // format: OFF
   // map as a convenience for requesting specific named pieces
@@ -132,8 +108,6 @@ class Pieces {
     pieceMap(pieceDistribution(pieceIndex))
   }
 
-  def getNamedPiece(name: String): Piece = pieceMap(name)
-
   def getNamedPieces(names: String*): List[Piece] = {
     names.map(name => pieceMap(name)).toList
   }
@@ -154,4 +128,62 @@ class Pieces {
     println
   }
 
+}
+
+/*ase class PieceSpecification(
+  name:      String,
+  pieceType: String, // how could you turn this into
+  size:      Int,
+  color:     String,
+  weight:    Int
+)*/
+
+object Pieces {
+
+  val singletonName = "Singleton"
+  val h2lineName = "HLine2"
+  val v2lineName = "VLine2"
+  val h3lineName = "HLine3"
+  val v3lineName = "VLine3"
+  val h4lineName = "HLine4"
+  val v4lineName = "VLine4"
+  val h5lineName = "HLine5"
+  val v5lineName = "VLine5"
+  val boxName = "Box"
+  val bigBoxName = "BigBox"
+  val lowerLeftElName = "LowerLL"
+  val upperLeftElName = "UpperLL"
+  val upperRightElName = "UpperRL"
+  val lowerRightElName = "LowerRL"
+  val bigLowerLeftElName = "BigLowerLL"
+  val bigUpperLeftElName = "BigUpperLL"
+  val bigUpperRightElName = "BigUpperRL"
+  val bigLowerRightElName = "BigLowerRL"
+
+  val singleton = new Line(Piece.getLinearGrid(1), Pieces.singletonName, Game.BLACK, 4)
+
+  val h2line = new Line(Piece.getLinearGrid(2), Pieces.h2lineName, Game.BRIGHT_YELLOW, 6)
+  val v2line: Piece = Piece.rotate90(Pieces.v2lineName, h2line)
+
+  val h3line = new Line(Piece.getLinearGrid(3), Pieces.h3lineName, Game.YELLOW, 6)
+  val v3line: Piece = Piece.rotate90(Pieces.v3lineName, h3line)
+
+  val h4line = new Line(Piece.getLinearGrid(4), Pieces.h4lineName, Game.BRIGHT_RED, 4)
+  val v4line: Piece = Piece.rotate90(Pieces.v4lineName, h4line)
+
+  val h5line = new Line(Piece.getLinearGrid(5), Pieces.h5lineName, Game.RED, 4)
+  val v5line: Piece = Piece.rotate90(Pieces.v5lineName, h5line)
+
+  val box = new Box(Piece.getBoxGrid(2), Pieces.boxName, Game.GREEN, 12)
+  val bigBox = new Box(Piece.getBoxGrid(3), Pieces.bigBoxName, Game.CYAN, 4)
+
+  val lowerLeftEl = new El(Piece.getBoxGrid(2), Pieces.lowerLeftElName, Game.BRIGHT_CYAN, 3)
+  val upperLeftEl: Piece = Piece.rotate90(Pieces.upperLeftElName, lowerLeftEl)
+  val upperRightEl: Piece = Piece.rotate90(Pieces.upperRightElName, upperLeftEl)
+  val lowerRightEl: Piece = Piece.rotate90(Pieces.lowerRightElName, upperRightEl)
+
+  val bigLowerLeftEl = new El(Piece.getBoxGrid(2), Pieces.bigLowerLeftElName, Game.BLUE, 2)
+  val bigUpperLeftEl: Piece = Piece.rotate90(Pieces.bigUpperLeftElName, bigLowerLeftEl)
+  val bigUpperRightEl: Piece = Piece.rotate90(Pieces.bigUpperRightElName, bigUpperLeftEl)
+  val bigLowerRightEl: Piece = Piece.rotate90(Pieces.bigLowerRightElName, bigUpperRightEl)
 }

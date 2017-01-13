@@ -23,7 +23,7 @@ class GameTimer {
     val hours = math.floor(now / hour).toLong
     val minutes = math.floor((now - (hours * hour)) / minute).toLong
     val seconds = math.floor((now - ((hours * hour) + (minutes * minute))) / second).toLong
-    val millis = now - ((hours * hour) + (minutes * minute) + (second * seconds)).toLong
+    val millis = now - ((hours * hour) + (minutes * minute) + (second * seconds))
 
     // 3h 4m 53s 42ms
     val twoDigits = "%2d"

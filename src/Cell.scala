@@ -3,19 +3,33 @@
  * a cell within a piece is either occupied or not.  it also has a color.
  * if it's the game board piece, then it should show unoccupied cells .show
  */
-case class Cell(occupied: Boolean = false, color: String, var underline: Boolean = false) {
+case class Cell(occupied: Boolean = false, color: String) {
 
-  // Todo: get rid of var for underLine - i think you could just create a copy of the cell.
-  val underLineColor: String = Game.UNDERLINE + color
   val unoccupied: Boolean = !occupied
+
+  var shown = false
 
   override def toString: String = if (this.occupied) "occupied" else "unoccupied"
 
-  def show: String = {
+  def showForPiece: String = {
     if (occupied)
-      if (underline) underLineColor + Cell.BOX_CHAR else color + Cell.BOX_CHAR
+      color + Cell.BOX_CHAR
     else
       Cell.unoccupiedColor + Cell.BOX_CHAR
+  }
+
+  def showForBoard: String = {
+
+    if (occupied)
+      if (!shown) {
+        shown = true
+        Game.UNDERLINE + color + Cell.BOX_CHAR
+      }
+      else
+        color + Cell.BOX_CHAR
+    else
+      Cell.unoccupiedColor + Cell.BOX_CHAR
+
   }
 
 }
@@ -24,6 +38,6 @@ object Cell {
 
   private val BOX_CHAR = "\u25A0" + Game.SANE
   private val unoccupiedColor = Game.BRIGHT_WHITE
-  def copy(cell: Cell): Cell = new Cell(cell.occupied, cell.color, cell.underline)
+  def copy(cell: Cell): Cell = new Cell(cell.occupied, cell.color)
 
 }

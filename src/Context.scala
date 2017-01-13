@@ -3,10 +3,10 @@
  * parses command line and sets defaults
  */
 
-case class GameInfo(val sessionHighScore:Int,
-  val machineHighScore:Int,
-  val gameCount:Int,
-  val totalTime:GameTimer)
+case class GameInfo(sessionHighScore:Int,
+  machineHighScore:Int,
+  gameCount:Int,
+  totalTime:GameTimer)
 
 class Context(args: Array[String]) {
   // todo - just don't throw errors - shut things down in an orderly manner and output errors at the command line

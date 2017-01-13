@@ -3,7 +3,20 @@
  * created for the purpose of simplifying new algo choices by providing a specification in the Simulation object
  * that all simulations use to do the compare and to do a show
  */
-case class PieceLocCleared(piece: Piece, loc: (Int, Int), clearedLines: Boolean)
+case class PieceLocCleared(
+  piece:        Piece,
+  loc:          (Int, Int),
+  clearedLines: Boolean
+)
+
+case class SimulationInfo(
+  pieces:          List[Piece],
+  simulationCount: Int,
+  best:            Simulation,
+  worst:           Simulation,
+  elapsed:         Long,
+  perSecond:       Long
+)
 
 case class Simulation(plcList: List[PieceLocCleared], board: Board) extends Ordered[Simulation] {
 
@@ -17,7 +30,7 @@ case class Simulation(plcList: List[PieceLocCleared], board: Board) extends Orde
 
     // the following provides tuple ordering to ordered to make the tuple comparison work
     import scala.math.Ordered.orderingToOrdered
-    
+
     // any result to be maximized is negated so that it will work with default Int sort
 
     val a = this.results
@@ -36,21 +49,20 @@ case class Simulation(plcList: List[PieceLocCleared], board: Board) extends Orde
     // format: ON
 
   }
-
-  def getSimulationResultsString(worst: Option[Array[Int]]): String = Simulation.getResultsString(this.results, worst)
-
 }
 
 case class OptimizationFactor(
-  enabled:      Boolean,
-  fieldName:    String,
-  minimize:     Boolean,
-  resultsLabel: String,
-  explanation:  String
-
+  enabled:     Boolean,
+  fieldName:   String,
+  minimize:    Boolean,
+  resultLabel: String,
+  explanation: String
 )
 
 object Simulation {
+
+  // your system has some cred if it is doing more than this number of simulations / second
+  private val BYATCH_THRESHOLD = 550000
 
   // for readability
   private val minimize = true
@@ -63,36 +75,112 @@ object Simulation {
   val maximizerCountName = "maximizerCount"
   val fourNeighborsName = "fourNeighbors"
   val threeNeighborsName = "threeNeighbors"
-  val openContiguousName = "openContiguous"
   val islandMaxName = "islandMax"
+  val maxContiguousName = "openContiguous"
   val openLinesName = "openLines"
 
-  // specification provides the ordering of the optimization as well as whether a particular optimization is maximized or minimized
-  // you'll need to update getCompareTupleArray and Simulation.compare if you change the length of the specification
-  // other than that, you can rearrange rows in the specification, or turn entries off or on at will
-  // much more flexible than it used to be
   private val fullSpecification = Array(
+
+    // specification provides the ordering of the optimization as well as whether a particular optimization is maximized or minimized
+    // you'll need to update board.results and Simulation.compare if you change the length of the fullSpecification Array
+    // other than that, you can rearrange rows in the specification, or turn entries off or on at will
+    // much more flexible than it used to be
+
+    // todo - run through all specification combinations of off and on and run 1000? games on each to see which specification is the best
+    //        after a thousand games
+
     OptimizationFactor(on, occupiedCountName, minimize, "occupied", "occupied positions"),
     OptimizationFactor(on, maximizerCountName, maximize, "maximizer", "positions in which a 3x3 piece can fit"),
     OptimizationFactor(on, fourNeighborsName, minimize, "4 neighbors", "number of positions surrounded on all 4 sides"),
     OptimizationFactor(on, threeNeighborsName, minimize, "3 neighbors", "number of positions surrounded on 3 of 4 sides"),
-    OptimizationFactor(on, openContiguousName, maximize, "contiguous open lines", "number of lines (either horizontal or vertical) that are open and contiguous"),
-    OptimizationFactor(off, openLinesName, maximize, "openRowsCols", "count of open rows plus open columns"),
-    OptimizationFactor(off, islandMaxName, maximize, "islandMax", "largest number of connected, unnoccupied positions")
+    OptimizationFactor(on, maxContiguousName, maximize, "contiguous open lines", "number of lines (either horizontal or vertical) that are open and contiguous"),
+    OptimizationFactor(off, openLinesName, maximize, "open Rows & Cols", "count of open rows plus open columns"),
+    OptimizationFactor(off, islandMaxName, maximize, "islandMax", "largest number of connected, unoccupied positions")
+
+
   )
 
   val specification: Array[OptimizationFactor] = fullSpecification.filter(_.enabled)
-  private val specificationMinimized = specification.map(_.minimize)
 
   def getOptimizationFactorExplanations: String = {
     // used by showGameStart
-    specification.map(optFactor => "* " + optFactor.resultsLabel + " - " + optFactor.explanation).mkString("\n")
+    specification.map(optFactor => "* " + optFactor.resultLabel + " - " + optFactor.explanation).mkString("\n")
   }
 
-  // todo - collect all results and do a columnwise coloration of best and worst rather than one at a time
-  def getResultsString(best: Array[Int], worst: Option[Array[Int]] = None): String = {
-    // this is not implemented on simulation as it can be called from a simulation result or
-    // from a board placement result during the actual placing of pieces post-simulation
+  private val resultFormat = "%2d"
+  private val resultParenFormat = " (" + resultFormat + ")"
+  private val resultLabelFormat = " %s: "
+
+  def greenifyResult(isGreen: Boolean, value: Int, valFormat: String, label: String, labelFormat: String): String = {
+    // maximized results are negated to work with Simulation.compare so
+    // as not to have to jump through hoops in that method
+    // use math.abs to show them to the user in a way that makes sense
+    val result = valFormat.format(math.abs(value))
+    labelFormat.format(label) + (if (isGreen) Game.GREEN + result else Game.RED + result) + Game.SANE
+  }
+
+  def getImprovedResultsString(simulationResults: List[SimulationInfo], chosen: Simulation): String = {
+    // the improvement comes from gathering all simulation results and then color coding for the best
+    // result out of all permutations rather than just comparing best and worst on a row by row basis
+    // this is FAR superior
+
+    // for outputting the results this is the best individual result at any position
+    // concatenate the results from the best and the worst, transpose it for finding min, then turn that into an array
+    // Boom! - best choices for each result
+    val bestOfAll = (simulationResults.map(_.best.results) ++ simulationResults.map(_.worst.results)).transpose.map(_.min).toArray
+
+    def getResultString(simulationResult: SimulationInfo, simulationIndex:Int): String = {
+
+      def handleOptFactor(optFactor: OptimizationFactor, bestVal: Int, worstVal: Int, topValIndex: Int): String = {
+        val topVal = bestOfAll(topValIndex)
+        greenifyResult(bestVal == topVal, bestVal, resultFormat, optFactor.resultLabel, resultLabelFormat) + greenifyResult(worstVal == topVal, worstVal, resultParenFormat, "", "")
+      }
+
+      val best = simulationResult.best.results
+
+      val worst = simulationResult.worst.results
+
+      (simulationIndex + 1)  + ": " + simulationResult.pieces.map(_.name).mkString(", ") + " -" +
+        specification
+        .zip(best).zip(worst).zipWithIndex
+        .map(tup => (tup._1._1._1, tup._1._1._2, tup._1._2, tup._2))
+        .map(tup => handleOptFactor(tup._1, tup._2, tup._3, tup._4))
+        .mkString
+
+    }
+
+    def getPerformanceString(result: SimulationInfo): String = {
+      val largeValuesFormat = "%,5d"
+
+      val simulationCountString = largeValuesFormat.format(result.simulationCount)
+
+      val durationString = largeValuesFormat.format(result.elapsed) + "ms"
+      val perSecondString = largeValuesFormat.format(result.perSecond)
+
+      " - simulations: " + simulationCountString +
+        " in " + durationString + " (" + perSecondString + "/second" +
+        (if (result.perSecond > BYATCH_THRESHOLD) " b-yatch" else "") +
+        ")"
+    }
+
+    simulationResults.zipWithIndex.map { tup =>
+      val r = tup._1
+      val index = tup._2
+
+      val s = getResultString(r, index) + getPerformanceString(r)
+
+      // underline is for closers (Glengarry Glen Ross)
+      if (r.best == chosen) {
+        val parts = s.splitAt(s.indexOf(" ")+1)
+        parts._1 + Game.UNDERLINE + parts._2.split(Game.ESCAPE).mkString(Game.UNDERLINE + Game.ESCAPE) + Game.SANE
+      }
+      else
+        Game.SANE + s
+    }.mkString("\n")
+  }
+
+  def getBoardResultString(boardResult: Array[Int]): String = {
+    // this is called from a board placement result during the actual placing of pieces post-simulation
     // we keep board placement results separate on the one board that the whole game runs on
     // so that we can compare expected results from a simulation with actual results on the board
     // additionally, this mechanism allows us to display line clearing.
@@ -101,50 +189,19 @@ object Simulation {
     // at least the results are guided by the specification.  Previous instances were not and 
     // there was a lot of duplication and gnashing of teeth
 
-    def greenify(isGreen: Boolean, value: Int, valFormat: String, label: String, labelFormat: String): String = {
-      // maximized results are negated to work with Simulation.compare so
-      // as not to have to jump through hoops in that method
-      // use math.abs to show them to the user in a way that makes sense
-      val result = valFormat.format(math.abs(value))
-      labelFormat.format(label) + (if (isGreen) Game.GREEN + result + Game.SANE else Game.RED + result + Game.SANE)
-    }
-
-    val openFormat = "%2d"
-    val parenFormat = " (" + openFormat + ")"
-    val labelFormat = " %s: "
-    val longLabelFormat = "     " + labelFormat
+    val longLabelFormat = " -" + resultLabelFormat
 
     var first = true
 
-    def handleOptFactor(optFactor: OptimizationFactor, bestVal: Int, worstValOption: Option[Int]): String = {
-
-      worstValOption match {
-        case w: Some[Int] =>
-
-          val worstVal = w.get
-          val greenBest = bestVal <= worstVal // if (optFactor.minimize) bestVal <= worstVal else bestVal >= worstVal
-          val greenWorst = worstVal <= bestVal // if (optFactor.minimize) bestVal >= worstVal else bestVal <= worstVal
-
-          greenify(greenBest, bestVal, openFormat, optFactor.resultsLabel, labelFormat) + greenify(greenWorst, worstVal, parenFormat, "", "")
-
-        case None =>
-
-          val theLabel = if (first) { first = false; labelFormat } else longLabelFormat
-
-          val green = true
-          greenify(green, bestVal, openFormat, optFactor.resultsLabel, theLabel)
-      }
-    }
-
-    val worstValues = worst match {
-      case w: Some[Array[Int]] => w.get.map(i => Some(i))
-      case None                => specification.map(_ => None)
+    def handleOptFactor(optFactor: OptimizationFactor, resultVal: Int): String = {
+      val theLabel = if (first) { first = false; resultLabelFormat } else longLabelFormat
+      val green = true
+      greenifyResult(green, resultVal, resultFormat, optFactor.resultLabel, theLabel)
     }
 
     specification
-      .zip(best.zip(worstValues))
-      .map(tup => (tup._1, tup._2._1, tup._2._2))
-      .map(tup => handleOptFactor(tup._1, tup._2, tup._3))
+      .zip(boardResult)
+      .map(tup => handleOptFactor(tup._1, tup._2))
       .mkString
 
   }
@@ -153,6 +210,6 @@ object Simulation {
   // maximum pieces can fit on a board from all the boards simulated in the permutation of a set of pieces
   // apparently it's important that this be declared after Game.CYAN is declared above :)
   // this is not private because we show the maximizer piece at game start
-  val maximizer = new Box("Maximizer", Game.CYAN, 3, 0)
+  val maximizer: Box = Pieces.bigBox
 
 }

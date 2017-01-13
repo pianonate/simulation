@@ -23,13 +23,13 @@
  *        round for each of them.  then you'll have a data set to run a machine learning algorithm of of our stats to better pick the best options
  */
 
+import scala.collection.GenSeq
+
 import Game._
 
 object GameOver extends Exception
 
-class Game(val context: Context, val gameInfo:GameInfo) {
-
-  private val BYATCH_THRESHOLD = 550000 // your system has some cred if it is doing more than this number of simulations / second
+class Game(val context: Context, val gameInfo: GameInfo) {
 
   private val CONTINUOUS_MODE = true // set to false to have the user advance through each board placement by hitting enter
 
@@ -55,7 +55,7 @@ class Game(val context: Context, val gameInfo:GameInfo) {
 
       do {
 
-        roundHandler
+        roundHandler()
 
       } while (CONTINUOUS_MODE || (!CONTINUOUS_MODE && (Console.in.read != 'q')))
 
@@ -71,17 +71,17 @@ class Game(val context: Context, val gameInfo:GameInfo) {
 
     }
 
-    showGameOver
+    showGameOver()
 
     // return the score and the number of rounds to Main - where such things are tracked across game instances
     (score.value, rounds.value, simulationsPerSecond.max)
 
   }
 
-  private def roundHandler = {
+  private def roundHandler() = {
 
     // increment the number of rounds
-    rounds.inc
+    rounds.inc()
 
     // get 3 random pieces
     val pieces = getPiecesForRound
@@ -89,18 +89,16 @@ class Game(val context: Context, val gameInfo:GameInfo) {
     // show the pieces in the order they were randomly chosen
     showPieces(pieces)
 
-    val best = getBestPermutation(pieces)
+    val results = getSimulationResults(pieces) // get the results so you can show them the new way
+    val chosen = results.map(_.best).sorted.head // sort out the best of the best results
 
-    println(
-      "     Chosen: "
-        + piecesToString(best.plcList.map(plc => plc.piece))
-        + " -"
-        + best.getSimulationResultsString(None)
-    )
+    // use futures here to allow for outputting interesting things while simulations are running
+    println("done thinking")
+    println(Simulation.getImprovedResultsString(results, chosen))
 
     // zip the piece location cleared list it's index so we don't have to keep a
     // global track of placed pieces
-    best.plcList.zipWithIndex.foreach(
+    chosen.plcList.zipWithIndex.foreach(
       plc => pieceHandler(
         plc._1.piece,
         plc._1.loc,
@@ -108,14 +106,14 @@ class Game(val context: Context, val gameInfo:GameInfo) {
       )
     )
 
-    if (best.pieceCount < 3) {
+    if (chosen.pieceCount < 3) {
       throw GameOver
     }
 
     showBoardFooter(gameInfo.gameCount: Int)
   }
 
-  private def getBestPermutation(pieces: List[Piece]): Simulation = {
+  private def getSimulationResults(pieces: List[Piece]): List[SimulationInfo] = {
     // set up a test of running through all orderings of piece placement (permutations)
     // and for each ordering, try all combinations of legal locations
     // the best score as defined by Simulations.compare after trying all legal locations is chosen
@@ -123,21 +121,24 @@ class Game(val context: Context, val gameInfo:GameInfo) {
     //one thing to note - (thanks Kevin) - and this seems like a duh in retrospect...
     // order doesn't matter if we don't clear any lines.
     // in a no-lines-cleared situation, it's only the board state at the end of one permutation simulation that matters
-    // thus - simulate one run
+    // thus - don't do the other permutations if no lines cleared
 
     val permutations = pieces
       .permutations
       .toList
 
-    val simulateHead: Simulation = pieceSequenceSimulation(permutations.head)
+    // todo bullshit generator right here
+    print("thinking about permutations")
 
-    // if there were cleared lines in this simulation then continue
-    if (simulateHead.plcList.exists(plc => plc.clearedLines)) {
-      val simulateTail: List[Simulation] = permutations.tail.map(pieces => pieceSequenceSimulation(pieces))
-      (simulateHead :: simulateTail).sorted.head
+    val simulateHead: SimulationInfo = pieceSequenceSimulation(permutations.head)
+
+    if (simulateHead.best.plcList.exists(plc => plc.clearedLines)) {
+      // if there were cleared lines in this simulation then get the rest, prepend the head and return it
+      val simulateTail: List[SimulationInfo] = permutations.tail.map(pieces => pieceSequenceSimulation(pieces))
+      simulateHead :: simulateTail
     } else {
-
-      simulateHead
+      // solo - and massive time savings
+      List(simulateHead)
     }
 
   }
@@ -158,46 +159,63 @@ class Game(val context: Context, val gameInfo:GameInfo) {
     pieces
   }
 
-  private def pieceSequenceSimulation(pieces: List[Piece]): Simulation = {
+  private def pieceSequenceSimulation(pieces: List[Piece]): SimulationInfo = {
 
+    print(".")
     val simulationDuration = new GameTimer
     val simulationCount = Counter()
-
-    // todo - dynamically calculate
 
     // i can't see how to not have this Array
     // i can accumulate locations because you generate one each time through the recursion
     // but you only store the last simulation - so there's nothing to accumulate...
-    val simulations = new Array[Simulation](1000000)
+    val simulations = new Array[Simulation](maxSimulations)
 
     //return the board copy and the number of lines cleared
     def placeMe(piece: Piece, theBoard: Board, loc: (Int, Int)): (Board, PieceLocCleared) = {
       val boardCopy = Board.copy("simulationBoard", theBoard)
       boardCopy.place(piece, loc)
       val cleared = boardCopy.clearLines()
+      val isCleared = (cleared._1 + cleared._2) > 0
+
       // return the board with an instance of a PieceLocCleared class
-      (boardCopy, PieceLocCleared(piece, loc, (cleared._1 + cleared._2) > 0))
+      (boardCopy, PieceLocCleared(piece, loc, isCleared))
 
     }
 
-    def getLegal(board: Board, piece: Piece) = {
+    def getLegal(board: Board, piece: Piece): GenSeq[(Int,Int)] = {
       if (context.serialMode)
         board.legalPlacements(piece)
       else
         board.legalPlacements(piece).par
     }
 
-    val listBuffer = new ListBuffer[Simulation]
-
     def createSimulations(board: Board, pieces: List[Piece], plcAccumulator: List[PieceLocCleared]): Unit = {
 
       val piece = pieces.head
 
-      val paralegal = getLegal(board, piece)
+      val paralegal:GenSeq[(Int,Int)] = getLegal(board, piece)
 
       def simulationHandler(loc: (Int, Int)) = {
         // maxSimulations is configured at runtime
         // if we are profiling it uses a smaller number so tracing doesn't slow things down that we can't get a few rounds
+
+        def updateSimulations(simulation: Simulation) = {
+          if (context.serialMode) {
+            simulations(simulationCount.value) = simulation
+            simulationCount.inc() // increment simulation counter
+
+          } else {
+            synchronized {
+              // apparently another thread updating simulationCount to be incremented before we enter here
+              if (simulationCount.value < maxSimulations) {
+                // only add simulation when we've reached the last legal location on this path
+                simulations(simulationCount.value) = simulation
+                simulationCount.inc() // increment simulation counter
+              }
+            }
+          }
+        }
+
         if (simulationCount.value < maxSimulations) {
 
           val result = placeMe(piece, board, loc)
@@ -210,24 +228,20 @@ class Game(val context: Context, val gameInfo:GameInfo) {
 
             val plcList = plc :: plcAccumulator
             val simulation = Simulation(plcList.reverse, boardCopy)
-
-            synchronized {
-              // only add simulation when we've reached the last legal location on this path
-              simulations(simulationCount.value) = simulation
-              simulationCount.inc // increment simulation counter
-
-            }
+            updateSimulations(simulation)
           }
         }
       }
 
       paralegal.foreach(simulationHandler)
 
+
+
     }
 
     createSimulations(board, pieces, List())
 
-    val options = {
+    val options: Array[Simulation] = {
       val grouped = simulations.splitAt(simulationCount.value)._1.groupBy(_.pieceCount)
 
       if (grouped.contains(3)) grouped(3)
@@ -236,49 +250,24 @@ class Game(val context: Context, val gameInfo:GameInfo) {
       else Array(Simulation(List(), this.board))
     }
 
-    val sortedOptions = options.sorted
+    val sortedOptions = options/*.par.seq*/.sorted
     val best = sortedOptions.head
     val worst = sortedOptions.reverse.head
 
     // now we know how long this one took - don't need to include the time to show or return it
     val elapsed = simulationDuration.elapsed
 
-    // extracted for readability
-    showSimulationResults(pieces, simulationCount, best, worst, elapsed)
-
-    best
-
-  }
-
-  private def showSimulationResults(pieces: List[Piece], simulationCount: Counter, best: Simulation, worst: Simulation, elapsed: Long) = {
-
-    val largeValuesFormat = "%,5d"
-
-    val simulationCountString = largeValuesFormat.format(simulationCount.value)
-
     val perSecond = if (elapsed > 0) (simulationCount.value * 1000) / elapsed else 0
 
     // keep track of best per second value to get a sense of how things are performing across simulations
     simulationsPerSecond append perSecond.toInt
 
-    val durationString = largeValuesFormat.format(elapsed) + "ms"
-    val perSecondString = largeValuesFormat.format(perSecond)
+    // extracted for readability
+    val result = SimulationInfo(pieces, simulationCount.value, best, worst, elapsed, perSecond)
 
-    println(
-      "permutation: "
-        + piecesToString(pieces)
-        + " -"
-        + best.getSimulationResultsString(Some(worst.results))
-        + " - simulations: " + simulationCountString + " in " + durationString
-        + " ("
-        + perSecondString + "/second"
-        + (if (perSecond > BYATCH_THRESHOLD) " b-yatch" else "")
-        + ")"
-    )
+    result
+
   }
-
-  // todo:  can this be turned into an implicit for a List[Piece].toString call?  if so, that would be nice
-  private def piecesToString(pieces: List[Piece]): String = pieces.map(_.name).mkString(", ")
 
   private def pieceHandler(piece: Piece, loc: (Int, Int), index: Int): Unit = {
 
@@ -293,17 +282,15 @@ class Game(val context: Context, val gameInfo:GameInfo) {
     board.place(piece, loc)
 
     // increment piece usage
-    piece.usage.inc
+    piece.usage.inc()
 
+    // score me baby
     score.inc(piece.pointValue)
 
     // placing a piece puts underlines on it to highlight it
     println(board.show)
 
-    // so now clear any previously underlined cells for the next go around
-    board.clearPieceUnderlines(piece, loc)
-
-    handleLineClearing
+    handleLineClearing()
 
     val rowsClearedThisRun = rowsCleared.value - curRowsCleared
     val colsClearedThisRun = colsCleared.value - curColsCleared
@@ -318,13 +305,13 @@ class Game(val context: Context, val gameInfo:GameInfo) {
         + getScoreString(numberFormatShort, score.value)
         + " (" + getScoreString(numberFormatShort, gameInfo.sessionHighScore) + ")"
         + " (" + getScoreString(numberFormatShort, gameInfo.machineHighScore) + ")"
-        + " -" + Simulation.getResultsString(board.results)
+        + " -" + Simulation.getBoardResultString(board.results)
 
     )
 
   }
 
-  private def handleLineClearing = {
+  private def handleLineClearing() = {
 
     val result = board.clearLines()
 
@@ -343,7 +330,7 @@ class Game(val context: Context, val gameInfo:GameInfo) {
 
     }
 
-    score.inc((result._1 + result._2) * board.layout.length)
+    score.inc((result._1 + result._2) * board.colorGrid.length)
 
   }
 
@@ -373,7 +360,7 @@ class Game(val context: Context, val gameInfo:GameInfo) {
       println("type enter to place another piece and 'q' to quit")
   }
 
-  private def showGameOver = {
+  private def showGameOver() = {
 
     println
 
@@ -432,6 +419,7 @@ object Game {
   // http://www.topmudsites.com/forums/mud-coding/413-java-ansi.html
   val SANE = "\u001B[0m"
 
+  val ESCAPE = "\u001B"
   val HIGH_INTENSITY = "\u001B[1m"
   val LOW_INTENSITY = "\u001B[2m"
 

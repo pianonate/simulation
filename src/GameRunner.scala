@@ -41,7 +41,7 @@ object GameRunner {
       // no need to pass machineHighScore to run
       val machineHighScore = getHighScore
       val sessionHighScore = if (scores.isEmpty) 0 else scores.max
-      gameCount.inc
+      gameCount.inc()
 
       val gameInfo = GameInfo(sessionHighScore, machineHighScore, gameCount.value, totalTime )
 
