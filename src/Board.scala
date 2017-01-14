@@ -1,29 +1,42 @@
 /**
  * Created by nathan on 12/9/16.
+ *
  * Board is the game Board plus helper functions.
  * It's like other pieces in that it has a name, and a layout and a color (which is the color when first instantiated)
  *
- * Boards can be created at will to test out different combinations.
- * THere will always be the main board held by the Game but other Board objects will be created when running algos
+ * Boards can be created at will in order to test simulations
+ * There will always be the main board held by the Game but other Boards will be created when running simulations.
+ * rather a lot of them, I'd say.
+ *
  */
 import scala.annotation.tailrec
 
-class Board( final val colorGrid: Array[Array[Cell]], final val grid: OccupancyGrid, final val name: String, final val color: String) extends Piece {
+// primary constructor mostly called on copy. alternate is called once - for the board used in the game
+class Board( final val colorGrid: Array[Array[Cell]],
+  final val grid: OccupancyGrid,
+  final val name: String) extends Piece {
 
   def this(size: Int) {
-    // initial board creation just requires a size
-    this(Piece.getBoardColorGrid(Board.BOARD_COLOR, size), OccupancyGrid(size, size, filled = false), "Board", Board.BOARD_COLOR)
+    // initial board creation just requires a size - initialize with all proper defaults
+    this(Piece.getBoardColorGrid(Board.BOARD_COLOR, size),
+      OccupancyGrid(size, size, filled = false),
+      "Board")
   }
 
-  def this(newColorGrid: Array[Array[Cell]], newGrid: OccupancyGrid, name: String) {
-    // provides ability to name a board copy
-    this(newColorGrid, newGrid, name, Board.BOARD_COLOR)
-  }
+  final val color = Board.BOARD_COLOR
+
+  // there are far fewer updates to be made to incrementing neighbors at place and clearLines
+  // rather than counting neighbors for all board positions
+  // so just use this to inc/dec neighbors as you go
+  final val boardNeighborsArray = Board.getNeighborsArray
 
   // the board output shows unoccupied cells so just call .show on every cell
   // different than the Piece.show which will not output unoccupied Cell's in other pieces
   // this method is mapped in from Piece.show
   override def cellShowMapFunction(cell: Cell): String = cell.showForBoard
+
+
+
 
   def maximizerCount: Int = legalPlacements(Simulation.maximizer).length
 
@@ -85,7 +98,7 @@ class Board( final val colorGrid: Array[Array[Cell]], final val grid: OccupancyG
       val length = s.size
       // -1 = total hack to avoid cost of using splitAt in fullRows and fullCols
       // this will be encapsulated in OccupancyGrid once we
-      while (i < length && s(i) > - 1) {
+      while (i < length && s(i) > -1) {
         // todo get rid of colorGrid
         f(s(i))
 
@@ -109,31 +122,15 @@ class Board( final val colorGrid: Array[Array[Cell]], final val grid: OccupancyG
     (clearedRows, clearedCols)
   }
 
-  /*// called so rarely that it doesn't need optimization
-  def clearPieceUnderlines(piece: Piece, loc: (Int, Int)): Unit = {
-
-    val pieceRowStart = loc._1
-    val pieceRowEnd = pieceRowStart + piece.colorGrid.length
-    val pieceColStart = loc._2
-    val pieceColEnd = pieceColStart + piece.colorGrid(0).length
-
-    for {
-      row <- pieceRowStart until pieceRowEnd
-      col <- pieceColStart until pieceColEnd
-      cell = colorGrid(row)(col)
-      if cell.underline
-    } cell.underline = false
-
-  }*/
-
   // start optimization
   // Execution Time: 26%, 5,212/s
   //
   // eliminate for comprehension version / replace with tail recur
   // Execution Time: 2%, 108,793/s - 1900% speedup
-  def place(piece: Piece, loc: (Int, Int)): Unit = {
+  def place(piece: Piece, loc: Loc): Unit = {
 
-    val (locRow, locCol) = loc
+    val locRow = loc.row
+    val locCol = loc.col
 
     val pieceRows = piece.rows
     val pieceCols = piece.cols
@@ -176,28 +173,11 @@ class Board( final val colorGrid: Array[Array[Cell]], final val grid: OccupancyG
   // current for comprehension used to build the list of legals
   //
   // Execution Time: 1%, 59,904/s - a 2500% increase of this section
-  //
-  def legalPlacements(piece: Piece): Array[(Int, Int)] = {
+  // see note below
+  def legalPlacements(piece: Piece): Array[Loc] = {
     // walk through each position on the board
     // see if the piece fits at that position, if it does, add that position to the list
     /*for { loc <- Board.allLocationsList.par if legalPlacement(piece, loc) } yield loc */
-
-    /*    @tailrec def legalPlacements1(locs: List[(Int, Int)], acc: List[(Int, Int)]): List[(Int, Int)] = {
-      locs match {
-        case head :: tail =>
-          if (legalPlacement(piece, head))
-            legalPlacements1(tail, head :: acc)
-          else
-            legalPlacements1(tail, acc)
-        case Nil => acc
-      }
-    }
-
-
-    // building a list tail recursively so the result is a list that
-    // can be used to drive the simulation loop - which turns the list into a ParSeq to
-    // take advantage of multiple CPU cores and generate many more simulations / second
-    legalPlacements1(Board.allLocationsList, List())*/
 
     // moving to array and cleaning up lazy vals in Piece
     // made this thing scream - 10x faster
@@ -206,7 +186,7 @@ class Board( final val colorGrid: Array[Array[Cell]], final val grid: OccupancyG
     var i = 0
     var n = 0
     val locs = Board.allLocations
-    val buf = new Array[(Int, Int)](locs.length)
+    val buf = new Array[Loc](locs.length)
 
     while (i < locs.length) {
       if (legalPlacement(piece, locs(i))) {
@@ -216,16 +196,18 @@ class Board( final val colorGrid: Array[Array[Cell]], final val grid: OccupancyG
       i += 1
     }
 
+    // right now, the splitAt is expensive but we'd need to manage it with a sentinel on the receiving end.
+    // consider it later if necessary
     val result = buf.splitAt(n)._1 /*.toList*/
     result
   }
 
   // todo, eliminate the return
-  private def legalPlacement(piece: Piece, loc: (Int, Int)): Boolean = {
+  private def legalPlacement(piece: Piece, loc: Loc): Boolean = {
 
     // 607K/s with the returns inline vs. 509K/s with the returns removed.  the returns stay
-    val locRow = loc._1
-    val locCol = loc._2
+    val locRow = loc.row
+    val locCol = loc.col
     val pieceRows = piece.rows
     val pieceCols = piece.cols
 
@@ -260,35 +242,6 @@ class Board( final val colorGrid: Array[Array[Cell]], final val grid: OccupancyG
 
   }
 
-  // prior to this would clone the following array and return - but this one method
-  // was taking up 15% of overall execution time.
-  // even when constructing an array with fill, took a high % (i didn't record)
-  // So now, just return a predefined Array
-  // as this takes almost no time at all
-
-  private def connectedCountLabelsArray = // Array.fill(10)(Array.fill[Int](10)(0))
-    Array(
-      Array(0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-      Array(0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-      Array(0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-      Array(0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-      Array(0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-      Array(0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-      Array(0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-      Array(0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-      Array(0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-      Array(0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
-    )
-
-  private val labelsLength = connectedCountLabelsArray.length
-
-  private def isOutOfBounds(loc: (Int, Int)) = {
-    val row = loc._1
-    val col = loc._2
-
-    row >= occupancyGrid.length || col >= occupancyGrid(0).length || row < 0 || col < 0
-  }
-
   // find largest connected component on the board
   // based on https://en.wikipedia.org/wiki/Connected-component_labeling#One_component_at_a_time
   // except not using a queue, but rather doing a recursive search
@@ -316,7 +269,8 @@ class Board( final val colorGrid: Array[Array[Cell]], final val grid: OccupancyG
   //
   private def findLargestConnectedComponent: Int = {
 
-    val labels = connectedCountLabelsArray
+    val labels = Board.boardSizeIntArray
+    val labelsLength = labels.length
 
     def getComponentCount(label: Int): Int = {
 
@@ -335,26 +289,27 @@ class Board( final val colorGrid: Array[Array[Cell]], final val grid: OccupancyG
     }
 
     // is it safe to recurse into this location
-    def isSafe(loc: (Int, Int)): Boolean = {
+    def isSafe(loc: Loc): Boolean = {
 
-      if (isOutOfBounds(loc))
+      if (Board.isOutOfBounds(loc))
         return false
 
       // has it been visited?
-      if (labels(loc._1)(loc._2) > 0)
+      if (labels(loc.row)(loc.col) > 0)
         return false
 
       // is it occupied?
-      if (occupancyGrid(loc._1)(loc._2))
+      if (occupancyGrid(loc.row)(loc.col))
         return false
 
       true
 
     }
 
-    def labelLocAndNeighbors(loc: (Int, Int), currentLabel: Int): Unit = {
+    def labelLocAndNeighbors(loc: Loc, currentLabel: Int): Unit = {
 
-      val (row, col) = loc
+      val row = loc.row
+      val col = loc.col
       labels(row)(col) = currentLabel
 
       val neighbors = Board.allLocationNeighbors((row * 10) + col)
@@ -362,7 +317,7 @@ class Board( final val colorGrid: Array[Array[Cell]], final val grid: OccupancyG
       var i = 0
       val length = neighbors.length
       while (i < length) {
-        val tryLoc: (Int, Int) = neighbors(i)
+        val tryLoc: Loc = neighbors(i)
         if (isSafe(tryLoc)) {
           labelLocAndNeighbors(tryLoc, currentLabel)
         }
@@ -396,15 +351,25 @@ class Board( final val colorGrid: Array[Array[Cell]], final val grid: OccupancyG
 
   }
 
-  private def countNeighbors(locs: Array[(Int, Int)]): Array[Int] = {
+  /**
+   * this bad boy takes 38% of the execution time when islandMax is not in the picture
+   * so...stop counting it after, keep it updated during
+   * the theory is - if you maintain the neighborArray at placement/clearlines time rather
+   * than counting neighbors after, then you'll be much better off
+   * start of optimziation
+   * Exeuction: 38%, MacbookAir: 279K / second
+   */
+
+
+  private def countNeighbors(locs: Array[Loc]): Array[Int] = {
 
     val counts = Array(0, 0, 0, 0, 0)
     val locLength = locs.length
 
-    def hasNeighbor(loc: (Int, Int)): Boolean = isOutOfBounds(loc) || occupancyGrid(loc._1)(loc._2)
+    def hasNeighbor(loc: Loc): Boolean = Board.isOutOfBounds(loc) || occupancyGrid(loc.row)(loc.col)
 
     // walk through all directions
-    def countLocationNeighbor(loc: (Int, Int), locNeighbors: Array[(Int, Int)]): Unit = {
+    def countLocationNeighbor(loc: Loc, locNeighbors: Array[Loc]): Unit = {
 
       val length = locNeighbors.length
       var i = 0
@@ -425,7 +390,7 @@ class Board( final val colorGrid: Array[Array[Cell]], final val grid: OccupancyG
       var i = 0
       while (i < locLength) {
         val loc = locs(i)
-        if (occupancyGrid(loc._1)(loc._2))
+        if (occupancyGrid(loc.row)(loc.col))
           ()
         else {
           countLocationNeighbor(loc, Board.allLocationNeighbors(i))
@@ -493,6 +458,8 @@ class Board( final val colorGrid: Array[Array[Cell]], final val grid: OccupancyG
 object Board {
 
   val BOARD_SIZE = 10
+  private val BOARD_COLOR = Game.BRIGHT_WHITE
+
   // calculate all locations for a board once - at class Board construction
   // copyBoard was originally: 21.5% of execution time with the tabulate functionality
   // moved to a while loop with a ListBuffer and that was...31.6% - worse!!
@@ -507,13 +474,13 @@ object Board {
   // probably you can put the tabulate mechanism back if you wish
   //
   // now with getLocations calculated once, copyBoard is about 3.1% of the overall time
-  private def getLocations(boardSize: Int): List[(Int, Int)] = /*Array.tabulate(layout.length, layout.length)((i, j) => (i, j)).flatten.toList*/ {
+  private def getLocations(boardSize: Int): List[Loc] = /*Array.tabulate(layout.length, layout.length)((i, j) => (i, j)).flatten.toList*/ {
 
-    @tailrec def loop(row: Int, col: Int, acc: List[(Int, Int)]): List[(Int, Int)] = {
+    @tailrec def loop(row: Int, col: Int, acc: List[Loc]): List[Loc] = {
       (row, col) match {
         case (-1, _) => acc
-        case (_, 0)  => loop(row - 1, boardSize - 1, (row, col) :: acc)
-        case _       => loop(row, col - 1, (row, col) :: acc)
+        case (_, 0)  => loop(row - 1, boardSize - 1, Loc(row, col) :: acc)
+        case _       => loop(row, col - 1, Loc(row, col) :: acc)
       }
     }
 
@@ -522,26 +489,23 @@ object Board {
 
   }
 
-  private val directions = Array((-1, 0), (0, -1), (1, 0), (0, 1))
+  private val allLocationsList: List[Loc] = getLocations(BOARD_SIZE)
+  private val allLocations: Array[Loc] = allLocationsList.toArray
+  private val directions = Array(Loc(-1, 0), Loc(0, -1), Loc(1, 0), Loc(0, 1))
 
-  private val allLocationsList: List[(Int, Int)] = getLocations(BOARD_SIZE)
-  private val allLocations: Array[(Int, Int)] = allLocationsList.toArray
-
-  private val allLocationNeighbors: Array[Array[(Int, Int)]] = {
+  private val allLocationNeighbors: Array[Array[Loc]] = {
 
     // stashing all location neighbors once at the beginning rather than calculating it each time has saved about 15% of execution time:
     // on countNeighbors alone it sped up the number of times per second by 1948% (~20x)
-    def getNeighbors(loc: (Int, Int)): Array[(Int, Int)] = {
-      List.fill[Int](directions.length)(0).indices.map(n => (loc._1 + directions(n)._1, loc._2 + directions(n)._2)).toArray
+    def getNeighbors(loc: Loc): Array[Loc] = {
+      List.fill[Int](directions.length)(0).indices.map(n => Loc(loc.row + directions(n).row, loc.col + directions(n).col)).toArray
     }
 
     val a = allLocations.map(getNeighbors)
     a
   }
 
-  private val BOARD_COLOR = Game.BRIGHT_WHITE
-  // todo - create this without the null, null, null,...
-  private def colorGridTemplate: Array[Array[Cell]] = new Array[Array[Cell]](BOARD_SIZE) // Array(null, null, null, null, null, null, null, null, null, null)
+  private def colorGridTemplate: Array[Array[Cell]] = new Array[Array[Cell]](BOARD_SIZE)
 
   def copy(newName: String, boardToCopy: Board): Board = {
 
@@ -570,4 +534,60 @@ object Board {
     new Board(newColorGrid, boardToCopy.grid.copy, newName)
 
   }
+
+  // prior to this would clone the following array and return - but this one method
+  // was taking up 15% of overall execution time.
+  // even when constructing an array with fill, took a high % (i didn't record)
+  // So now, just return a predefined Array
+  // as this takes almost no time at all
+
+  // todo, keep fast but size to BOARD_SIZE
+  private def boardSizeIntArray:Array[Array[Int]] = // Array.fill(10)(Array.fill[Int](10)(0))
+    Array(
+      Array(0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+      Array(0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+      Array(0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+      Array(0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+      Array(0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+      Array(0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+      Array(0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+      Array(0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+      Array(0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+      Array(0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+    )
+
+  /**
+   * isOutOfBounds is agnostic of any particular board, so it's a helper function on the object
+   */
+
+  private def isOutOfBounds(loc: Loc): Boolean = {
+    val row = loc.row
+    val col = loc.col
+
+    row >= BOARD_SIZE || col >= BOARD_SIZE || row < 0 || col < 0
+  }
+
+  private val initNeighborsArray: Array[Array[Int]] = {
+
+    def initCountNeighbors(loc:Loc):Int = {
+      val a = directions.map(dir => isOutOfBounds(Loc(loc.row + dir.row, loc.col + dir.col)))
+      a.filter(_==true).length
+    }
+    val a = boardSizeIntArray
+
+    for {i <- a.indices
+      j <- a(0).indices
+      loc = Loc(i,j)
+    }
+    {
+      a(i)(j) = initCountNeighbors(loc)
+    }
+    a
+
+  }
+
+  private def getNeighborsArray = initNeighborsArray
+
+
+
 }

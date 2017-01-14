@@ -3,17 +3,32 @@
  * my attempt to use bit operations to speed up this damn thing
  * which definitely worked for open lines and max contiguous lines
  */
+
+
+/**
+ * in a separate test, running 500,000 loops of a case class vs. a Tuple2, of two ints,
+ * each loop creating an instance of the case class or the Tuple2
+ * then accessing each value to populate a var with the sum from 0 to 1000
+ * the case class ran 36% faster than the Tuple2.
+ * results were pretty amazing - a 30% speed up in the overall simulations/second for a simple refactoring!
+ * just for using this (Loc) bad boy everywhere!
+ */
+case class Loc(row: Int, col: Int)
+
+/**
+ * The OccupancyGrid!
+ */
 case class OccupancyGrid(
   rows:          Int,
   cols:          Int,
   rowGrid:       Array[Int],
-  colGrid:       Array[Int],
-  occupancyGrid: Array[Array[Boolean]]
-) {
+    colGrid:       Array[Int],
+    occupancyGrid: Array[Array[Boolean]]
+    ) {
 
-  import OccupancyGrid._
+      import OccupancyGrid._
 
-  override def toString: String = {
+      override def toString: String = {
 
     rowGrid.zipWithIndex.map { row =>
 

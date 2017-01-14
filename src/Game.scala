@@ -7,10 +7,6 @@
  * TODO: Kevin suggests assigning values from 0 to 5 to 0 on both axes and minimize for placement on higher valued squares
  *       I.e., stay out of the middle
  *
- * TODO: Kevin suggests only running simulations where stuff exists or on the left col or top row depending on piece length
- *       only expand out to other simulations if you HAVE to - this might provide a lot of savings
- *       for example if you place 3 singletons on an empty board, there's no reason to move the pieces further than 3 out from the origin - huge savings
- *
  * Todo: save every move in a game so you can replay it if it's awesome
  *
  * Todo: start looking at hte points your game loses at - find out where you disagree with the choices it made
@@ -128,7 +124,7 @@ class Game(val context: Context, val gameInfo: GameInfo) {
       .toList
 
     // todo bullshit generator right here
-    print("thinking about permutations")
+    print(Bullshit.getBullshit)
 
     val simulateHead: SimulationInfo = pieceSequenceSimulation(permutations.head)
 
@@ -171,7 +167,7 @@ class Game(val context: Context, val gameInfo: GameInfo) {
     val simulations = new Array[Simulation](maxSimulations)
 
     //return the board copy and the number of lines cleared
-    def placeMe(piece: Piece, theBoard: Board, loc: (Int, Int)): (Board, PieceLocCleared) = {
+    def placeMe(piece: Piece, theBoard: Board, loc: Loc): (Board, PieceLocCleared) = {
       val boardCopy = Board.copy("simulationBoard", theBoard)
       boardCopy.place(piece, loc)
       val cleared = boardCopy.clearLines()
@@ -182,7 +178,7 @@ class Game(val context: Context, val gameInfo: GameInfo) {
 
     }
 
-    def getLegal(board: Board, piece: Piece): GenSeq[(Int,Int)] = {
+    def getLegal(board: Board, piece: Piece): GenSeq[Loc] = {
       if (context.serialMode)
         board.legalPlacements(piece)
       else
@@ -193,9 +189,9 @@ class Game(val context: Context, val gameInfo: GameInfo) {
 
       val piece = pieces.head
 
-      val paralegal:GenSeq[(Int,Int)] = getLegal(board, piece)
+      val paralegal:GenSeq[Loc] = getLegal(board, piece)
 
-      def simulationHandler(loc: (Int, Int)) = {
+      def simulationHandler(loc: Loc) = {
         // maxSimulations is configured at runtime
         // if we are profiling it uses a smaller number so tracing doesn't slow things down that we can't get a few rounds
 
@@ -269,7 +265,7 @@ class Game(val context: Context, val gameInfo: GameInfo) {
 
   }
 
-  private def pieceHandler(piece: Piece, loc: (Int, Int), index: Int): Unit = {
+  private def pieceHandler(piece: Piece, loc: Loc, index: Int): Unit = {
 
     val currentOccupied = board.getOccupiedPositions
 
@@ -347,8 +343,8 @@ class Game(val context: Context, val gameInfo: GameInfo) {
 
     println("\nGame: " + formatNumber(gameCount) + " - "
       + "After " + formatNumber(rounds.value) + " rounds"
-      + " - rows cleared: " + formatNumber(rowsCleared.value)
-      + " - cols cleared: " + formatNumber(colsCleared.value)
+      // + " - rows cleared: " + formatNumber(rowsCleared.value)
+      // + " - cols cleared: " + formatNumber(colsCleared.value)
       + " - best simulations/sec: " + formatNumber(simulationsPerSecond.max)
       + " (avg: " + formatNumber(average.toInt) + ")"
       + " - elapsed time: " + gameDuration.showElapsed

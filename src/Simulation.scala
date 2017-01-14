@@ -5,7 +5,7 @@
  */
 case class PieceLocCleared(
   piece:        Piece,
-  loc:          (Int, Int),
+  loc:          Loc,
   clearedLines: Boolean
 )
 

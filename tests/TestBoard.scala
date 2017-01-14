@@ -15,20 +15,20 @@ class TestBoard extends FlatSpec {
 
     def addRow(at: Int): Unit = {
 
-      board.place(Pieces.h5line, (at, 0))
-      board.place(Pieces.h5line, (at, 5))
+      board.place(Pieces.h5line, Loc(at, 0))
+      board.place(Pieces.h5line, Loc(at, 5))
 
     }
 
     def addCol(at: Int): Unit = {
-      board.place(Pieces.v5line, (0, at))
-      board.place(Pieces.v5line, (5, at))
+      board.place(Pieces.v5line, Loc(0, at))
+      board.place(Pieces.v5line, Loc(5, at))
     }
   }
 
   trait BoardCopyFixture extends BoardFixture {
 
-    board.place(pieces.getRandomPiece, (boardSize / 2, boardSize / 2)) // just place one in the middle
+    board.place(pieces.getRandomPiece, Loc(boardSize / 2, boardSize / 2)) // just place one in the middle
 
     val copy: Board = Board.copy("copy", board)
 
@@ -71,7 +71,7 @@ class TestBoard extends FlatSpec {
     new BoardCopyFixture {
       // place the random piece at the beginning
       val piece: Piece = pieces.getRandomPiece
-      board.place(piece, (0, 0)) // we know that the source board is empty at (0,0) as it is not filled in on the fixture
+      board.place(piece, Loc(0, 0)) // we know that the source board is empty at (0,0) as it is not filled in on the fixture
 
       // iterate through piece indices as they will match the board at location (0,0)
       for {
