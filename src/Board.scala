@@ -12,15 +12,21 @@
 import scala.annotation.tailrec
 
 // primary constructor mostly called on copy. alternate is called once - for the board used in the game
-class Board( final val colorGrid: Array[Array[Cell]],
-  final val grid: OccupancyGrid,
-  final val name: String) extends Piece {
+class Board(
+  final val colorGrid: Array[Array[Cell]],
+  final val grid:      OccupancyGrid,
+  final val name:      String,
+  final val specification: Specification
+) extends Piece {
 
-  def this(size: Int) {
+  def this(size: Int, specification:Specification) {
     // initial board creation just requires a size - initialize with all proper defaults
-    this(Piece.getBoardColorGrid(Board.BOARD_COLOR, size),
+    this(
+      Piece.getBoardColorGrid(Board.BOARD_COLOR, size),
       OccupancyGrid(size, size, filled = false),
-      "Board")
+      "Board",
+      specification
+    )
   }
 
   final val color = Board.BOARD_COLOR
@@ -28,17 +34,14 @@ class Board( final val colorGrid: Array[Array[Cell]],
   // there are far fewer updates to be made to incrementing neighbors at place and clearLines
   // rather than counting neighbors for all board positions
   // so just use this to inc/dec neighbors as you go
-  final val boardNeighborsArray = Board.getNeighborsArray
+  final private[this] val boardNeighborsArray: Array[Array[Int]] = Board.getNeighborsArray
 
   // the board output shows unoccupied cells so just call .show on every cell
   // different than the Piece.show which will not output unoccupied Cell's in other pieces
   // this method is mapped in from Piece.show
   override def cellShowMapFunction(cell: Cell): String = cell.showForBoard
 
-
-
-
-  def maximizerCount: Int = legalPlacements(Simulation.maximizer).length
+  def maximizerCount: Int = legalPlacements(Specification.maximizer).length
 
   def islandMax: Int = findLargestConnectedComponent
 
@@ -69,28 +72,35 @@ class Board( final val colorGrid: Array[Array[Cell]],
     var clearedCols = 0
 
     def clearCol(col: Int): Unit = { /*{ for (i <- layout.indices) layout(i)(col) = new Cell(false, this.color, true) }*/
+      grid.clearCol(col)
+
       // clear all col positions in each row
       var row = 0
-      while (row < colorGrid.length) {
+      while (row < rows) {
         colorGrid(row)(col) = Cell(occupied = false, this.color)
+        updateNeighbors(Loc(row, col))
         row += 1
       }
-      grid.clearCol(col)
       clearedCols += 1
     }
 
-    def clearRow(row: Array[Cell]): Unit = {
-      var i = 0
-      while (i < row.length) {
-        row(i) = Cell(occupied = false, this.color)
-        i += 1
+    def clearRow(row: Int, rowCells: Array[Cell]): Unit = {
+
+      grid.clearRow(row)
+
+      var col = 0
+      while (col < rowCells.length) {
+        rowCells(col) = Cell(occupied = false, this.color)
+        updateNeighbors(Loc(row, col))
+        col += 1
       }
+      clearedRows += 1
     }
 
     val clearableRows = grid.fullRows
     val clearableCols = grid.fullCols
 
-    val fClearRow = (i: Int) => clearRow(this.colorGrid(i))
+    val fClearRow = (i: Int) => clearRow(i, this.colorGrid(i))
     val fClearCol = (i: Int) => clearCol(i)
 
     def clear(s: Seq[Int], f: Int => Unit): Unit = {
@@ -108,18 +118,78 @@ class Board( final val colorGrid: Array[Array[Cell]],
 
     clear(clearableRows, fClearRow)
     clear(clearableCols, fClearCol)
-
+    /*
     var i = 0
     while (i < clearableRows.length && clearableRows(i) > -1) {
       val rowToClear = clearableRows(i)
       grid.clearRow(rowToClear)
       clearedRows += 1
       i += 1
-    }
+    }*/
 
     // rows cleared and cols cleared
     //(clearableRows.length, clearableCols.length)
     (clearedRows, clearedCols)
+  }
+
+  // on Mac Pro
+  // at the end of every simulation
+  // count neighbors by going through each location and counting
+  // countNeighbors:  42%,      3,997/s
+  // place         :    2%,    74,050/s
+  // simulations   :   62%,     2,907/s (using pieceSequenceSimulation$1adapted
+  //
+  // switching to maintaining an array of neighbor counts
+  // and now countNeighors simply gets the current values from the array
+  // countNeighbors:    0%, 1,627,580/s
+  // place         :   13%,    22,195/s
+  // simulations   :   42%,     6,955/s
+  private[this] def updateNeighbors(loc: Loc): Unit = {
+
+    // todo - if this works, turn allLocationNeighbors into a map indexed on Loc
+    val neighbors = Board.allLocationNeighbors(loc.row * 10 + loc.col)
+
+    // zero out the current position as it has just been placed with a piece
+    // or if it's just cleared then it needs to count from 0
+    this.boardNeighborsArray(loc.row)(loc.col) = 0
+
+    def updateNeighbor(tryLoc: Loc, neighbors: Array[Loc]) = {
+      var i = 0
+      while (i < neighbors.length) {
+        val neighbor = neighbors(i)
+        if (isNeighbor(neighbor)) {
+          this.boardNeighborsArray(tryLoc.row)(tryLoc.col) += 1
+        }
+        i += 1
+      }
+    }
+
+    var i = 0
+
+    while (i < neighbors.length) {
+      val tryLoc = neighbors(i)
+
+      // try each neighbor - first ignore out of bounds
+      // provide isOutOfBounds information at construction of allLocationNeighbors - why recalculate each time?
+      if (!Board.isOutOfBounds(tryLoc)) {
+        // if the neighbor is inbounds, and it's occupied it's count was already set to 0
+        if (cachedOccupancyGrid(tryLoc.row)(tryLoc.col))
+          ()
+        else {
+          // reset this value so you can count up its current neighbors
+          this.boardNeighborsArray(tryLoc.row)(tryLoc.col) = 0
+          updateNeighbor(tryLoc, Board.allLocationNeighbors(tryLoc.row * 10 + tryLoc.col))
+        }
+      }
+      i += 1
+    }
+
+    // if it's just been set then update the current position to 0
+    // otherwise count it as well
+    // todo - move neighborsArray into OccupancyGrid?
+    if (!cachedOccupancyGrid(loc.row)(loc.col))
+      // todo - allLocationNeighbors can be constructed as a map?
+      updateNeighbor(loc, neighbors)
   }
 
   // start optimization
@@ -134,7 +204,7 @@ class Board( final val colorGrid: Array[Array[Cell]],
 
     val pieceRows = piece.rows
     val pieceCols = piece.cols
-    val pieceGrid = piece.occupancyGrid
+    val pieceGrid = piece.cachedOccupancyGrid
 
     def checkCell(row: Int, col: Int): Unit = {
       val cell = piece.colorGrid(row)(col)
@@ -143,6 +213,7 @@ class Board( final val colorGrid: Array[Array[Cell]],
         val (i, j) = (row + locRow, col + locCol)
         this.colorGrid(i)(j) = replaceCell
         this.grid.occupy(i, j)
+        updateNeighbors(Loc(i, j))
       }
     }
 
@@ -203,7 +274,7 @@ class Board( final val colorGrid: Array[Array[Cell]],
   }
 
   // todo, eliminate the return
-  private def legalPlacement(piece: Piece, loc: Loc): Boolean = {
+  private[this] def legalPlacement(piece: Piece, loc: Loc): Boolean = {
 
     // 607K/s with the returns inline vs. 509K/s with the returns removed.  the returns stay
     val locRow = loc.row
@@ -214,7 +285,7 @@ class Board( final val colorGrid: Array[Array[Cell]],
     if ((pieceRows + locRow) > rows) return false // exceeds the bounds of the board - no point in checking any further
     if ((pieceCols + locCol) > cols) return false // exceeds the bounds of the board - no point in checking any further
 
-    val pieceGrid = piece.occupancyGrid
+    val pieceGrid = piece.cachedOccupancyGrid
 
     // find all instances
     // where the piece has an occupied value and the board has an occupied value - that is illegal, so bail
@@ -227,7 +298,7 @@ class Board( final val colorGrid: Array[Array[Cell]],
     while (r < pieceRows) {
       while (c < pieceCols) {
         val pieceOccupied = pieceGrid(r)(c)
-        val boardOccupied = occupancyGrid(r + locRow)(c + locCol)
+        val boardOccupied = cachedOccupancyGrid(r + locRow)(c + locCol)
         if (pieceOccupied && boardOccupied) {
           return false
         }
@@ -267,7 +338,7 @@ class Board( final val colorGrid: Array[Array[Cell]],
   // calculation
   // regressed to 10,603 after switching to labelling mechanism.  but it uses a list, so maybe use an array?
   //
-  private def findLargestConnectedComponent: Int = {
+  private[this] def findLargestConnectedComponent: Int = {
 
     val labels = Board.boardSizeIntArray
     val labelsLength = labels.length
@@ -299,7 +370,7 @@ class Board( final val colorGrid: Array[Array[Cell]],
         return false
 
       // is it occupied?
-      if (occupancyGrid(loc.row)(loc.col))
+      if (cachedOccupancyGrid(loc.row)(loc.col))
         return false
 
       true
@@ -358,49 +429,22 @@ class Board( final val colorGrid: Array[Array[Cell]],
    * than counting neighbors after, then you'll be much better off
    * start of optimziation
    * Exeuction: 38%, MacbookAir: 279K / second
+    *
+    * DONE - see updateNeighbors
    */
 
+  private[this] def isNeighbor(loc: Loc): Boolean = Board.isOutOfBounds(loc) || cachedOccupancyGrid(loc.row)(loc.col)
 
-  private def countNeighbors(locs: Array[Loc]): Array[Int] = {
-
+  private[this] def countNeighbors(locs: Array[Loc]): Array[Int] = {
     val counts = Array(0, 0, 0, 0, 0)
     val locLength = locs.length
 
-    def hasNeighbor(loc: Loc): Boolean = Board.isOutOfBounds(loc) || occupancyGrid(loc.row)(loc.col)
-
-    // walk through all directions
-    def countLocationNeighbor(loc: Loc, locNeighbors: Array[Loc]): Unit = {
-
-      val length = locNeighbors.length
-      var i = 0
-      var count = 0
-      while (i < length) {
-        val tryLoc = locNeighbors(i)
-
-        if (hasNeighbor(tryLoc)) { count += 1 }
-
-        i += 1
-      }
-
+    var i = 0
+    while (i < locLength) {
+      val count = this.boardNeighborsArray(locs(i).row)(locs(i).col)
       counts(count) += 1
-
+      i += 1
     }
-
-    def countAllLocationNeighbors() = {
-      var i = 0
-      while (i < locLength) {
-        val loc = locs(i)
-        if (occupancyGrid(loc.row)(loc.col))
-          ()
-        else {
-          countLocationNeighbor(loc, Board.allLocationNeighbors(i))
-        }
-
-        i += 1
-      }
-    }
-
-    countAllLocationNeighbors()
 
     counts
 
@@ -424,6 +468,7 @@ class Board( final val colorGrid: Array[Array[Cell]],
     //       turn specification into a class and have it identify whether or not these need to be called
     val neighbors = this.neighborCount
 
+    import Specification._
     def getNamedResult(name: String): Int = {
       name match {
         // multiply times -1 to make compare work without having to 
@@ -530,36 +575,29 @@ object Board {
       i += 1
     }
 
-    /* new Board(layout, newName)*/
-    new Board(newColorGrid, boardToCopy.grid.copy, newName)
+    new Board(newColorGrid, boardToCopy.grid.copy, newName, boardToCopy.specification)
 
   }
 
   // prior to this would clone the following array and return - but this one method
   // was taking up 15% of overall execution time.
   // even when constructing an array with fill, took a high % (i didn't record)
-  // So now, just return a predefined Array
-  // as this takes almost no time at all
 
-  // todo, keep fast but size to BOARD_SIZE
-  private def boardSizeIntArray:Array[Array[Int]] = // Array.fill(10)(Array.fill[Int](10)(0))
-    Array(
-      Array(0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-      Array(0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-      Array(0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-      Array(0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-      Array(0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-      Array(0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-      Array(0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-      Array(0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-      Array(0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
-      Array(0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
-    )
+  private def boardSizeIntArray: Array[Array[Int]] = // Array.fill(10)(Array.fill[Int](10)(0))
+  {
+    val a = new Array[Array[Int]](10)
+    var i = 0
+    while (i < BOARD_SIZE) {
+      a(i) = new Array[Int](10)
+      i += 1
+    }
+    a
+  }
 
   /**
-   * isOutOfBounds is agnostic of any particular board, so it's a helper function on the object
+   * isOutOfBounds is agnostic of any particular board,
+    * so it's a helper function on the object
    */
-
   private def isOutOfBounds(loc: Loc): Boolean = {
     val row = loc.row
     val col = loc.col
@@ -567,27 +605,45 @@ object Board {
     row >= BOARD_SIZE || col >= BOARD_SIZE || row < 0 || col < 0
   }
 
+  /**
+    * an empty board has an initial count of neighbors
+    * every position on the wall has 1 neighbor (the wall)
+    * and every corner hsa two wall neighbors
+    */
   private val initNeighborsArray: Array[Array[Int]] = {
 
-    def initCountNeighbors(loc:Loc):Int = {
+    def initCountNeighbors(loc: Loc): Int = {
       val a = directions.map(dir => isOutOfBounds(Loc(loc.row + dir.row, loc.col + dir.col)))
-      a.filter(_==true).length
+      a.filter(_ == true).length
     }
     val a = boardSizeIntArray
 
-    for {i <- a.indices
+    for {
+      i <- a.indices
       j <- a(0).indices
-      loc = Loc(i,j)
-    }
-    {
+      loc = Loc(i, j)
+    } {
       a(i)(j) = initCountNeighbors(loc)
     }
     a
 
   }
 
-  private def getNeighborsArray = initNeighborsArray
 
+  /**
+    * clone the initial neighbor array so every  board gets their
+    * own copy upon construction
+    */
+   private def getNeighborsArray: Array[Array[Int]] = {
 
+    val a = new Array[Array[Int]](10)
+    var i = 0
+    while (i < initNeighborsArray.length) {
+      a(i) = initNeighborsArray(i).clone
+      i += 1
+    }
+
+    a
+  }
 
 }

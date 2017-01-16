@@ -13,9 +13,9 @@ case class Cell(occupied: Boolean = false, color: String) {
 
   def showForPiece: String = {
     if (occupied)
-      color + Cell.BOX_CHAR
+      color + Cell.BOX_CHAR + Game.SANE
     else
-      Cell.unoccupiedColor + Cell.BOX_CHAR
+      Cell.unoccupiedColor + Cell.BOX_CHAR + Game.SANE
   }
 
   def showForBoard: String = {
@@ -23,12 +23,12 @@ case class Cell(occupied: Boolean = false, color: String) {
     if (occupied)
       if (!shown) {
         shown = true
-        Game.UNDERLINE + color + Cell.BOX_CHAR
+        Game.UNDERLINE + color + Cell.BOX_CHAR + Game.SANE
       }
       else
-        color + Cell.BOX_CHAR
+        color + Cell.BOX_CHAR + Game.SANE
     else
-      Cell.unoccupiedColor + Cell.BOX_CHAR
+      Cell.unoccupiedColor + Cell.BOX_CHAR + Game.SANE
 
   }
 
@@ -36,7 +36,7 @@ case class Cell(occupied: Boolean = false, color: String) {
 
 object Cell {
 
-  private val BOX_CHAR = "\u25A0" + Game.SANE
+  private val BOX_CHAR = "\u25A0"
   private val unoccupiedColor = Game.BRIGHT_WHITE
   def copy(cell: Cell): Cell = new Cell(cell.occupied, cell.color)
 

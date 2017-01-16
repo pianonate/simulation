@@ -8,7 +8,7 @@ class TestBoard extends FlatSpec {
 
   trait BoardFixture {
     val boardSize = Board.BOARD_SIZE
-    val board = new Board(boardSize)
+    val board = new Board(boardSize, Specification())
     val pieces = new Pieces
     val initialOccupied: Int = board.occupiedCount
     val initialOpenLines: Int = board.grid.openLineCount
@@ -43,10 +43,10 @@ class TestBoard extends FlatSpec {
   it must "be larger than the largest piece" in {
     (0 to 4) foreach { i =>
       intercept[IllegalArgumentException] { //noinspection ScalaUnusedSymbol
-        val board = new Board(i)
+        val board = new Board(i, Specification())
       }
     }
-    val board = new Board(5)
+    val board = new Board(5, Specification())
     assert(board.isInstanceOf[Board])
   }
 
@@ -227,7 +227,7 @@ class TestBoard extends FlatSpec {
     val pieces = new Pieces
     for {
       piece <- pieces.pieceList
-      board = new Board(Board.BOARD_SIZE)
+      board = new Board(Board.BOARD_SIZE, Specification())
     } {
       val legal = board.legalPlacements(piece).length
       assert(expected(piece) === legal)

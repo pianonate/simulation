@@ -6,15 +6,11 @@
 import Game._
 import java.io.PrintWriter
 
-//todo:  right align scores correctly
 object GameRunner {
 
-  // todo high score can go on the context maybe
   val HIGH_SCORE_FILE = ".highscore"
 
-  def play(args: Array[String]): Unit = {
-
-    val context = new Context(args)
+  def play(context:Context): Unit = {
 
     // after open lines optimization 22,603
     // playing it many times, sped up with some luck - 26,914
@@ -32,13 +28,11 @@ object GameRunner {
     val gameCount = Counter()
     val totalTime = new GameTimer
 
-    Game.showGameStart()
+    Game.showGameStart(context.specification)
 
     // run the game, my friend
     do {
 
-      // todo, put machineHighScore on the context
-      // no need to pass machineHighScore to run
       val machineHighScore = getHighScore
       val sessionHighScore = if (scores.isEmpty) 0 else scores.max
       gameCount.inc()

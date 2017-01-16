@@ -19,7 +19,7 @@ abstract class Piece {
   // test to see if eliminating the stack frame makes this go faster
   // it does - but i really hate breaking encapsulation - worth it for a
   // 3x improvement in 'isOccupied" - which even still uses about 6% of the code...
-  final val occupancyGrid: Array[Array[Boolean]] = grid.getOccupancyGrid
+  final val cachedOccupancyGrid: Array[Array[Boolean]] = grid.getOccupancyGrid
 
 
   // todo - pass in fill string as the board doesn't need it
@@ -48,7 +48,7 @@ abstract class Piece {
     var count = 0
     while (i < grid.rows) {
       while (j < grid.cols) {
-        if (occupancyGrid(i)(j)) {
+        if (cachedOccupancyGrid(i)(j)) {
           count += 1
         }
         j += 1

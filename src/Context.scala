@@ -3,18 +3,28 @@
  * parses command line and sets defaults
  */
 
-case class GameInfo(sessionHighScore:Int,
-  machineHighScore:Int,
-  gameCount:Int,
-  totalTime:GameTimer)
+case class GameInfo(
+  sessionHighScore: Int,
+  machineHighScore: Int,
+  gameCount:        Int,
+  totalTime:        GameTimer
+)
 
-class Context(args: Array[String]) {
+class Context(args: Array[String], spec: Specification) {
+
+  val specification = spec
+
   // todo - just don't throw errors - shut things down in an orderly manner and output errors at the command line
   // todo - integrate a library that does command line processing as it's not core to this project
 
-  private val off = false
+  import Context._
+  private val validArguments = Set(
+    maxSimulationsName,
+    serialName,
+    continuousPlayName,
+    showName
+  )
 
-  private val validArguments = Set("-maxSimulations", "-serial")
   private val argMap: Map[String, String] = args.map(_.split(":"))
     .map({
       case a if a.length == 1 => (a(0), "true")
@@ -42,7 +52,17 @@ class Context(args: Array[String]) {
     if (argMap.contains(arg)) true else default
   }
 
-  val maxSimulations: Int = getIntArgValue("-maxSimulations", MAX_SIMULATION_ITERATIONS)
-  val serialMode: Boolean = getBooleanArgValue("-serial", off) // by default we are not in serial mode
+  // vars so you can change test specifications - consider other mechanisms if you wish
+  var maxSimulations: Int = getIntArgValue(maxSimulationsName, MAX_SIMULATION_ITERATIONS)
+  var serialMode: Boolean = getBooleanArgValue(serialName, default = false) // by default we are not in serial mode
+  var continuousMode: Boolean = getBooleanArgValue(continuousPlayName, default = true)
+  var show: Boolean = getBooleanArgValue(showName, default = true)
 
+}
+
+object Context {
+  val maxSimulationsName = "-maxSimulations"
+  val serialName = "-serial"
+  val continuousPlayName = "-continuousPlay"
+  val showName = "-show"
 }

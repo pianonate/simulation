@@ -8,7 +8,9 @@ object Main {
 
   def main(args: Array[String]): Unit = {
 
-    GameRunner.play(args)
+    GameRunner.play(
+      new Context(args, Specification())
+    )
 
   }
 }
