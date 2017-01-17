@@ -15,26 +15,11 @@ class TestPiece extends FlatSpec {
     // validate all the pieces we create
     val pieces = new Pieces().pieceList
 
-    def check(name: String, testType: String, colorGridValue:Int, gridValue:Int) = {
-        assert(colorGridValue==gridValue, testType + " for piece: " + name)
+    pieces foreach {piece =>
+      val occupancyLength = piece.grid.occupancyGrid.flatten.filter(_ == true).length
+      assert(piece.pointValue===occupancyLength)
     }
 
-
-    pieces.foreach {piece =>
-      check(piece.name, "rows", piece.colorGrid.length, piece.grid.rows)
-      check(piece.name, "cols", piece.colorGrid(0).length, piece.grid.cols)
-
-    }
-  }
-
-  it must "have a grid that matches the colorGrid in layout" in {
-    val pieces = (new Pieces).pieceList
-
-    for {piece <- pieces
-      colorGrid = piece.colorGrid
-      i <- colorGrid.indices
-      j <- colorGrid(i).indices
-    } assert(colorGrid(i)(j).occupied==piece.grid.occupied(i,j), " - " + piece.name + ": grids don't match")
   }
 
 }

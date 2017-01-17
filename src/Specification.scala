@@ -137,7 +137,7 @@ object Specification {
   val maxContiguousName = "openContiguous"
   val openLinesName = "openLines"
 
-  private val fullSpecification = Array(
+  val fullSpecification = Array(
 
     // specification provides the ordering of the optimization as well as whether a particular optimization is maximized or minimized
     // you'll need to update board.results and Simulation.compare if you change the length of the fullSpecification Array

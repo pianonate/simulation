@@ -4,7 +4,6 @@
  * which definitely worked for open lines and max contiguous lines
  */
 
-
 /**
  * in a separate test, running 500,000 loops of a case class vs. a Tuple2, of two ints,
  * each loop creating an instance of the case class or the Tuple2
@@ -13,7 +12,9 @@
  * results were pretty amazing - a 30% speed up in the overall simulations/second for a simple refactoring!
  * just for using this (Loc) bad boy everywhere!
  */
-case class Loc(row: Int, col: Int)
+case class Loc(row: Int, col: Int) {
+  def show: String = "(" + row + "," + col + ")"
+}
 
 /**
  * The OccupancyGrid!
@@ -21,14 +22,14 @@ case class Loc(row: Int, col: Int)
 case class OccupancyGrid(
   rows:          Int,
   cols:          Int,
-  rowGrid:       Array[Int],
-    colGrid:       Array[Int],
-    occupancyGrid: Array[Array[Boolean]]
-    ) {
+  rowGrid:       Array[Long],
+  colGrid:       Array[Long],
+  occupancyGrid: Array[Array[Boolean]]
+) {
 
-      import OccupancyGrid._
+  import OccupancyGrid._
 
-      override def toString: String = {
+  override def toString: String = {
 
     rowGrid.zipWithIndex.map { row =>
 
@@ -40,6 +41,11 @@ case class OccupancyGrid(
   }
 
   def getOccupancyGrid: Array[Array[Boolean]] = occupancyGrid
+
+  // see if you can use this to not have to generate a new simulation, but
+  // rather just copy an existing
+  import scala.collection.immutable.BitSet
+  def bitSet: BitSet = BitSet.fromBitMaskNoCopy(rowGrid)
 
   def copy: OccupancyGrid = {
 
@@ -71,9 +77,9 @@ case class OccupancyGrid(
    */
   def rotate: OccupancyGrid = {
 
-    def rotateImpl(rotateMe: Array[Int]): Array[Int] = {
+    def rotateImpl(rotateMe: Array[Long]): Array[Long] = {
 
-      val newGrid = new Array[Int](cols)
+      val newGrid = new Array[Long](cols)
 
       val iOffsetStart = 0
       val jOffsetStart = rows - 1
@@ -180,7 +186,7 @@ case class OccupancyGrid(
 
   def openLineCount: Int = getOpenLineCount(rowGrid) + getOpenLineCount(colGrid)
 
-  private def getOpenLineCount(theGrid: Array[Int]): Int = {
+  private def getOpenLineCount(theGrid: Array[Long]): Int = {
     var i = 0
     var count = 0
     while (i < theGrid.length) {
@@ -192,7 +198,7 @@ case class OccupancyGrid(
 
   def maxContiguousOpenLines: Int = {
 
-    def getMaxContiguous(theGrid: Array[Int]): Int = {
+    def getMaxContiguous(theGrid: Array[Long]): Int = {
       var i = 0
       var max = 0
       var currentMax = 0
@@ -215,7 +221,7 @@ case class OccupancyGrid(
 
   }
 
-  private def getFullLine(theGrid: Array[Int]): Array[Int] = {
+  private def getFullLine(theGrid: Array[Long]): Array[Long] = {
     // it's a hack to pass in sentinel values (-1's from the fullLineArray
     // but it prevents us from doing a splitAt (or just constructing this thing functionally
     // doing it this way is orders of magnitude faster
@@ -232,16 +238,16 @@ case class OccupancyGrid(
     a
   }
 
-  def fullRows: Array[Int] = getFullLine(rowGrid)
-  def fullCols: Array[Int] = getFullLine(colGrid)
+  def fullRows: Array[Long] = getFullLine(rowGrid)
+  def fullCols: Array[Long] = getFullLine(colGrid)
 
   def occupied(row: Int, col: Int): Boolean = occupancyGrid(row)(col)
 
-  private def getBitAt(theGrid: Array[Int], row: Int, col: Int): Int = (theGrid(row) >> col) & 1
-  private def getBitAt(row: Int, col: Int): Int = getBitAt(rowGrid, row, col)
+  private def getBitAt(theGrid: Array[Long], row: Int, col: Int): Long = (theGrid(row) >> col) & 1
+  private def getBitAt(row: Int, col: Int): Long = getBitAt(rowGrid, row, col)
 
-  private def setBitAt(theGrid: Array[Int], row: Int, col: Int) = theGrid(row) |= (1 << col)
-  private def unSetBitAt(theGrid: Array[Int], row: Int, col: Int) = theGrid(row) &= ~(1 << col)
+  private def setBitAt(theGrid: Array[Long], row: Int, col: Int) = theGrid(row) |= (1 << col)
+  private def unSetBitAt(theGrid: Array[Long], row: Int, col: Int) = theGrid(row) &= ~(1 << col)
 
   /**
    * set occupancy to true at this position
@@ -266,12 +272,12 @@ case class OccupancyGrid(
 object OccupancyGrid {
 
   private val zero = 0
-  private val fullLineValue = math.pow(2, Board.BOARD_SIZE).toInt - 1
-  private val fullLineArray = Array.fill[Int](Board.BOARD_SIZE)(-1)
+  private val fullLineValue = math.pow(2, Board.BOARD_SIZE).toLong - 1
+  private val fullLineArray = Array.fill[Long](Board.BOARD_SIZE)(-1)
   private def getFullLineArray = fullLineArray.clone
 
-  private def getNewGrid(rows: Int, cols: Int, fillMe: Boolean): Array[Int] =
-    if (fillMe) Array.ofDim[Int](rows).map(_ => fullLineValue) else new Array[Int](rows)
+  private def getNewGrid(rows: Int, cols: Int, fillMe: Boolean): Array[Long] =
+    if (fillMe) Array.ofDim[Long](rows).map(_ => fullLineValue) else new Array[Long](rows)
 
   private def getNewOccupancyGrid(rows: Int, cols: Int, fillMe: Boolean): Array[Array[Boolean]] =
     if (fillMe) Array.fill(rows, cols)(true) else Array.ofDim[Boolean](rows, cols)

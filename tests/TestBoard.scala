@@ -4,27 +4,29 @@
  */
 import org.scalatest.{FlatSpec, _}
 
+trait BoardFixture {
+  val boardSize = Board.BOARD_SIZE
+  val board = new Board(boardSize, Specification())
+  val pieces = new Pieces
+  val initialOccupied: Int = board.occupiedCount
+  val initialOpenLines: Int = board.grid.openLineCount
+
+  def addRow(at: Int): Unit = {
+
+    board.place(Pieces.h5line, Loc(at, 0))
+    board.place(Pieces.h5line, Loc(at, 5))
+
+  }
+
+  def addCol(at: Int): Unit = {
+    board.place(Pieces.v5line, Loc(0, at))
+    board.place(Pieces.v5line, Loc(5, at))
+  }
+}
+
+
 class TestBoard extends FlatSpec {
 
-  trait BoardFixture {
-    val boardSize = Board.BOARD_SIZE
-    val board = new Board(boardSize, Specification())
-    val pieces = new Pieces
-    val initialOccupied: Int = board.occupiedCount
-    val initialOpenLines: Int = board.grid.openLineCount
-
-    def addRow(at: Int): Unit = {
-
-      board.place(Pieces.h5line, Loc(at, 0))
-      board.place(Pieces.h5line, Loc(at, 5))
-
-    }
-
-    def addCol(at: Int): Unit = {
-      board.place(Pieces.v5line, Loc(0, at))
-      board.place(Pieces.v5line, Loc(5, at))
-    }
-  }
 
   trait BoardCopyFixture extends BoardFixture {
 
@@ -32,23 +34,13 @@ class TestBoard extends FlatSpec {
 
     val copy: Board = Board.copy("copy", board)
 
-    val sourceColorGrid: Array[Array[Cell]] = board.colorGrid
+    val sourceColorGrid: Array[Array[String]] = board.colorGrid
     val sourceGrid: OccupancyGrid = board.grid
-    val copyColorGrid: Array[Array[Cell]] = copy.colorGrid
+    val copyColorGrid: Array[Array[String]] = copy.colorGrid
     val copyGrid: OccupancyGrid = copy.grid
   }
 
   behavior of "A board"
-
-  it must "be larger than the largest piece" in {
-    (0 to 4) foreach { i =>
-      intercept[IllegalArgumentException] { //noinspection ScalaUnusedSymbol
-        val board = new Board(i, Specification())
-      }
-    }
-    val board = new Board(5, Specification())
-    assert(board.isInstanceOf[Board])
-  }
 
   it must "make an exact copy" in {
     new BoardCopyFixture {
@@ -58,9 +50,8 @@ class TestBoard extends FlatSpec {
         j <- sourceColorGrid(i).indices
       } {
 
-        assert(sourceColorGrid(i)(j).occupied == copyColorGrid(i)(j).occupied, "- color grids don't match") // ensure source and destination match
+        assert(sourceColorGrid(i)(j) == copyColorGrid(i)(j), "- color grids don't match") // ensure source and destination match
         assert(sourceGrid.occupied(i, j) == copyGrid.occupied(i, j), "- BitVector grids don't match") // ensure OccupancyGrid grids also match
-        assert(sourceColorGrid(i)(j).occupied == copyGrid.occupied(i, j), "- Source color grid doesn't match copy BitVector grid") // ensure OccupancyGrid grids also matches source color grid
 
       }
 
@@ -75,13 +66,12 @@ class TestBoard extends FlatSpec {
 
       // iterate through piece indices as they will match the board at location (0,0)
       for {
-        i <- piece.colorGrid.indices
-        j <- piece.colorGrid(i).indices
-        if piece.colorGrid(i)(j).occupied
+        i <- piece.cachedOccupancyGrid.indices
+        j <- piece.cachedOccupancyGrid(i).indices
+        if piece.cachedOccupancyGrid(i)(j)
       } {
-        assert(sourceColorGrid(i)(j).occupied != copyColorGrid(i)(j).occupied, "- color grids shouldn't match")
+        assert(sourceColorGrid(i)(j) != copyColorGrid(i)(j), "- color grids shouldn't match")
         assert(sourceGrid.occupied(i, j) != copyGrid.occupied(i, j), "- OccupancyGrids shouldn't match")
-        assert(sourceColorGrid(i)(j).occupied != copyGrid.occupied(i, j), "- Source color grid shouldn't match copy OccupancyGrid")
       }
     }
   }
@@ -207,14 +197,15 @@ class TestBoard extends FlatSpec {
 
   }
 
-  it must "have the same occupancy after clearing a row" in {
+  it must "have empty occupancy at each grid position after clearing a row on an empty board" in {
     new BoardFixture {
+      val occupancy = board.occupiedCount
       addRow(0)
       board.clearLines()
       for {
         i <- board.colorGrid.indices
         j <- board.colorGrid(0).indices
-      } assert(board.colorGrid(i)(j).occupied === board.grid.occupied(i, j))
+      } assert(!board.grid.occupied(i, j))
     }
   }
 

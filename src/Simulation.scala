@@ -3,17 +3,18 @@
  * created for the purpose of simplifying new algo choices by providing a specification in the Simulation object
  * that all simulations use to do the compare and to do a show
  */
+import scala.collection.immutable.BitSet
 
 /**
-  * a full simulation includes a List of pieces at place locations
-  * plus a boolean indicating whether any lines were cleared
-  * the latter is useful as we don't need to run other permutations
-  * of the ordering of these pieces if no lines are cleared
-  * makes the game run faster
-  * @param piece - the piece that is placed
-  * @param loc - the lcoation at which the piece is place (row, col)
-  * @param clearedLines  - were any lines cleared?
-  */
+ * a full simulation includes a List of pieces at place locations
+ * plus a boolean indicating whether any lines were cleared
+ * the latter is useful as we don't need to run other permutations
+ * of the ordering of these pieces if no lines are cleared
+ * makes the game run faster
+ * @param piece - the piece that is placed
+ * @param loc - the lcoation at which the piece is place (row, col)
+ * @param clearedLines  - were any lines cleared?
+ */
 case class PieceLocCleared(
   piece:        Piece,
   loc:          Loc,
@@ -21,13 +22,13 @@ case class PieceLocCleared(
 )
 
 /**
-  * SimulationInfo is used to display resuls at the end of each round
-  * @param pieces - the list of pieces that were placed this round
-  * @param simulationCount - how many combinations of locations were simulated for these three pieces
-  * @param best - the best simulation as determined by the Specification
-  * @param worst - the worst simulation as determined by the Specification
-  * @param elapsed - how much time did it take to run all of the simulationCount simulations
-  */
+ * SimulationInfo is used to display resuls at the end of each round
+ * @param pieces - the list of pieces that were placed this round
+ * @param simulationCount - how many combinations of locations were simulated for these three pieces
+ * @param best - the best simulation as determined by the Specification
+ * @param worst - the worst simulation as determined by the Specification
+ * @param elapsed - how much time did it take to run all of the simulationCount simulations
+ */
 case class SimulationInfo(
   pieces:          List[Piece],
   simulationCount: Int,
@@ -37,13 +38,13 @@ case class SimulationInfo(
 )
 
 /**
-  * A single Simulation is the list of the PieceLocCleared (defined above) plus the resultant Board
-  * A Simulation also stashes the results of the simulation (as determined by the Specification)
-  *
-  * @param plcList - PieceLocCleared list
-  * @param board - the resultant Board after placing all pieces in PieceLocCleared.
-  */
-case class Simulation(plcList: List[PieceLocCleared], board: Board, specLength:Int) extends Ordered[Simulation] {
+ * A single Simulation is the list of the PieceLocCleared (defined above) plus the resultant Board
+ * A Simulation also stashes the results of the simulation (as determined by the Specification)
+ *
+ * @param plcList - PieceLocCleared list
+ * @param board - the resultant Board after placing all pieces in PieceLocCleared.
+ */
+case class Simulation(plcList: List[PieceLocCleared], board: Board, specLength: Int) extends Ordered[Simulation] {
 
   override def toString: String = this.plcList.map(plc => plc.piece.name).mkString(", ") // visible in debugger
 
@@ -54,6 +55,12 @@ case class Simulation(plcList: List[PieceLocCleared], board: Board, specLength:I
   // results
   val results: Array[Int] = board.results
 
+  //todo see if youc an quickly build a bitset and use it as a key or try scalacache and guava
+ /// val bs: BitSet = board.grid.bitSet
+
+
+  // wayyyyy toooooo slowwwww
+  // Simulation.hashMap += (bs -> this)
 
   def compare(that: Simulation): Int = {
 
@@ -80,4 +87,10 @@ case class Simulation(plcList: List[PieceLocCleared], board: Board, specLength:I
     // format: ON
 
   }
+}
+
+object Simulation {
+
+  val aSim = new Array[Simulation](1000000)
+
 }

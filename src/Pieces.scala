@@ -123,7 +123,7 @@ class Pieces {
   def printPossiblePieces(): Unit = {
     for (piece <- pieceList) {
       println(piece.name + ": " + piece.pointValue)
-      println(piece.show)
+      println(piece.show(piece.cellShowFunction))
     }
     println
   }
