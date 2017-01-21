@@ -8,7 +8,6 @@ import java.io.PrintWriter
 
 object GameRunner {
 
-  val HIGH_SCORE_FILE = ".highscore"
 
   def play(context:Context): Unit = {
 
@@ -85,7 +84,7 @@ object GameRunner {
   }
 
   def saveHighScore(highScore: Int): Unit = {
-    val pw = new PrintWriter(HIGH_SCORE_FILE)
+    val pw = new PrintWriter(Context.FILE_HIGH_SCORE)
     pw.write(highScore.toString)
     pw.close()
 
@@ -96,11 +95,11 @@ object GameRunner {
     import scala.io.Source
 
     try {
-      return Source.fromFile(HIGH_SCORE_FILE).getLines.mkString.toInt
+      return Source.fromFile(Context.FILE_HIGH_SCORE).getLines.mkString.toInt
 
     } catch {
       case _: Throwable =>
-        val pw = new PrintWriter(HIGH_SCORE_FILE)
+        val pw = new PrintWriter(Context.FILE_HIGH_SCORE)
         pw.write("0")
         pw.close()
     }

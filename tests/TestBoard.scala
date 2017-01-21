@@ -8,25 +8,23 @@ trait BoardFixture {
   val boardSize = Board.BOARD_SIZE
   val board = new Board(boardSize, Specification())
   val pieces = new Pieces
-  val initialOccupied: Int = board.occupiedCount
+  val initialOccupied: Int = board.grid.popCount
   val initialOpenLines: Int = board.grid.openLineCount
 
   def addRow(at: Int): Unit = {
 
-    board.place(Pieces.h5line, Loc(at, 0))
-    board.place(Pieces.h5line, Loc(at, 5))
+    board.place(Pieces.h5Line, Loc(at, 0))
+    board.place(Pieces.h5Line, Loc(at, 5))
 
   }
 
   def addCol(at: Int): Unit = {
-    board.place(Pieces.v5line, Loc(0, at))
-    board.place(Pieces.v5line, Loc(5, at))
+    board.place(Pieces.v5Line, Loc(0, at))
+    board.place(Pieces.v5Line, Loc(5, at))
   }
 }
 
-
 class TestBoard extends FlatSpec {
-
 
   trait BoardCopyFixture extends BoardFixture {
 
@@ -36,8 +34,11 @@ class TestBoard extends FlatSpec {
 
     val sourceColorGrid: Array[Array[String]] = board.colorGrid
     val sourceGrid: OccupancyGrid = board.grid
+    val sourceNeighbors: Array[Array[Int]] = board.neighborsArray
+
     val copyColorGrid: Array[Array[String]] = copy.colorGrid
     val copyGrid: OccupancyGrid = copy.grid
+    val copyNeighbors: Array[Array[Int]] = copy.neighborsArray
   }
 
   behavior of "A board"
@@ -52,6 +53,7 @@ class TestBoard extends FlatSpec {
 
         assert(sourceColorGrid(i)(j) == copyColorGrid(i)(j), "- color grids don't match") // ensure source and destination match
         assert(sourceGrid.occupied(i, j) == copyGrid.occupied(i, j), "- BitVector grids don't match") // ensure OccupancyGrid grids also match
+        assert(sourceNeighbors(i)(j) == copyNeighbors(i)(j))
 
       }
 
@@ -85,11 +87,11 @@ class TestBoard extends FlatSpec {
       //        clear enough lines to have this execute safely
       for (piece <- pieces.pieceList) {
         board.clearLines()
-        val boardScore = board.occupiedCount
+        val boardScore = board.grid.popCount
         val pieceScore = piece.pointValue
         val loc = board.legalPlacements(piece).head
         board.place(piece, loc)
-        assert(board.occupiedCount === boardScore + pieceScore, "- " + piece.name + " - index:" + i)
+        assert(board.grid.popCount === boardScore + pieceScore, "- " + piece.name + " - index:" + i)
         i += 1
       }
     }
@@ -99,7 +101,7 @@ class TestBoard extends FlatSpec {
     new BoardFixture {
       addRow(0)
       assert(board.grid.openLineCount === (initialOpenLines - (boardSize + 1)))
-      assert(board.occupiedCount == (initialOccupied + boardSize))
+      assert(board.grid.popCount == (initialOccupied + boardSize))
     }
   }
 
@@ -107,7 +109,7 @@ class TestBoard extends FlatSpec {
     new BoardFixture {
       addCol(0)
       assert(board.grid.openLineCount === (initialOpenLines - (boardSize + 1)))
-      assert(board.occupiedCount == (initialOccupied + boardSize))
+      assert(board.grid.popCount == (initialOccupied + boardSize))
     }
   }
 
@@ -116,7 +118,7 @@ class TestBoard extends FlatSpec {
       addCol(0)
       addRow(0)
       assert(initialOpenLines - (boardSize * 2) === 0)
-      assert(board.occupiedCount === (initialOccupied + boardSize + boardSize - 1))
+      assert(board.grid.popCount === (initialOccupied + boardSize + boardSize - 1))
     }
   }
 
@@ -152,14 +154,14 @@ class TestBoard extends FlatSpec {
   it must "clear four full rows and four full columns" in {
     new BoardFixture {
       (0 to 3).foreach(i => addRow(i))
-      assert(board.occupiedCount === (4 * boardSize))
+      assert(board.grid.popCount === (4 * boardSize))
       assert(board.clearLines()._1 === 4)
-      assert(board.occupiedCount === 0)
+      assert(board.grid.popCount === 0)
 
       (0 to 3).foreach(i => addCol(i))
-      assert(board.occupiedCount === (4 * boardSize))
+      assert(board.grid.popCount === (4 * boardSize))
       assert(board.clearLines()._2 === 4)
-      assert(board.occupiedCount === 0)
+      assert(board.grid.popCount === 0)
 
     }
   }
@@ -199,7 +201,7 @@ class TestBoard extends FlatSpec {
 
   it must "have empty occupancy at each grid position after clearing a row on an empty board" in {
     new BoardFixture {
-      val occupancy = board.occupiedCount
+      val occupancy: Int = board.grid.popCount
       addRow(0)
       board.clearLines()
       for {
@@ -225,7 +227,6 @@ class TestBoard extends FlatSpec {
     }
   }
 
-  // todo create specification and pass it into a game - this will allow command line parameterization of specifications
   // todo test that specifications of all combinations and permutations are actually invoked correctly
 
 }

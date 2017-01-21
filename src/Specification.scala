@@ -1,18 +1,18 @@
 /**
-  * Created by nathanmccoy on 1/15/17.
-  * introducing the Specification in order to configure it on the context
-  * so that tests can be run to ensure that all specification combinations
-  *   (from 1 to Specification.length) and then the permutations of those
-  *   combinations all result in valid games that can play
-  *   This is a general test taht is useful
-  *
-  *   Also, this paves the way to run the game by trying all of the above
-  *   n times to see which combination/permutation of specifications
-  *   results in the highest scores...
-  */
-case class Specification(spec:Array[OptimizationFactor]) {
-  val length = spec.length
-  def apply(i:Int):OptimizationFactor = spec(i)
+ * Created by nathan mccoy on 1/15/17.
+ * introducing the Specification in order to configure it on the context
+ * so that tests can be run to ensure that all specification combinations
+ *   (from 1 to Specification.length) and then the permutations of those
+ *   combinations all result in valid games that can play
+ *   This is a general test that is useful
+ *
+ *   Also, this paves the way to run the game by trying all of the above
+ *   n times to see which combination/permutation of specifications
+ *   results in the highest scores...
+ */
+case class Specification(spec: Array[OptimizationFactor]) {
+  val length: Int = spec.length
+  def apply(i: Int): OptimizationFactor = spec(i)
   def getOptimizationFactorExplanations: String = {
     // used by showGameStart
     spec.map(optFactor => "* " + optFactor.resultLabel + " - " + optFactor.explanation).mkString("\n")
@@ -40,7 +40,7 @@ case class Specification(spec:Array[OptimizationFactor]) {
     // Boom! - best choices for each result
     val bestOfAll = (simulationResults.map(_.best.results) ++ simulationResults.map(_.worst.results)).transpose.map(_.min).toArray
 
-    def getResultString(simulationResult: SimulationInfo, simulationIndex:Int): String = {
+    def getResultString(simulationResult: SimulationInfo, simulationIndex: Int): String = {
 
       def handleOptFactor(optFactor: OptimizationFactor, bestVal: Int, worstVal: Int, topValIndex: Int): String = {
         val topVal = bestOfAll(topValIndex)
@@ -51,12 +51,12 @@ case class Specification(spec:Array[OptimizationFactor]) {
 
       val worst = simulationResult.worst.results
 
-      (simulationIndex + 1)  + ": " + simulationResult.pieces.map(_.name).mkString(", ") + " -" +
+      (simulationIndex + 1) + ": " + simulationResult.pieces.map(_.name).mkString(", ") + " -" +
         spec
-          .zip(best).zip(worst).zipWithIndex
-          .map(tup => (tup._1._1._1, tup._1._1._2, tup._1._2, tup._2))
-          .map(tup => handleOptFactor(tup._1, tup._2, tup._3, tup._4))
-          .mkString
+        .zip(best).zip(worst).zipWithIndex
+        .map(tup => (tup._1._1._1, tup._1._1._2, tup._1._2, tup._2))
+        .map(tup => handleOptFactor(tup._1, tup._2, tup._3, tup._4))
+        .mkString
 
     }
 
@@ -78,10 +78,9 @@ case class Specification(spec:Array[OptimizationFactor]) {
 
       // underline is for closers (Glengarry Glen Ross)
       if (r.best == chosen) {
-        val parts = s.splitAt(s.indexOf(" ")+1)
+        val parts = s.splitAt(s.indexOf(" ") + 1)
         parts._1 + Game.UNDERLINE + parts._2.split(Game.ESCAPE).mkString(Game.UNDERLINE + Game.ESCAPE) + Game.SANE
-      }
-      else
+      } else
         Game.SANE + s
     }.mkString("\n")
   }
@@ -116,12 +115,12 @@ case class Specification(spec:Array[OptimizationFactor]) {
 }
 
 case class OptimizationFactor(
-                               enabled:     Boolean,
-                               fieldName:   String,
-                               minimize:    Boolean,
-                               resultLabel: String,
-                               explanation: String
-                             )
+  enabled:     Boolean,
+  fieldName:   String,
+  minimize:    Boolean,
+  resultLabel: String,
+  explanation: String
+)
 
 object Specification {
 
@@ -133,6 +132,7 @@ object Specification {
   val maximizerCountName = "maximizerCount"
   val fourNeighborsName = "fourNeighbors"
   val threeNeighborsName = "threeNeighbors"
+  val twoNeighborsName = "twoNeighbors"
   val islandMaxName = "islandMax"
   val maxContiguousName = "openContiguous"
   val openLinesName = "openLines"
@@ -146,15 +146,14 @@ object Specification {
 
     // todo - run through all specification combinations of off and on and run 1000? games on each to see which specification is the best
     //        after a thousand games
-
-    OptimizationFactor(enabled = true, occupiedCountName, minimize, "occupied", "occupied positions"),
     OptimizationFactor(enabled = true, maximizerCountName, maximize, "maximizer", "positions in which a 3x3 piece can fit"),
+    OptimizationFactor(enabled = true, occupiedCountName, minimize, "occupied", "occupied positions"),
     OptimizationFactor(enabled = true, fourNeighborsName, minimize, "4 neighbors", "number of positions surrounded on all 4 sides"),
     OptimizationFactor(enabled = true, threeNeighborsName, minimize, "3 neighbors", "number of positions surrounded on 3 of 4 sides"),
     OptimizationFactor(enabled = true, maxContiguousName, maximize, "contiguous open lines", "number of lines (either horizontal or vertical) that are open and contiguous"),
+    OptimizationFactor(enabled = true, twoNeighborsName, minimize, "2 neighbors", "number of positions surrounded on 2 of 4 sides"),
     OptimizationFactor(enabled = false, openLinesName, maximize, "open Rows & Cols", "count of open rows plus open columns"),
     OptimizationFactor(enabled = false, islandMaxName, maximize, "islandMax", "largest number of connected, unoccupied positions")
-
 
   )
 
@@ -162,19 +161,20 @@ object Specification {
   def apply(): Specification = Specification(fullSpecification.filter(_.enabled))
 
   /**
-    * used for testing purposes (for now) and eventually for an exhaustive run
-    * through of all possible permuations and combinations of specifications
-    * @return
-    */
-  def getAllSpecifications = {
+   * used for testing purposes (for now) and eventually for an exhaustive run
+   * through of all possible permutations and combinations of specifications
+   * @return
+   */
+  def getAllSpecifications: Array[Array[Array[OptimizationFactor]]] = {
 
     val r = (1 to fullSpecification.length).toArray
 
-    val combinations = for {i <- r} yield fullSpecification.combinations(i).toArray
+    val combinations = for { i <- r } yield fullSpecification.combinations(i).toArray
 
-    val result = for {comboArray <- combinations
-         combo <- comboArray}
-      yield combo.permutations.toArray
+    val result = for {
+      comboArray <- combinations
+      combo <- comboArray
+    } yield combo.permutations.toArray
 
     result
 

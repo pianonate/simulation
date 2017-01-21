@@ -16,7 +16,7 @@ class TestPiece extends FlatSpec {
     val pieces = new Pieces().pieceList
 
     pieces foreach {piece =>
-      val occupancyLength = piece.grid.occupancyGrid.flatten.filter(_ == true).length
+      val occupancyLength = piece.grid.occupancyGrid.flatten.count(_ == true)
       assert(piece.pointValue===occupancyLength)
     }
 

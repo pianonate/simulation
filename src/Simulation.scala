@@ -12,7 +12,7 @@ import scala.collection.immutable.BitSet
  * of the ordering of these pieces if no lines are cleared
  * makes the game run faster
  * @param piece - the piece that is placed
- * @param loc - the lcoation at which the piece is place (row, col)
+ * @param loc - the location at which the piece is place (row, col)
  * @param clearedLines  - were any lines cleared?
  */
 case class PieceLocCleared(
@@ -22,7 +22,7 @@ case class PieceLocCleared(
 )
 
 /**
- * SimulationInfo is used to display resuls at the end of each round
+ * SimulationInfo is used to display results at the end of each round
  * @param pieces - the list of pieces that were placed this round
  * @param simulationCount - how many combinations of locations were simulated for these three pieces
  * @param best - the best simulation as determined by the Specification
@@ -30,11 +30,12 @@ case class PieceLocCleared(
  * @param elapsed - how much time did it take to run all of the simulationCount simulations
  */
 case class SimulationInfo(
-  pieces:          List[Piece],
-  simulationCount: Int,
-  best:            Simulation,
-  worst:           Simulation,
-  elapsed:         Long
+  pieces:           List[Piece],
+  simulationCount:  Int,
+  unsimulatedCount: Int,
+  best:             Simulation,
+  worst:            Simulation,
+  elapsed:          Long
 )
 
 /**
@@ -55,11 +56,10 @@ case class Simulation(plcList: List[PieceLocCleared], board: Board, specLength: 
   // results
   val results: Array[Int] = board.results
 
-  //todo see if youc an quickly build a bitset and use it as a key or try scalacache and guava
- /// val bs: BitSet = board.grid.bitSet
+  //todo see if you can quickly build a bitset and use it as a key or try scalacache and guava
+  /// val bs: BitSet = board.grid.bitSet
 
-
-  // wayyyyy toooooo slowwwww
+  // way too slow
   // Simulation.hashMap += (bs -> this)
 
   def compare(that: Simulation): Int = {
@@ -76,13 +76,14 @@ case class Simulation(plcList: List[PieceLocCleared], board: Board, specLength: 
     // it would be nice if Scalariform did this by default...
     // format: OFF
     specLength match {
-      case 1 => a(0)                                       compare b(0)
-      case 2 => (a(0), a(1))                               compare (b(0), b(1))
-      case 3 => (a(0), a(1), a(2))                         compare (b(0), b(1), b(2))
-      case 4 => (a(0), a(1), a(2), a(3))                   compare (b(0), b(1), b(2), b(3))
-      case 5 => (a(0), a(1), a(2), a(3), a(4))             compare (b(0), b(1), b(2), b(3), b(4))
-      case 6 => (a(0), a(1), a(2), a(3), a(4), a(5))       compare (b(0), b(1), b(2), b(3), b(4), b(5))
-      case 7 => (a(0), a(1), a(2), a(3), a(4), a(5), a(6)) compare (b(0), b(1), b(2), b(3), b(4), b(5), a(6))
+      case 1 => a(0)                                             compare b(0)
+      case 2 => (a(0), a(1))                                     compare (b(0), b(1))
+      case 3 => (a(0), a(1), a(2))                               compare (b(0), b(1), b(2))
+      case 4 => (a(0), a(1), a(2), a(3))                         compare (b(0), b(1), b(2), b(3))
+      case 5 => (a(0), a(1), a(2), a(3), a(4))                   compare (b(0), b(1), b(2), b(3), b(4))
+      case 6 => (a(0), a(1), a(2), a(3), a(4), a(5))             compare (b(0), b(1), b(2), b(3), b(4), b(5))
+      case 7 => (a(0), a(1), a(2), a(3), a(4), a(5), a(6))       compare (b(0), b(1), b(2), b(3), b(4), b(5), a(6))
+      case 8 => (a(0), a(1), a(2), a(3), a(4), a(5), a(6), a(7)) compare (b(0), b(1), b(2), b(3), b(4), b(5), a(6), a(7))
     }
     // format: ON
 

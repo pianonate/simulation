@@ -30,34 +30,7 @@ abstract class Piece {
    * it's not just a convenience as we will call pointValue a lot and don't need to
    * recalculate it each time
    */
-  final lazy val pointValue: Int = getOccupiedPositions
-
-  /**
-   * todo - can you improve the while loop to be more scala like and retain the perf?
-   * boards can have their Cell's changed so that the occupied status will change
-   * with the original for comprehension the onPositions method took about 10% of the overall
-   * execution time.  with the while loop, it takes <1% of execution time
-   * colorGrid.flatten.count(_.occupied) takes 5.6% of execution time
-   */
-  def getOccupiedPositions: Int = {
-    /*colorGrid.flatten.count(_.occupied)*/
-    var i = 0
-    var j = 0
-    var count = 0
-    while (i < grid.rows) {
-      while (j < grid.cols) {
-        if (cachedOccupancyGrid(i)(j)) {
-          count += 1
-        }
-        j += 1
-      }
-      j = 0
-      i += 1
-    }
-
-    count
-
-  }
+  final lazy val pointValue: Int = grid.popCount
 
   override def toString: String = this.name // for the debugger
 
@@ -115,7 +88,7 @@ object Piece {
   def getBoxGrid(size: Int): OccupancyGrid = getGrid(size, size, filled = true)
   def getGrid(rows: Int, cols: Int, filled: Boolean): OccupancyGrid = OccupancyGrid(rows, cols, filled)
 
-   // take a piece, and create a new piece, rotated 90 degrees
+  // take a piece, and create a new piece, rotated 90 degrees
   def rotate90(newName: String, pieceToCopy: Piece): Piece = {
 
     class Rotated(

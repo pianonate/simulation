@@ -17,10 +17,12 @@ class Context(args: Array[String]) {
 
   import Context._
   private val validArguments = Set(
+    continuousPlayName,
     maxSimulationsName,
     serialName,
-    continuousPlayName,
-    showName
+    showName,
+    stopGameAtRoundName
+
   )
 
   private val argMap: Map[String, String] = args.map(_.split(":"))
@@ -51,27 +53,38 @@ class Context(args: Array[String]) {
   }
 
   // vars so you can change test specifications - consider other mechanisms if you wish
-  var maxSimulations: Int = getIntArgValue(maxSimulationsName, MAX_SIMULATION_ITERATIONS)
-  var serialMode: Boolean = getBooleanArgValue(serialName, default = false) // by default we are not in serial mode
   var continuousMode: Boolean = getBooleanArgValue(continuousPlayName, default = true)
+  var maxSimulations: Int = getIntArgValue(maxSimulationsName, MAX_SIMULATION_ITERATIONS)
+  //noinspection VarCouldBeVal
+  var stopGameAtRound: Int = getIntArgValue(stopGameAtRoundName, 0)
+  //noinspection VarCouldBeVal
+  var serialMode: Boolean = getBooleanArgValue(serialName, default = false) // by default we are not in serial mode
   var show: Boolean = getBooleanArgValue(showName, default = true)
-  var specification:Specification = Specification()
 
-  var instrumentedGame:Boolean = false
-  private var internalInstrumentListIterator =  List[PieceLocCleared]().toIterator// empty piece loc cleared - can be overriden
+  var specification: Specification = Specification()
 
-  def setInstrumentedList(plcList:List[PieceLocCleared]):Unit = {
-    instrumentedGame = true
-    internalInstrumentListIterator = plcList.toIterator
+
+  var replayGame: Boolean = false
+  //noinspection VarCouldBeVal
+  var ignoreSimulation: Boolean = true
+
+  private var internalReplayListIterator = List[PieceLocCleared]().toIterator
+
+  def setReplayList(plcList: List[PieceLocCleared]): Unit = {
+    replayGame = true
+    internalReplayListIterator = plcList.toIterator
   }
-  def take3 = internalInstrumentListIterator.take(3)
-
+  def takeReplayPiecesForRound: Iterator[PieceLocCleared] = internalReplayListIterator.take(3)
 
 }
 
 object Context {
-  val maxSimulationsName = "-maxSimulations"
-  val serialName = "-serial"
+  val FILE_HIGH_SCORE = ".highscore"
+  val FILE_SAVED_GAME = ".simulationSavedGame"
+
   val continuousPlayName = "-continuousPlay"
+  val maxSimulationsName = "-maxSimulations"
+  val stopGameAtRoundName = "-stopAtRound"
+  val serialName = "-serial"
   val showName = "-show"
 }

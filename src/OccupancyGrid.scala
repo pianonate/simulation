@@ -42,6 +42,17 @@ case class OccupancyGrid(
 
   def getOccupancyGrid: Array[Array[Boolean]] = occupancyGrid
 
+  def popCount: Int = {
+    var row = 0
+    var count = 0
+    while (row < rows) {
+      val rowVal = rowGrid(row).toInt
+      count += OccupancyGrid.popTable(rowVal)
+      row += 1
+    }
+    count
+  }
+
   // see if you can use this to not have to generate a new simulation, but
   // rather just copy an existing
   import scala.collection.immutable.BitSet
@@ -222,14 +233,14 @@ case class OccupancyGrid(
   }
 
   private def getFullLine(theGrid: Array[Long]): Array[Long] = {
-    // it's a hack to pass in sentinel values (-1's from the fullLineArray
+    // it's a hack to pass in sentinel values (-1's from the fullLineArrayWithSentinels
     // but it prevents us from doing a splitAt (or just constructing this thing functionally
     // doing it this way is orders of magnitude faster
     val a = getFullLineArray
     var i = 0
     var n = 0
     while (i < a.length) {
-      if (theGrid(i) == fullLineValue) {
+      if (theGrid(i) == boardSizeFullLineValue) {
         a(n) = i
         n += 1
       }
@@ -271,13 +282,23 @@ case class OccupancyGrid(
 
 object OccupancyGrid {
 
+  private val fillerup = (size: Int) => math.pow(2, size).toLong - 1
   private val zero = 0
-  private val fullLineValue = math.pow(2, Board.BOARD_SIZE).toLong - 1
-  private val fullLineArray = Array.fill[Long](Board.BOARD_SIZE)(-1)
-  private def getFullLineArray = fullLineArray.clone
+  private val boardSizeFullLineValue = fillerup(Board.BOARD_SIZE) // math.pow(2, Board.BOARD_SIZE).toLong - 1
+  private val fullLineArrayWithSentinels = Array.fill[Long](Board.BOARD_SIZE)(-1)
+
+  private val popTable: Array[Int] = {
+
+    // all possible combination of on bits in a 10 (BOARD_SIZE) position row:
+    // todo - refactor (theInt >> x) &1
+    val countBits = (theInt: Int) => (0 until Board.BOARD_SIZE).map(x => (theInt >> x) & 1).count(_ == 1)
+    (0 to 1023).map(countBits).toArray
+
+  }
+  private def getFullLineArray = fullLineArrayWithSentinels.clone
 
   private def getNewGrid(rows: Int, cols: Int, fillMe: Boolean): Array[Long] =
-    if (fillMe) Array.ofDim[Long](rows).map(_ => fullLineValue) else new Array[Long](rows)
+    if (fillMe) Array.ofDim[Long](rows).map(_ => fillerup(cols)) else new Array[Long](rows)
 
   private def getNewOccupancyGrid(rows: Int, cols: Int, fillMe: Boolean): Array[Array[Boolean]] =
     if (fillMe) Array.fill(rows, cols)(true) else Array.ofDim[Boolean](rows, cols)

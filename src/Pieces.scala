@@ -76,14 +76,14 @@ class Pieces {
   // map as a convenience for requesting specific named pieces
   private val pieceMap = Map(
     singleton.name       -> singleton,      // 0
-    h2line.name          -> h2line,         // 1
-    v2line.name          -> v2line,         // 2
-    h3line.name          -> h3line,         // 3
-    v3line.name          -> v3line,         // 4
-    h4line.name          -> h4line,         // 5
-    v4line.name          -> v4line,         // 6
-    h5line.name          -> h5line,         // 7
-    v5line.name          -> v5line,         // 8
+    h2Line.name          -> h2Line,         // 1
+    v2Line.name          -> v2Line,         // 2
+    h3Line.name          -> h3Line,         // 3
+    v3Line.name          -> v3Line,         // 4
+    h4Line.name          -> h4Line,         // 5
+    v4Line.name          -> v4Line,         // 6
+    h5Line.name          -> h5Line,         // 7
+    v5Line.name          -> v5Line,         // 8
     box.name             -> box,            // 9
     bigBox.name          -> bigBox,         // 10
     lowerLeftEl.name     -> lowerLeftEl,    // 11
@@ -141,14 +141,14 @@ class Pieces {
 object Pieces {
 
   val singletonName = "Singleton"
-  val h2lineName = "HLine2"
-  val v2lineName = "VLine2"
-  val h3lineName = "HLine3"
-  val v3lineName = "VLine3"
-  val h4lineName = "HLine4"
-  val v4lineName = "VLine4"
-  val h5lineName = "HLine5"
-  val v5lineName = "VLine5"
+  val h2LineName = "HLine2"
+  val v2LineName = "VLine2"
+  val h3LineName = "HLine3"
+  val v3LineName = "VLine3"
+  val h4LineName = "HLine4"
+  val v4LineName = "VLine4"
+  val h5LineName = "HLine5"
+  val v5LineName = "VLine5"
   val boxName = "Box"
   val bigBoxName = "BigBox"
   val lowerLeftElName = "LowerLL"
@@ -162,17 +162,17 @@ object Pieces {
 
   val singleton = new Line(Piece.getLinearGrid(1), Pieces.singletonName, Game.BLACK, 4)
 
-  val h2line = new Line(Piece.getLinearGrid(2), Pieces.h2lineName, Game.BRIGHT_YELLOW, 6)
-  val v2line: Piece = Piece.rotate90(Pieces.v2lineName, h2line)
+  val h2Line = new Line(Piece.getLinearGrid(2), Pieces.h2LineName, Game.BRIGHT_YELLOW, 6)
+  val v2Line: Piece = Piece.rotate90(Pieces.v2LineName, h2Line)
 
-  val h3line = new Line(Piece.getLinearGrid(3), Pieces.h3lineName, Game.YELLOW, 6)
-  val v3line: Piece = Piece.rotate90(Pieces.v3lineName, h3line)
+  val h3Line = new Line(Piece.getLinearGrid(3), Pieces.h3LineName, Game.YELLOW, 6)
+  val v3Line: Piece = Piece.rotate90(Pieces.v3LineName, h3Line)
 
-  val h4line = new Line(Piece.getLinearGrid(4), Pieces.h4lineName, Game.BRIGHT_RED, 4)
-  val v4line: Piece = Piece.rotate90(Pieces.v4lineName, h4line)
+  val h4Line = new Line(Piece.getLinearGrid(4), Pieces.h4LineName, Game.BRIGHT_RED, 4)
+  val v4Line: Piece = Piece.rotate90(Pieces.v4LineName, h4Line)
 
-  val h5line = new Line(Piece.getLinearGrid(5), Pieces.h5lineName, Game.RED, 4)
-  val v5line: Piece = Piece.rotate90(Pieces.v5lineName, h5line)
+  val h5Line = new Line(Piece.getLinearGrid(5), Pieces.h5LineName, Game.RED, 4)
+  val v5Line: Piece = Piece.rotate90(Pieces.v5LineName, h5Line)
 
   val box = new Box(Piece.getBoxGrid(2), Pieces.boxName, Game.GREEN, 12)
   val bigBox = new Box(Piece.getBoxGrid(3), Pieces.bigBoxName, Game.CYAN, 4)

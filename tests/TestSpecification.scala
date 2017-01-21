@@ -1,5 +1,5 @@
 /**
- * Created by nathanmccoy on 1/15/17.
+ * Created by nathan mccoy on 1/15/17.
  * used to test all combinations of specification entries
  */
 import org.scalatest.{FlatSpec, _}
@@ -12,19 +12,19 @@ class TestSpecification extends FlatSpec {
 
     new GameInfoFixture {
 
-      val fullspec = Specification.fullSpecification
-      assert(fullspec.length > 0)
+      val fullSpec: Array[OptimizationFactor] = Specification.fullSpecification
+      assert(fullSpec.length > 0)
       context.maxSimulations = 10 // ensure the game runs super fast - just to exercise code
       context.continuousMode = false // only run one game
       context.show = false // don't show results as the game is playing
 
-      context.specification = Specification(fullspec)
-      val game = new Game(context,gameInfo)
-      val result = game.run
+      context.specification = Specification(fullSpec)
+      val game = new Game(context, gameInfo)
+      val result: (Int, Int, Int) = game.run
       assert(result._1 > 0)
-      assert(result._2>0)
+      assert(result._2 > 0)
 
-/*      var i = 0
+      /*      var i = 0
       allSpecs.foreach { perm =>
         perm.par.foreach { spec =>
 
@@ -42,7 +42,7 @@ class TestSpecification extends FlatSpec {
 
           val result = game.run // run that game and get the score and number of rounds
 
-          // todo return gameresults rather than a tuple - it will be easier to parse
+          // todo return game results rather than a tuple - it will be easier to parse
           assert(result._1 > 0) // it just has to have a score
           assert(result._2 > 0) // it just has to have played some rounds
 

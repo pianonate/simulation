@@ -166,7 +166,7 @@ object Bullshit {
     "initiatives",
     "interfaces",
     "internet of things",
-    "machine learning technologies",
+    "machine learning",
     "markets",
     "methodologies",
     "metrics",
