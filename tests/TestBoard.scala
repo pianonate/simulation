@@ -34,11 +34,9 @@ class TestBoard extends FlatSpec {
 
     val sourceColorGrid: Array[Array[String]] = board.colorGrid
     val sourceGrid: OccupancyGrid = board.grid
-    val sourceNeighbors: Array[Array[Int]] = board.neighborsArray
 
     val copyColorGrid: Array[Array[String]] = copy.colorGrid
     val copyGrid: OccupancyGrid = copy.grid
-    val copyNeighbors: Array[Array[Int]] = copy.neighborsArray
   }
 
   behavior of "A board"
@@ -53,7 +51,6 @@ class TestBoard extends FlatSpec {
 
         assert(sourceColorGrid(i)(j) == copyColorGrid(i)(j), "- color grids don't match") // ensure source and destination match
         assert(sourceGrid.occupied(i, j) == copyGrid.occupied(i, j), "- BitVector grids don't match") // ensure OccupancyGrid grids also match
-        assert(sourceNeighbors(i)(j) == copyNeighbors(i)(j))
 
       }
 
@@ -68,9 +65,9 @@ class TestBoard extends FlatSpec {
 
       // iterate through piece indices as they will match the board at location (0,0)
       for {
-        i <- piece.cachedOccupancyGrid.indices
-        j <- piece.cachedOccupancyGrid(i).indices
-        if piece.cachedOccupancyGrid(i)(j)
+        i <- piece.grid.occupancyGrid.indices
+        j <- piece.grid.occupancyGrid(i).indices
+        if piece.grid.occupancyGrid(i)(j)
       } {
         assert(sourceColorGrid(i)(j) != copyColorGrid(i)(j), "- color grids shouldn't match")
         assert(sourceGrid.occupied(i, j) != copyGrid.occupied(i, j), "- OccupancyGrids shouldn't match")
@@ -155,12 +152,12 @@ class TestBoard extends FlatSpec {
     new BoardFixture {
       (0 to 3).foreach(i => addRow(i))
       assert(board.grid.popCount === (4 * boardSize))
-      assert(board.clearLines()._1 === 4)
+      assert(board.clearLines().rows === 4)
       assert(board.grid.popCount === 0)
 
       (0 to 3).foreach(i => addCol(i))
       assert(board.grid.popCount === (4 * boardSize))
-      assert(board.clearLines()._2 === 4)
+      assert(board.clearLines().cols === 4)
       assert(board.grid.popCount === 0)
 
     }

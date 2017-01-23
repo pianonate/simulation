@@ -10,7 +10,7 @@ abstract class Piece {
   val grid: OccupancyGrid
   val weight: Int = 0 // defined so subclasses (such as Board) don't have to provide an implementation
 
-  final val usage = Counter()
+  final val usage = Counter(0)
 
   final val rows: Int = grid.rows
   final val cols: Int = grid.cols
@@ -39,11 +39,11 @@ abstract class Piece {
     val s = new StringBuilder()
 
     for {
-      row <- cachedOccupancyGrid.indices
-      col <- cachedOccupancyGrid(row).indices
+      row <- grid.occupancyGrid.indices
+      col <- grid.occupancyGrid(row).indices
     } {
       val box = f(row, col)
-      val nl = if (col == cachedOccupancyGrid(0).length - 1) " \n" else ""
+      val nl = if (col == grid.occupancyGrid(0).length - 1) " \n" else ""
       s ++= box + " " + nl
     }
 
@@ -52,7 +52,7 @@ abstract class Piece {
   }
 
   def cellShowFunction(row: Int, col: Int): String = {
-    val occupied = cachedOccupancyGrid(row)(col)
+    val occupied = grid.occupancyGrid(row)(col)
     if (occupied) color + Board.BOX_CHAR else " "
   }
 

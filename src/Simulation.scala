@@ -76,14 +76,9 @@ case class Simulation(plcList: List[PieceLocCleared], board: Board, specLength: 
     // it would be nice if Scalariform did this by default...
     // format: OFF
     specLength match {
-      case 1 => a(0)                                             compare b(0)
-      case 2 => (a(0), a(1))                                     compare (b(0), b(1))
-      case 3 => (a(0), a(1), a(2))                               compare (b(0), b(1), b(2))
-      case 4 => (a(0), a(1), a(2), a(3))                         compare (b(0), b(1), b(2), b(3))
-      case 5 => (a(0), a(1), a(2), a(3), a(4))                   compare (b(0), b(1), b(2), b(3), b(4))
-      case 6 => (a(0), a(1), a(2), a(3), a(4), a(5))             compare (b(0), b(1), b(2), b(3), b(4), b(5))
-      case 7 => (a(0), a(1), a(2), a(3), a(4), a(5), a(6))       compare (b(0), b(1), b(2), b(3), b(4), b(5), a(6))
-      case 8 => (a(0), a(1), a(2), a(3), a(4), a(5), a(6), a(7)) compare (b(0), b(1), b(2), b(3), b(4), b(5), a(6), a(7))
+      case 5 => (a(0), a(1), a(2), a(3), a(4))             compare (b(0), b(1), b(2), b(3), b(4))
+      case 6 => (a(0), a(1), a(2), a(3), a(4), a(5))       compare (b(0), b(1), b(2), b(3), b(4), b(5))
+      case 7 => (a(0), a(1), a(2), a(3), a(4), a(5), a(6)) compare (b(0), b(1), b(2), b(3), b(4), b(5), a(6))
     }
     // format: ON
 

@@ -4,6 +4,9 @@
  * Timer's are single use.  Once you stop the timer, it is stopped for good
  * Timer is stopped by invoking elapsed or calling toString (which calls elapsed)
  */
+
+import GameTimer._
+
 class GameTimer {
 
   private val t0 = System.currentTimeMillis()
@@ -12,33 +15,45 @@ class GameTimer {
   // any time you call elapsed or toString (which calls elapsed)
   // you stop the clock because you'll lazy evaluate the t1 field...
   // don't think this is a super great way to go, but it works for the current usages
-  def elapsed: Long = System.currentTimeMillis() - t0
+  def elapsed: Long = {
+    val duration = System.currentTimeMillis() - t0
+    // if it happens within the same millisecond, then to
+    // avoid divide by zeros, return a minimum duration of 1 ms
+    if (duration==0) 1 else duration
+  }
+
+  def hours: Float = elapsed.toFloat / hour
+  def minutes: Float = elapsed.toFloat / minute
+  def seconds:Float = elapsed.toFloat / second
+
+  def minutesThisHour: Float = (elapsed - (hoursFloor * hour)).toFloat / minute
+  def secondsThisMinute: Float = (elapsed - ((hoursFloor * hour) + (minutesFloor * minute))).toFloat / second
+
+  private def hoursFloor: Int = math.floor(hours).toInt
+  private def minutesFloor: Int = math.floor(minutesThisHour).toInt
+  private def secondsFloor: Int = math.floor(secondsThisMinute).toInt
 
   def showElapsed: String = {
-    val now = elapsed
-    val hour: Long = 60 * 60 * 1000
-    val minute: Long = 60 * 1000
-    val second: Long = 1000
-
-    val hours = math.floor(now / hour).toLong
-    val minutes = math.floor((now - (hours * hour)) / minute).toLong
-    val seconds = math.floor((now - ((hours * hour) + (minutes * minute))) / second).toLong
-    val millis = now - ((hours * hour) + (minutes * minute) + (second * seconds))
+    // val millis = now - ((hours * hour) + (minutes * minute) + (second * seconds))
 
     // 3h 4m 53s 42ms
     val twoDigits = "%2d"
     val threeDigits = "%3d"
 
-
     val s: String = (
-      (if (hours > 0) hours.toString + "h " else "")
-      + twoDigits.format(minutes) + "m "
-      + twoDigits.format(seconds) + "s "
-      + threeDigits.format(millis) + "ms"
-      //+ " (" + Game.numberFormat.format(now) + ")"
+      (if (hoursFloor > 0) hoursFloor.toString + "h " else "")
+      + (if (minutesFloor > 0) twoDigits.format(minutesFloor) + "m " else "")
+      + twoDigits.format(secondsFloor) + "s "
+    // + threeDigits.format(millis) + "ms"
     )
 
     s
   }
 
+}
+
+object GameTimer {
+  val hour: Long = 60 * 60 * 1000
+  val minute: Long = 60 * 1000
+  val second: Long = 1000
 }

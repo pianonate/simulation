@@ -100,6 +100,9 @@ class Pieces {
 
   val pieceList: List[Piece] = pieceMap.values.toList
 
+  // used for outputting a set of three pieces
+  val tallestPiece:Int = pieceList.map(_.rows).max
+
   private val pieceDistribution = pieceList.flatMap(piece => List.fill(piece.weight)(piece.name))
 
   def getRandomPiece: Piece = {

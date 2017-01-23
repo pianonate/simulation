@@ -61,8 +61,8 @@ case class OccupancyGrid(
   def copy: OccupancyGrid = {
 
     // using clone vs. map reduced % of total execution time spent in .copy from 18% to 2%
-    val newRowGrid = rowGrid.clone // rowGrid.map(identity)
-    val newColGrid = colGrid.clone // colGrid.map(identity)
+    val newRowGrid = rowGrid.clone
+    val newColGrid = colGrid.clone
 
     val newOccupancyGrid = {
 
@@ -233,10 +233,10 @@ case class OccupancyGrid(
   }
 
   private def getFullLine(theGrid: Array[Long]): Array[Long] = {
-    // it's a hack to pass in sentinel values (-1's from the fullLineArrayWithSentinels
+    // it's a hack to pass back a sentinel value (-1)
     // but it prevents us from doing a splitAt (or just constructing this thing functionally
     // doing it this way is orders of magnitude faster
-    val a = getFullLineArray
+    val a = new Array[Long](Board.BOARD_SIZE)
     var i = 0
     var n = 0
     while (i < a.length) {
@@ -246,6 +246,11 @@ case class OccupancyGrid(
       }
       i += 1
     }
+
+    // add our sentinel
+    if (n < a.length)
+      a(n) = -1
+
     a
   }
 
@@ -285,7 +290,6 @@ object OccupancyGrid {
   private val fillerup = (size: Int) => math.pow(2, size).toLong - 1
   private val zero = 0
   private val boardSizeFullLineValue = fillerup(Board.BOARD_SIZE) // math.pow(2, Board.BOARD_SIZE).toLong - 1
-  private val fullLineArrayWithSentinels = Array.fill[Long](Board.BOARD_SIZE)(-1)
 
   private val popTable: Array[Int] = {
 
@@ -295,7 +299,6 @@ object OccupancyGrid {
     (0 to 1023).map(countBits).toArray
 
   }
-  private def getFullLineArray = fullLineArrayWithSentinels.clone
 
   private def getNewGrid(rows: Int, cols: Int, fillMe: Boolean): Array[Long] =
     if (fillMe) Array.ofDim[Long](rows).map(_ => fillerup(cols)) else new Array[Long](rows)

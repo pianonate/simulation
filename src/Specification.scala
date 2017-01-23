@@ -30,6 +30,8 @@ case class Specification(spec: Array[OptimizationFactor]) {
     labelFormat.format(label) + (if (isGreen) Game.GREEN + result else Game.RED + result) + Game.SANE
   }
 
+  //todo - fix: there seems to be a situation where it underlines two rows that have the same results
+
   def getImprovedResultsString(simulationResults: List[SimulationInfo], chosen: Simulation): String = {
     // the improvement comes from gathering all simulation results and then color coding for the best
     // result out of all permutations rather than just comparing best and worst on a row by row basis
@@ -133,14 +135,15 @@ object Specification {
   val fourNeighborsName = "fourNeighbors"
   val threeNeighborsName = "threeNeighbors"
   val twoNeighborsName = "twoNeighbors"
-  val islandMaxName = "islandMax"
   val maxContiguousName = "openContiguous"
   val openLinesName = "openLines"
+
+  private val MINIMUM_SPEC_LENGTH:Int = 5
 
   val fullSpecification = Array(
 
     // specification provides the ordering of the optimization as well as whether a particular optimization is maximized or minimized
-    // you'll need to update board.results and Simulation.compare if you change the length of the fullSpecification Array
+    // you'll need to update board.results, Simulation.compare and MINIMUM_SPEC_LENGTH if you change the length of the fullSpecification Array
     // other than that, you can rearrange rows in the specification, or turn entries off or on at will
     // much more flexible than it used to be
 
@@ -152,13 +155,16 @@ object Specification {
     OptimizationFactor(enabled = true, threeNeighborsName, minimize, "3 neighbors", "number of positions surrounded on 3 of 4 sides"),
     OptimizationFactor(enabled = true, maxContiguousName, maximize, "contiguous open lines", "number of lines (either horizontal or vertical) that are open and contiguous"),
     OptimizationFactor(enabled = true, twoNeighborsName, minimize, "2 neighbors", "number of positions surrounded on 2 of 4 sides"),
-    OptimizationFactor(enabled = false, openLinesName, maximize, "open Rows & Cols", "count of open rows plus open columns"),
-    OptimizationFactor(enabled = false, islandMaxName, maximize, "islandMax", "largest number of connected, unoccupied positions")
+    OptimizationFactor(enabled = false, openLinesName, maximize, "open Rows & Cols", "count of open rows plus open columns")
 
   )
 
   // by default return the full specification
-  def apply(): Specification = Specification(fullSpecification.filter(_.enabled))
+  def apply(): Specification = {
+    val filteredSpec = Specification(fullSpecification.filter(_.enabled))
+    require(filteredSpec.length >= MINIMUM_SPEC_LENGTH)
+    filteredSpec
+  }
 
   /**
    * used for testing purposes (for now) and eventually for an exhaustive run
