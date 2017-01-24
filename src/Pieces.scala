@@ -68,7 +68,10 @@
 
  */
 
-class Pieces {
+class Pieces(seed:Int = 0) {
+
+  val randomizer = if (seed > 0) new scala.util.Random(seed) else new scala.util.Random()
+
 
   import Pieces._
 
@@ -106,8 +109,9 @@ class Pieces {
   private val pieceDistribution = pieceList.flatMap(piece => List.fill(piece.weight)(piece.name))
 
   def getRandomPiece: Piece = {
+
     // add a random piece to the board and print it out
-    val pieceIndex = scala.util.Random.nextInt(pieceDistribution.size)
+    val pieceIndex = randomizer.nextInt(pieceDistribution.size)
     pieceMap(pieceDistribution(pieceIndex))
   }
 

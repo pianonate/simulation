@@ -9,7 +9,7 @@ case class Counter(from: Int = 0) {
   def value: Int = counter
   override def toString: String = value.toString
 
-  def inc(): Unit = counter += 1
+  def inc(): Unit = synchronized(counter += 1)
   def inc(count: Int): Unit = counter += count
 
 }

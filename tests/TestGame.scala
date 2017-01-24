@@ -6,7 +6,7 @@ import org.scalatest.FlatSpec
 
 trait GameInfoFixture {
   val gameInfo = GameInfo(0, 0, 1, new GameTimer)
-  val context = new Context(Array())
+  val context = new Context(new Conf(Seq()))
   context.continuousMode = false
   context.show = false
 }
@@ -35,10 +35,28 @@ class TestGame extends FlatSpec {
       context.setReplayList(plcList)
 
       private val game = new Game(context, gameInfo)
-      private val results: (Int, Int, Int) = game.run
+      private val results: GameResults = game.run
 
       // 39 is a magic value - but this MUST be the score based on the pieces setup above
-      assert(results._1 === 39)
+      assert(results.score === 39)
+    }
+  }
+
+  it must "end up with the same score for two consecutive seeded games in parallel mode" in {
+    new GameInfoFixture {
+      context.randomSeed= (new scala.util.Random()).nextInt(1000000000)
+      context.stopGameAtRound=5
+      context.show = false
+      context.parallel = true
+
+      private val game = new Game(context, gameInfo)
+      private val results1: GameResults = game.run
+
+      private val game2 = new Game(context, gameInfo)
+      private val results2: GameResults = game2.run
+      assert(results1.score===results2.score, "scores should match")
+      assert(results1.rounds===results2.rounds, "rounds should match")
+      assert(results1.totalSimulations===results2.totalSimulations, "total simulations should match")
     }
   }
 }

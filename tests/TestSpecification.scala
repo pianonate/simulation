@@ -20,9 +20,9 @@ class TestSpecification extends FlatSpec {
 
       context.specification = Specification(fullSpec)
       val game = new Game(context, gameInfo)
-      val result: (Int, Int, Int) = game.run
-      assert(result._1 > 0)
-      assert(result._2 > 0)
+      val result: GameResults = game.run
+      assert(result.score > 0)
+      assert(result.rounds > 0)
 
       /*      var i = 0
       allSpecs.foreach { perm =>

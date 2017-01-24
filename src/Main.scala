@@ -1,3 +1,6 @@
+import org.rogach.scallop.ScallopConf
+
+
 
 /**
  * Created by nathan on 12/9/16.
@@ -9,10 +12,14 @@ object Main {
   def main(args: Array[String]): Unit = {
 
     GameRunner.play(
-      new Context(args)
+      new Context(new Conf(args))
 
     )
 
   }
+
+
+
+
 }
 

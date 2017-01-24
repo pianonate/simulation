@@ -8,7 +8,6 @@ import java.io.PrintWriter
 
 object GameRunner {
 
-
   def play(context:Context): Unit = {
 
     import scala.collection.mutable.ListBuffer
@@ -34,9 +33,9 @@ object GameRunner {
       val game = new Game(context, gameInfo)
       val results = game.run
 
-      scores.append(results._1)
-      rounds.append(results._2)
-      simulationsPerSecond.append(results._3)
+      scores.append(results.score)
+      rounds.append(results.rounds)
+      simulationsPerSecond.append(results.bestPerSecond)
 
       val allTimeHighScore = List(machineHighScore, scores.max).max
       val mostRounds = rounds.max

@@ -10,59 +10,19 @@ case class GameInfo(
   totalTime:        GameTimer
 )
 
-class Context(args: Array[String]) {
-
-  // todo - just don't throw errors - shut things down in an orderly manner and output errors at the command line
-  // todo - integrate a library that does command line processing as it's not core to this project
-
-  import Context._
-  private val validArguments = Set(
-    continuousPlayName,
-    maxSimulationsName,
-    serialName,
-    showName,
-    stopGameAtRoundName
-
-  )
-
-  private val argMap: Map[String, String] = args.map(_.split(":"))
-    .map({
-      case a if a.length == 1 => (a(0), "true")
-      case b if b.length == 2 => (b(0), b(1))
-    })
-    .toMap
-
-  argMap.keys.foreach(key => { if (!validArguments(key)) throw new IllegalArgumentException(key) })
-
-  // max simulations if you had 3 singletons chosen on an empty board:
-  private val BOARD_UNOCCUPIED = Board.BOARD_SIZE * Board.BOARD_SIZE
-  private val MAX_SIMULATION_ITERATIONS: Int = BOARD_UNOCCUPIED * (BOARD_UNOCCUPIED - 1) * (BOARD_UNOCCUPIED - 2)
-
-  private def getIntArgValue(arg: String, default: Int): Int = {
-    try {
-      if (argMap.contains(arg)) argMap(arg).toInt else default
-    } catch {
-      case e: java.lang.NumberFormatException => throw new IllegalArgumentException("Expected an Int but got this: " + e.getMessage)
-      case unknownException: Throwable        => throw unknownException
-    }
-
-  }
-
-  private def getBooleanArgValue(arg: String, default: Boolean): Boolean = {
-    if (argMap.contains(arg)) true else default
-  }
+class Context(conf:Conf) {
 
   // vars so you can change test specifications - consider other mechanisms if you wish
-  var continuousMode: Boolean = getBooleanArgValue(continuousPlayName, default = true)
-  var maxSimulations: Int = getIntArgValue(maxSimulationsName, MAX_SIMULATION_ITERATIONS)
-  //noinspection VarCouldBeVal
-  var stopGameAtRound: Int = getIntArgValue(stopGameAtRoundName, 0)
-  //noinspection VarCouldBeVal
-  var serialMode: Boolean = getBooleanArgValue(serialName, default = false) // by default we are not in serial mode
-  var show: Boolean = getBooleanArgValue(showName, default = true)
+  var continuousMode: Boolean = conf.continuousPlay()
+  var maxSimulations: Int = conf.maxSimulations()
+  var stopGameAtRound: Int = conf.endGameAtRound()
+  var parallel: Boolean = conf.parallel()
+  var show: Boolean = conf.show()
+  var randomSeed:Int = conf.randomSeed()
 
+
+  // todo maybe provide alternative constructors for testing?
   var specification: Specification = Specification()
-
 
   var replayGame: Boolean = false
   //noinspection VarCouldBeVal
@@ -81,10 +41,4 @@ class Context(args: Array[String]) {
 object Context {
   val FILE_HIGH_SCORE = ".highscore"
   val FILE_SAVED_GAME = ".simulationSavedGame"
-
-  val continuousPlayName = "-continuousPlay"
-  val maxSimulationsName = "-maxSimulations"
-  val stopGameAtRoundName = "-stopAtRound"
-  val serialName = "-serial"
-  val showName = "-show"
 }

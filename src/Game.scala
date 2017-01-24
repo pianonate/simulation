@@ -24,10 +24,12 @@ import Game._
 
 object GameOver extends Exception
 
+case class GameResults(score:Int, rounds:Int, bestPerSecond:Int, totalSimulations:Long)
+
 class Game(context: Context, gameInfo: GameInfo) {
 
   private[this] val board: Board = new Board(Board.BOARD_SIZE, context.specification)
-  private[this] val gamePieces: Pieces = new Pieces
+  private[this] val gamePieces: Pieces = new Pieces(context.randomSeed)
 
   private[this] val score = Counter()
   private[this] val rowsCleared = Counter()
@@ -47,7 +49,7 @@ class Game(context: Context, gameInfo: GameInfo) {
   private[this] val performanceInfoList = new ListBuffer[PerformanceInfo]
 
 
-  def run: (Int, Int, Int) = {
+  def run: GameResults = {
 
     try {
 
@@ -72,9 +74,11 @@ class Game(context: Context, gameInfo: GameInfo) {
 
     showGameOver()
 
-    // todo - add a case class
     // return the score and the number of rounds to Main - where such things are tracked across game instances
-    (score.value, rounds.value, if (context.replayGame) 0 else performanceInfoList.map(_.perSecond).max)
+    GameResults(score.value,
+      rounds.value,
+      if (context.replayGame) 0 else performanceInfoList.map(_.perSecond).max,
+      if (context.replayGame) 0l else performanceInfoList.map(_.simulations.toLong).sum)
 
   }
 
@@ -179,10 +183,10 @@ class Game(context: Context, gameInfo: GameInfo) {
       .toList
 
     val contextualizedPermutations = {
-      if (context.serialMode)
-        permutations
-      else
+      if (context.parallel)
         permutations.toArray.par
+      else
+        permutations
     }
 
     val duration = new GameTimer
@@ -237,9 +241,9 @@ class Game(context: Context, gameInfo: GameInfo) {
     // but you only store the last simulation - so there's nothing to accumulate...
     // val simulations = new Array[Simulation](maxSimulations)
 
-    // keep these populated as weo
+    // keep these populated
     // as this is better than sorting at the end as it allows for a parallel sort
-    // as it the compare is called on each thread while walking through the legalPlacements(piece).par
+    // as the compare is called on each thread while walking through the legalPlacements(piece).par
     // provided by getLegal below
     var best: Option[Simulation] = None
     var worst: Option[Simulation] = None
@@ -259,10 +263,10 @@ class Game(context: Context, gameInfo: GameInfo) {
     def createSimulations(board: Board, pieces: List[Piece], linesCleared: Boolean, plcAccumulator: List[PieceLocCleared]): Unit = {
 
       def getLegal(board: Board, piece: Piece): GenSeq[Loc] = {
-        if (context.serialMode)
-          board.legalPlacements(piece)
-        else
+        if (context.parallel)
           board.legalPlacements(piece).par
+        else
+          board.legalPlacements(piece)
       }
 
       val piece = pieces.head
@@ -281,7 +285,7 @@ class Game(context: Context, gameInfo: GameInfo) {
               case a: Some[Simulation] =>
                 val comparison = simulation.compare(a.get)
                 if (comparison < 0)
-                  best = Some(simulation)
+                  synchronized(best = Some(simulation))
               case _ => best = Some(simulation)
             }
 
@@ -289,7 +293,7 @@ class Game(context: Context, gameInfo: GameInfo) {
               case a: Some[Simulation] =>
                 val comparison = simulation.compare(a.get)
                 if (comparison > 0)
-                  worst = Some(simulation)
+                  synchronized(worst = Some(simulation))
               case _ => worst = Some(simulation)
             }
 
@@ -306,7 +310,7 @@ class Game(context: Context, gameInfo: GameInfo) {
               updateBestAndWorst()
               simulationCount.inc()
             }
-         /* }*/
+          /*}*/
 
         }
 
@@ -349,7 +353,7 @@ class Game(context: Context, gameInfo: GameInfo) {
               val simulation = Simulation(plcList.reverse, boardCopy, context.specification.length)
               updateSimulations(simulation)
             } else {
-              /*synchronized {*/ unsimulatedCount.inc() /*}*/
+              unsimulatedCount.inc()
             }
 
           }
