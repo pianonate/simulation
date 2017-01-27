@@ -13,14 +13,14 @@ trait BoardFixture {
 
   def addRow(at: Int): Unit = {
 
-    board.place(Pieces.h5Line, Loc(at, 0))
-    board.place(Pieces.h5Line, Loc(at, 5))
+    board.place(Pieces.h5Line, Loc(at, 0), updateColor=true)
+    board.place(Pieces.h5Line, Loc(at, 5), updateColor=true)
 
   }
 
   def addCol(at: Int): Unit = {
-    board.place(Pieces.v5Line, Loc(0, at))
-    board.place(Pieces.v5Line, Loc(5, at))
+    board.place(Pieces.v5Line, Loc(0, at), updateColor=true)
+    board.place(Pieces.v5Line, Loc(5, at), updateColor=true)
   }
 }
 
@@ -28,7 +28,7 @@ class TestBoard extends FlatSpec {
 
   trait BoardCopyFixture extends BoardFixture {
 
-    board.place(pieces.getRandomPiece, Loc(boardSize / 2, boardSize / 2)) // just place one in the middle
+    board.place(pieces.getRandomPiece, Loc(boardSize / 2, boardSize / 2), updateColor=true) // just place one in the middle
 
     val copy: Board = Board.copy("copy", board)
 
@@ -45,11 +45,12 @@ class TestBoard extends FlatSpec {
     new BoardCopyFixture {
 
       for {
-        i <- sourceColorGrid.indices
-        j <- sourceColorGrid(i).indices
+        i <- sourceGrid.occupancyGrid.indices
+        j <- sourceGrid.occupancyGrid(i).indices
       } {
 
-        assert(sourceColorGrid(i)(j) == copyColorGrid(i)(j), "- color grids don't match") // ensure source and destination match
+        // copy is only for simulations so color grid's are no longer expected to match as we don't copy the color grid for simulations
+        //assert(sourceColorGrid(i)(j) == copyColorGrid(i)(j), "- color grids don't match") // ensure source and destination match
         assert(sourceGrid.occupied(i, j) == copyGrid.occupied(i, j), "- BitVector grids don't match") // ensure OccupancyGrid grids also match
 
       }
@@ -61,7 +62,7 @@ class TestBoard extends FlatSpec {
     new BoardCopyFixture {
       // place the random piece at the beginning
       val piece: Piece = pieces.getRandomPiece
-      board.place(piece, Loc(0, 0)) // we know that the source board is empty at (0,0) as it is not filled in on the fixture
+      board.place(piece, Loc(0, 0), updateColor=true) // we know that the source board is empty at (0,0) as it is not filled in on the fixture
 
       // iterate through piece indices as they will match the board at location (0,0)
       for {
@@ -69,7 +70,7 @@ class TestBoard extends FlatSpec {
         j <- piece.grid.occupancyGrid(i).indices
         if piece.grid.occupancyGrid(i)(j)
       } {
-        assert(sourceColorGrid(i)(j) != copyColorGrid(i)(j), "- color grids shouldn't match")
+        // color grids are not copied because they are only used for simulations
         assert(sourceGrid.occupied(i, j) != copyGrid.occupied(i, j), "- OccupancyGrids shouldn't match")
       }
     }
@@ -83,11 +84,11 @@ class TestBoard extends FlatSpec {
       //        are returned in a different order, we may not
       //        clear enough lines to have this execute safely
       for (piece <- pieces.pieceList) {
-        board.clearLines()
+        board.clearLines(clearColor=true)
         val boardScore = board.grid.popCount
         val pieceScore = piece.pointValue
         val loc = board.legalPlacements(piece).head
-        board.place(piece, loc)
+        board.place(piece, loc, updateColor=true)
         assert(board.grid.popCount === boardScore + pieceScore, "- " + piece.name + " - index:" + i)
         i += 1
       }
@@ -123,7 +124,7 @@ class TestBoard extends FlatSpec {
     new BoardFixture {
 
       addRow(boardSize / 2)
-      board.clearLines()
+      board.clearLines(clearColor=true)
       assert(board.grid.openLineCount === initialOpenLines)
 
     }
@@ -132,7 +133,7 @@ class TestBoard extends FlatSpec {
   it must "have same number of open lines after adding and clearing the same column" in {
     new BoardFixture {
       addCol(boardSize / 2)
-      board.clearLines()
+      board.clearLines(clearColor=true)
       assert(board.grid.openLineCount === initialOpenLines)
 
     }
@@ -142,7 +143,7 @@ class TestBoard extends FlatSpec {
     new BoardFixture {
       addCol(boardSize / 2)
       addRow(boardSize / 2)
-      board.clearLines()
+      board.clearLines(clearColor=true)
       assert(board.grid.openLineCount === initialOpenLines)
 
     }
@@ -152,12 +153,12 @@ class TestBoard extends FlatSpec {
     new BoardFixture {
       (0 to 3).foreach(i => addRow(i))
       assert(board.grid.popCount === (4 * boardSize))
-      assert(board.clearLines().rows === 4)
+      assert(board.clearLines(clearColor=false).rows === 4)
       assert(board.grid.popCount === 0)
 
       (0 to 3).foreach(i => addCol(i))
       assert(board.grid.popCount === (4 * boardSize))
-      assert(board.clearLines().cols === 4)
+      assert(board.clearLines(clearColor=false).cols === 4)
       assert(board.grid.popCount === 0)
 
     }
@@ -172,12 +173,12 @@ class TestBoard extends FlatSpec {
         addRow(i)
         val rowMax = board.grid.maxContiguousOpenLines
         assert(expected === rowMax)
-        board.clearLines()
+        board.clearLines(clearColor=true)
 
         addCol(i)
         val colMax = board.grid.maxContiguousOpenLines
         assert(expected === colMax)
-        board.clearLines()
+        board.clearLines(clearColor=true)
 
       }
       /*
@@ -200,7 +201,7 @@ class TestBoard extends FlatSpec {
     new BoardFixture {
       val occupancy: Int = board.grid.popCount
       addRow(0)
-      board.clearLines()
+      board.clearLines(clearColor=true)
       for {
         i <- board.colorGrid.indices
         j <- board.colorGrid(0).indices

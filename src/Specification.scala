@@ -10,29 +10,36 @@
  *   n times to see which combination/permutation of specifications
  *   results in the highest scores...
  */
+
+import Implicits._
+
 case class Specification(spec: Array[OptimizationFactor]) {
+
   val length: Int = spec.length
+
   def apply(i: Int): OptimizationFactor = spec(i)
+
   def getOptimizationFactorExplanations: String = {
     // used by showGameStart
-    spec.map(optFactor => "* " + optFactor.resultLabel + " - " + optFactor.explanation).mkString("\n")
+    spec.map(optFactor => "* " + optFactor.label + " - " + optFactor.explanation).mkString("\n")
   }
 
-  private[this] val resultFormat = "%2d"
-  private[this] val resultParenFormat = " (" + resultFormat + ")"
-  private[this] val resultLabelFormat = " %s: "
-
-  private[this] def greenifyResult(isGreen: Boolean, value: Int, valFormat: String, label: String, labelFormat: String): String = {
+  private[this] def greenifyResult(optLabel: Option[String], isGreen: Boolean, value: Int): String = {
     // maximized results are negated to work with Simulation.compare so
     // as not to have to jump through hoops in that method
     // use math.abs to show them to the user in a way that makes sense
-    val result = valFormat.format(math.abs(value))
-    labelFormat.format(label) + (if (isGreen) Game.GREEN + result else Game.RED + result) + Game.SANE
+
+    val result = value.abs
+    val resultString = optLabel match {
+        case s: Some[String] => s.get.optFactorLabel + (if (isGreen) result.greenLabel else result.redLabel)
+        case _               => (if (isGreen) result.greenLabel else result.redLabel).parens
+      }
+
+    resultString
   }
 
-  //todo - fix: there seems to be a situation where it underlines two rows that have the same results
 
-  def getImprovedResultsString(simulationResults: List[SimulationInfo], chosen: Simulation): String = {
+  def getImprovedResultsString(simulationResults: List[SimulationInfo], chosen: Simulation, showWorst:Boolean): String = {
     // the improvement comes from gathering all simulation results and then color coding for the best
     // result out of all permutations rather than just comparing best and worst on a row by row basis
     // this is FAR superior
@@ -44,74 +51,58 @@ case class Specification(spec: Array[OptimizationFactor]) {
 
     def getResultString(simulationResult: SimulationInfo, simulationIndex: Int): String = {
 
-      def handleOptFactor(optFactor: OptimizationFactor, bestVal: Int, worstVal: Int, topValIndex: Int): String = {
+      def handleOptFactor(optFactor: OptimizationFactor, bestVal: Int, worstVal: Int, topValIndex: Int, showWorst:Boolean): String = {
+
         val topVal = bestOfAll(topValIndex)
-        greenifyResult(bestVal == topVal, bestVal, resultFormat, optFactor.resultLabel, resultLabelFormat) + greenifyResult(worstVal == topVal, worstVal, resultParenFormat, "", "")
+
+        greenifyResult(Some(optFactor.label), bestVal == topVal, bestVal) +
+          ( if (showWorst) greenifyResult(None, worstVal == topVal, worstVal) else "" )
       }
 
       val best = simulationResult.best.results
 
-      val worst = simulationResult.worst.results
+      val worst = if (showWorst)
+        simulationResult.worst.results
+      else
+        simulationResult.worst.emptyResults // no need to calculate it we're not showing
 
-      (simulationIndex + 1) + ": " + simulationResult.pieces.map(_.name).mkString(", ") + " -" +
+      (simulationIndex + 1) + ": " + simulationResult.pieces.label + " -" +
         spec
         .zip(best).zip(worst).zipWithIndex
         .map(tup => (tup._1._1._1, tup._1._1._2, tup._1._2, tup._2))
-        .map(tup => handleOptFactor(tup._1, tup._2, tup._3, tup._4))
-        .mkString
+        .map(tup => handleOptFactor(tup._1, tup._2, tup._3, tup._4, showWorst))
+        .mkString(" -")
 
-    }
-
-    def getPerformanceString(result: SimulationInfo): String = {
-      val largeValuesFormat = "%,5d"
-
-      val simulationCountString = largeValuesFormat.format(result.simulationCount)
-
-      val durationString = largeValuesFormat.format(result.elapsed) + "ms"
-
-      " - simulations: " + simulationCountString + " in " + durationString
     }
 
     simulationResults.zipWithIndex.map { tup =>
-      val r = tup._1
+
+      val result = tup._1
       val index = tup._2
 
-      val s = getResultString(r, index) + getPerformanceString(r)
+      val s = getResultString(result, index) + " - simulations: " + (result.simulatedCount + result.unsimulatedCount).label(9) + result.elapsedMs.msLabel(5)
+
+      //todo - fix: there seems to be a situation where it underlines two rows that have the same results
 
       // underline is for closers (Glengarry Glen Ross)
-      if (r.best == chosen) {
+      if (result.best == chosen) {
         val parts = s.splitAt(s.indexOf(" ") + 1)
-        parts._1 + Game.UNDERLINE + parts._2.split(Game.ESCAPE).mkString(Game.UNDERLINE + Game.ESCAPE) + Game.SANE
+        parts._1 + StringFormats.UNDERLINE + parts._2.split(StringFormats.ESCAPE).mkString(StringFormats.UNDERLINE + StringFormats.ESCAPE) + StringFormats.SANE
       } else
-        Game.SANE + s
+        StringFormats.SANE + s
     }.mkString("\n")
   }
 
   def getBoardResultString(boardResult: Array[Int]): String = {
+
     // this is called from a board placement result during the actual placing of pieces post-simulation
     // we keep board placement results separate on the one board that the whole game runs on
     // so that we can compare expected results from a simulation with actual results on the board
     // additionally, this mechanism allows us to display line clearing.
-    // all of the above is to say, this results string is fairly complex because of keeping these
-    // things separate.  for now, this is acceptable
-    // at least the results are guided by the specification.  Previous instances were not and
-    // there was a lot of duplication and gnashing of teeth
-
-    val longLabelFormat = " -" + resultLabelFormat
-
-    var first = true
-
-    def handleOptFactor(optFactor: OptimizationFactor, resultVal: Int): String = {
-      val theLabel = if (first) { first = false; resultLabelFormat } else longLabelFormat
-      val green = true
-      greenifyResult(green, resultVal, resultFormat, optFactor.resultLabel, theLabel)
-    }
-
     spec
       .zip(boardResult)
-      .map(tup => handleOptFactor(tup._1, tup._2))
-      .mkString
-
+      .map(tup => greenifyResult(Some(tup._1.label), isGreen = true, tup._2) )
+      .mkString(" -")
   }
 
 }
@@ -120,7 +111,7 @@ case class OptimizationFactor(
   enabled:     Boolean,
   fieldName:   String,
   minimize:    Boolean,
-  resultLabel: String,
+  label:       String,
   explanation: String
 )
 
@@ -138,7 +129,7 @@ object Specification {
   val maxContiguousName = "openContiguous"
   val openLinesName = "openLines"
 
-  private val MINIMUM_SPEC_LENGTH:Int = 5
+  private val MINIMUM_SPEC_LENGTH: Int = 5
 
   val fullSpecification = Array(
 
@@ -154,8 +145,9 @@ object Specification {
     OptimizationFactor(enabled = true, fourNeighborsName, minimize, "4 neighbors", "number of positions surrounded on all 4 sides"),
     OptimizationFactor(enabled = true, threeNeighborsName, minimize, "3 neighbors", "number of positions surrounded on 3 of 4 sides"),
     OptimizationFactor(enabled = true, maxContiguousName, maximize, "contiguous open lines", "number of lines (either horizontal or vertical) that are open and contiguous"),
-    OptimizationFactor(enabled = true, twoNeighborsName, minimize, "2 neighbors", "number of positions surrounded on 2 of 4 sides"),
-    OptimizationFactor(enabled = false, openLinesName, maximize, "open Rows & Cols", "count of open rows plus open columns")
+    OptimizationFactor(enabled = false, openLinesName, maximize, "open Rows & Cols", "count of open rows plus open columns"),
+    OptimizationFactor(enabled = true, twoNeighborsName, minimize, "2 neighbors", "number of positions surrounded on 2 of 4 sides")
+
 
   )
 

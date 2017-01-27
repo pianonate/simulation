@@ -2,6 +2,8 @@
  * Created by nathan on 12/10/16.
  * Game will hold a reference to the current board and will also invoke simulations
  *
+ * todo show the recent n games in the round summary
+ *
  * Todo: at end of game you can often place one or two pieces, but we don't place any - find out why
  *
  * TODO: Kevin suggests assigning values from 0 to 5 to 0 on both axes and minimize for placement on higher valued squares
@@ -19,12 +21,39 @@
  */
 
 import scala.collection.GenSeq
-
-import Game._
+import Implicits._
 
 object GameOver extends Exception
 
-case class GameResults(score:Int, rounds:Int, bestPerSecond:Int, totalSimulations:Long)
+case class GameResults(score: Int, rounds: Int, bestPerSecond: Int, totalSimulations: Long, totalUnsimulatedSimulations: Long)
+
+/**
+ * SimulationInfo is used to display results at the end of each round
+ * @param pieces - the list of pieces that were placed this round
+ * @param simulatedCount - how many combinations of locations were simulated for these three pieces
+ * @param best - the best simulation as determined by the Specification
+ * @param worst - the worst simulation as determined by the Specification
+ * @param elapsedMs - how much time did it take to run all of the simulationCount simulations
+ */
+case class SimulationInfo(
+  pieces:              List[Piece],
+  simulatedCount:      Int,
+  unsimulatedCount:    Int,
+  best:                Simulation,
+  worst:               Simulation,
+  rcChangedCountBest:  Int,
+  rcChangedCountWorst: Int,
+  elapsedMs:           Int
+)
+
+case class PerformanceInfo(
+  simulatedCount:      Int,
+  unsimulatedCount:    Int,
+  rcChangedCountBest:  Int,
+  rcChangedCountWorst: Int,
+  elapsedMs:           Long,
+  perSecond:           Int
+)
 
 class Game(context: Context, gameInfo: GameInfo) {
 
@@ -35,19 +64,36 @@ class Game(context: Context, gameInfo: GameInfo) {
   private[this] val rowsCleared = Counter()
   private[this] val colsCleared = Counter()
   private[this] val rounds = Counter()
-  private[this] val gameDuration = new GameTimer
-  private[this] val bullShit = new BullShit(rounds, gameDuration)
+  private[this] val gameTimer = new GameTimer
+  private[this] val nonSimulationTimer = new GameTimer()
 
-  case class PerformanceInfo(
-    simulations:            Long,
-    unsimulatedSimulations: Long,
-    duration:               Long,
-    perSecond:              Int
-  )
+  private[this] val roundAfterSimulationTimer = new GameTimer()
+  roundAfterSimulationTimer.pause
+
+  private[this] val getChosenOneTimer = new GameTimer()
+  getChosenOneTimer.pause
+
+  private[this] val getResultsStringTimer = new GameTimer()
+  getResultsStringTimer.pause
+
+  private[this] val getChosenPlcListTimer = new GameTimer()
+  getChosenPlcListTimer.pause
+
+  private[this] val placePiecesTimer = new GameTimer()
+  placePiecesTimer.pause
+
+  private[this] val getRoundResultsStringTimer = new GameTimer()
+  getRoundResultsStringTimer.pause
+
+  private[this] val showTimer = new GameTimer()
+  showTimer.pause
+
+
+
+  private[this] val bullShit = new BullShit(rounds, gameTimer)
 
   import scala.collection.mutable.ListBuffer
   private[this] val performanceInfoList = new ListBuffer[PerformanceInfo]
-
 
   def run: GameResults = {
 
@@ -75,67 +121,81 @@ class Game(context: Context, gameInfo: GameInfo) {
     showGameOver()
 
     // return the score and the number of rounds to Main - where such things are tracked across game instances
-    GameResults(score.value,
+    GameResults(
+      score.value,
       rounds.value,
       if (context.replayGame) 0 else performanceInfoList.map(_.perSecond).max,
-      if (context.replayGame) 0l else performanceInfoList.map(_.simulations.toLong).sum)
+      if (context.replayGame) 0l else performanceInfoList.map(_.simulatedCount).sum,
+      if (context.replayGame) 0l else performanceInfoList.map(_.unsimulatedCount).sum
+    )
 
   }
 
   private def roundHandler() = {
 
-    def getReplayPieces = {
-      val instrumentedPlcList: List[PieceLocCleared] = if (context.replayGame) {
-        val next3 = context.takeReplayPiecesForRound.toList
-        if (next3.length < 3)
-          throw GameOver
-        else
-          next3
-      } else
-        List()
+    def getReplayPieces: List[PieceLocCleared] = {
+
+      val instrumentedPlcList: List[PieceLocCleared] =
+        if (context.replayGame) {
+          val next3 = context.takeReplayPiecesForRound.toList
+          if (next3.length < 3)
+            throw GameOver
+          else
+            next3
+        } else {
+          List()
+        }
+
       instrumentedPlcList
     }
 
-    def piecesForRound(instrumentedPlcList: List[PieceLocCleared]) = {
-      if (context.replayGame) instrumentedPlcList.map(_.piece) else getPiecesForRound
+    def piecesForRound(replayPieces: List[PieceLocCleared]): List[Piece] = {
+      if (context.replayGame) replayPieces.map(_.piece) else getPiecesForRound
     }
 
-    def getTheChosenOne(results: List[SimulationInfo], replayPieces: List[PieceLocCleared]) = {
+    def getTheChosenOne(results: List[SimulationInfo], replayPieces: List[PieceLocCleared]): Simulation = {
       if (context.replayGame && context.ignoreSimulation)
-        Simulation(replayPieces, this.board, context.specification.length)
-      else
+        Simulation(replayPieces, this.board, context.specification.length, 0)
+      else {
         // take the best result form each simulation, sort it and select the top
-        results.map(_.best).sorted.head
-    }
-
-    def getResults(pieces: List[Piece]) = {
-      if (context.replayGame && context.ignoreSimulation) Nil else getSimulationResults(pieces)
-    }
-
-    def showSimulationResults(results: List[SimulationInfo], bestSimulation: Simulation) = {
-      // todo use futures here to allow for outputting interesting things while simulations are running
-      if (context.show) {
-        if (context.replayGame && context.ignoreSimulation)
-          println("\ninstrumented game - skipping results")
+        // in some rounds, you will get an infeasible solution so be sure to ensure the
+        // plcList is nonEmpty
+        val filtered = results.map(_.best).filter(_.plcList.nonEmpty)
+        if (filtered.isEmpty)
+          throw GameOver
         else
-          println("\n" + context.specification.getImprovedResultsString(results, bestSimulation))
+          filtered.sorted.head
       }
     }
 
-    def getChosenPlcList(replayPieces: List[PieceLocCleared], bestSimulation: Simulation) = {
-      if (context.replayGame && context.ignoreSimulation) replayPieces else bestSimulation.plcList
+    def getResults(pieces: List[Piece]): List[SimulationInfo] = {
+      if (context.replayGame && context.ignoreSimulation) Nil else getSimulationResults(pieces)
     }
 
-    def placePieces(chosenList: List[PieceLocCleared]) = {
+    def getResultsString(results: List[SimulationInfo], bestSimulation: Simulation): String = {
+      if (context.replayGame && context.ignoreSimulation)
+        "\ninstrumented game - skipping results\n"
+      else
+        "\n" + context.specification.getImprovedResultsString(results, bestSimulation, context.showWorst) + "\n"
+
+    }
+
+    def getChosenPlcList(replayPieces: List[PieceLocCleared], bestSimulation: Simulation): List[PieceLocCleared] = {
+      // rather than reverse as they're constructed to put them in the right order
+      // just reverse now on the specific best piece
+      if (context.replayGame && context.ignoreSimulation) replayPieces else bestSimulation.plcList.reverse
+    }
+
+    def placePieces(chosenList: List[PieceLocCleared]): String = {
       // zip the piece location cleared list it's index so we don't have to keep a
       // global track of placed pieces
-      chosenList.zipWithIndex.foreach(
+      chosenList.zipWithIndex.map(
         plc => pieceHandler(
           plc._1.piece,
           plc._1.loc,
           plc._2 + 1
         )
-      )
+      ).mkString
     }
 
     val replayPieces = getReplayPieces
@@ -147,25 +207,49 @@ class Game(context: Context, gameInfo: GameInfo) {
 
     showPieces(pieces)
 
+    nonSimulationTimer.pause
+    roundAfterSimulationTimer.pause
+
     val results = getResults(pieces)
 
+    nonSimulationTimer.resume
+    roundAfterSimulationTimer.resume
+
+    getChosenOneTimer.resume
     val bestSimulation = getTheChosenOne(results, replayPieces)
+    getChosenOneTimer.pause
 
-    if (bestSimulation.pieceCount == 3) {
+    if (bestSimulation.pieceCount > 0) {
 
-      showSimulationResults(results, bestSimulation)
+      getResultsStringTimer.resume
+      // no need to get a results string if we're not going to show it
+      val s1 = if (context.show) getResultsString(results, bestSimulation) else ""
+      getResultsStringTimer.pause
 
+      getChosenPlcListTimer.resume
       val chosenList: List[PieceLocCleared] = getChosenPlcList(replayPieces, bestSimulation)
+      getChosenPlcListTimer.pause
 
-      // must be after showPieces and showResults as this has side effects of printing to screen
-      placePieces(chosenList)
+      placePiecesTimer.resume
+      // as a side effect of placing, returns a string representing board states
+      // is there a better way to do this?
+      val s2 = placePieces(chosenList)
+      placePiecesTimer.pause
 
-      showRoundResults(gameInfo.gameCount: Int)
+      getRoundResultsStringTimer.resume
+      val s3 = if (context.show) getRoundResultsString(gameInfo.gameCount: Int) else ""
+      getRoundResultsStringTimer.pause
 
+      // showTimer includes time spent to construct itself in the getRoundResultsString array
+      // otherwise it fucks up a lot
+
+      showTimer.resume
+      if (context.show)
+        print(s1 + s2 + s3)
+      showTimer.pause
     }
-    else {
-      println("\nsorry, i guess i'm not all that smart after all...number of pieces that can fit on board: " + bestSimulation.pieceCount)
-    }
+
+    roundAfterSimulationTimer.pause
 
     if (bestSimulation.pieceCount < 3 || (rounds.value == context.stopGameAtRound)) {
       throw GameOver
@@ -177,35 +261,38 @@ class Game(context: Context, gameInfo: GameInfo) {
     // set up a test of running through all orderings of piece placement (permutations)
     // and for each ordering, try all combinations of legal locations
     // the best score as defined by Simulations.compare after trying all legal locations is chosen
+    val duration = new GameTimer
 
     val permutations = pieces
       .permutations
       .toList
 
-    val contextualizedPermutations = {
+    val paraperms = {
       if (context.parallel)
         permutations.toArray.par
       else
         permutations
     }
 
-    val duration = new GameTimer
-
-    val result = contextualizedPermutations
+    val result = paraperms
       .zipWithIndex
-      .map(pieces => pieceSequenceSimulation(pieces._1, pieces._2, contextualizedPermutations.length))
+      .map(pieces => simulatePermutation(pieces._1, pieces._2, paraperms.length))
       .toList
 
-    val elapsed = duration.elapsed
-    val simulatedCount = result.map(_.simulationCount).sum.toDouble
+    val elapsedMs = duration.elapsedMillisecondsFloor
+    val simulatedCount = result.map(_.simulatedCount).sum
     val unsimulatedCount = result.map(_.unsimulatedCount).sum
 
-    val perSecond = ((simulatedCount + unsimulatedCount.toDouble) / elapsed * 1000).toInt
+    val perSecond = ((simulatedCount + unsimulatedCount.toDouble) / elapsedMs * GameTimer.millisecondsPerSecond).toInt
+
+    val rcChangedCountWorst = if (context.showWorst) result.map(_.rcChangedCountWorst).sum else 0
 
     performanceInfoList append PerformanceInfo(
-      simulatedCount.toLong + unsimulatedCount,
+      simulatedCount + unsimulatedCount,
       unsimulatedCount,
-      elapsed,
+      result.map(_.rcChangedCountBest).sum,
+      rcChangedCountWorst,
+      elapsedMs,
       perSecond
     )
 
@@ -228,13 +315,13 @@ class Game(context: Context, gameInfo: GameInfo) {
     pieces
   }
 
-  private def pieceSequenceSimulation(pieces: List[Piece], permutationIndex: Int, totalPermutations: Int): SimulationInfo = {
-
-    if (context.show) print(".")
+  private def simulatePermutation(pieces: List[Piece], permutationIndex: Int, totalPermutations: Int): SimulationInfo = {
 
     val simulationDuration = new GameTimer
     val simulationCount = Counter()
     val unsimulatedCount = Counter()
+    val rcChangedCountBest = Counter()
+    val rcChangedCountWorst = Counter()
 
     // i can't see how to not have this Array
     // i can accumulate locations because you generate one each time through the recursion
@@ -248,19 +335,96 @@ class Game(context: Context, gameInfo: GameInfo) {
     var best: Option[Simulation] = None
     var worst: Option[Simulation] = None
 
+    case class BoardPieceLocCleared(board: Board, plc: PieceLocCleared)
+
     //return the board copy and the number of lines cleared
-    def placeMe(piece: Piece, theBoard: Board, loc: Loc): (Board, PieceLocCleared) = {
+    def placeMe(piece: Piece, theBoard: Board, loc: Loc): BoardPieceLocCleared = {
       val boardCopy = Board.copy("simulationBoard", theBoard)
-      boardCopy.place(piece, loc)
-      val cleared = boardCopy.clearLines()
+      boardCopy.place(piece, loc, updateColor = false)
+      val cleared = boardCopy.clearLines(clearColor = false)
       val isCleared = (cleared.rows + cleared.cols) > 0
 
       // return the board with an instance of a PieceLocCleared class
-      (boardCopy, PieceLocCleared(piece, loc, isCleared))
+      BoardPieceLocCleared(boardCopy, PieceLocCleared(piece, loc, isCleared))
 
     }
 
     def createSimulations(board: Board, pieces: List[Piece], linesCleared: Boolean, plcAccumulator: List[PieceLocCleared]): Unit = {
+
+      def isUpdatable( /*plcList: List[PieceLocCleared]*/ loc: Loc): Boolean = {
+
+        // mode the index with totalPermutations and see if it's equal to this permutations index
+        // if it is, you must calculate
+        def mustUpdateForThisPermutation: Boolean = {
+          // find where this location is a flattened index list
+          val index = loc.row * Board.BOARD_SIZE + loc.col
+          (index % totalPermutations) == permutationIndex
+        }
+
+        // we have to count this one if it clears lines as this can happen on any permutation
+        linesCleared || mustUpdateForThisPermutation
+      }
+
+      def updateBestAndWorst(simulation: Simulation): Unit = {
+
+        best match {
+          case a: Some[Simulation] =>
+            val bestID = a.get.id // best.hashCode
+            val comparison = simulation.compare(a.get)
+            // contention
+            if (comparison < 0)
+              // as long as best hasn't changed and we are in a better simulation then update it
+              synchronized {
+                if (best.get.id == bestID)
+                  best = Some(simulation)
+                else {
+                  // if the other thread put a better one in there, then who cares - don't update it
+                  // then check if the new simulation is better than the new one
+                  val comparison = simulation.compare(a.get)
+                  if (comparison < 0) {
+                    rcChangedCountBest.inc()
+                    best = Some(simulation)
+                  }
+                }
+              }
+          case _ => best = Some(simulation) // first simulation is best
+        }
+
+        if (context.showWorst) {
+          worst match {
+            case a: Some[Simulation] =>
+              val worstID = a.get.id
+              val comparison = simulation.compare(a.get)
+              // contention
+              if (comparison > 0)
+                synchronized {
+                  // if worst hasn't changed then stuff in the simulation as it is the new worst
+                  if (worst.get.id == worstID)
+                    worst = Some(simulation)
+                  else {
+                    // if the other thread put a worse one in there, see if the new worst is still
+                    // really the worst - if not, then put the current one in there
+                    val comparison = simulation.compare(a.get)
+                    if (comparison > 0) {
+                      rcChangedCountWorst.inc()
+                      worst = Some(simulation)
+                    }
+                  }
+                }
+            case _ => worst = Some(simulation) // first simulation is worst
+          }
+        }
+      }
+
+      def updateSimulation(plcList: List[PieceLocCleared], board: Board): Unit = {
+
+        if (simulationCount.value < context.maxSimulations) {
+          val id = simulationCount.inc()
+          val simulation = Simulation(plcList /*.reverse*/ , board, context.specification.length, id)
+          updateBestAndWorst(simulation)
+        }
+
+      }
 
       def getLegal(board: Board, piece: Piece): GenSeq[Loc] = {
         if (context.parallel)
@@ -274,51 +438,15 @@ class Game(context: Context, gameInfo: GameInfo) {
       val paralegal: GenSeq[Loc] = getLegal(board, piece)
 
       def simulationHandler(loc: Loc) = {
-        // maxSimulations is configured at runtime
-        // if we are profiling it uses a smaller number so tracing doesn't slow things down that we can't get a few rounds
 
-        def updateSimulations(simulation: Simulation) = {
-
-          def updateBestAndWorst(): Unit = {
-
-            best match {
-              case a: Some[Simulation] =>
-                val comparison = simulation.compare(a.get)
-                if (comparison < 0)
-                  synchronized(best = Some(simulation))
-              case _ => best = Some(simulation)
-            }
-
-            worst match {
-              case a: Some[Simulation] =>
-                val comparison = simulation.compare(a.get)
-                if (comparison > 0)
-                  synchronized(worst = Some(simulation))
-              case _ => worst = Some(simulation)
-            }
-
-          }
-
-          // todo - do a test of capturing results from a run where you had synchronized on
-          // then compare it to results captured when synchronized is off using the same pieces
-          // see if things come back the same
-          // leaving synchronized off really lets this thing fly
-
-          /*synchronized {*/
-            // apparently another thread updating simulationCount to be incremented before we enter here
-            if (simulationCount.value < context.maxSimulations) {
-              updateBestAndWorst()
-              simulationCount.inc()
-            }
-          /*}*/
-
-        }
-
+        // you can configure max simulations at command line (or in tests)
+        // if you want to step through code with fewer simulations executed
+        // or if you want to profile with fewer simulations
         if (simulationCount.value < context.maxSimulations) {
 
           val result = placeMe(piece, board, loc)
-          val boardCopy = result._1
-          val plc = result._2
+          val boardCopy = result.board
+          val plc = result.plc
 
           if (pieces.tail.nonEmpty) {
 
@@ -330,28 +458,13 @@ class Game(context: Context, gameInfo: GameInfo) {
 
           } else {
 
-            def isUpdatable(plcList: List[PieceLocCleared]): Boolean = {
-
-              // mode the index with totalPermutations and see if it's equal to this permutations index
-              // if it is, you must calculate
-              def mustUpdateForThisPermutation: Boolean = {
-                // find where this location is a flattened index list
-                val index = loc.row * Board.BOARD_SIZE + loc.col
-                (index % totalPermutations) == permutationIndex
-              }
-
-              // we have to count this one if it clears lines as this can happen on any permutation
-              linesCleared || mustUpdateForThisPermutation
-            }
-
             // right now we never get to the third simulation if it can't fit
             // so it would be good to return a 2 piece simulation or 1 piece simulation if they can be returned
             val plcList = plc :: plcAccumulator
 
             // only add simulation when we've reached the last legal location on this path
-            if (isUpdatable(plcList) /*true*/ ) {
-              val simulation = Simulation(plcList.reverse, boardCopy, context.specification.length)
-              updateSimulations(simulation)
+            if (isUpdatable(loc)) {
+              updateSimulation(plcList, boardCopy)
             } else {
               unsimulatedCount.inc()
             }
@@ -360,29 +473,56 @@ class Game(context: Context, gameInfo: GameInfo) {
         }
       }
 
-      paralegal.foreach(simulationHandler)
+      if (paralegal.nonEmpty) {
+        paralegal.foreach(simulationHandler)
+      } else {
+        // this method was called so the expectation is that there are legal placements
+        // given that there are not any legal placements in this path,
+        // then update a simulation with, the smaller number of pieces that were found to fit
+        // this allows showing the final pieces placed on the board at the end of the game
+        // as long as one of the permutations has the ability to place 3 pieces,
+        // the following permutation will never be selected to be placed
+        // this is guaranteed by Simulation.compare method which considers
+        // smaller piece counts to be not comparable
+        updateSimulation(plcAccumulator, board)
+      }
 
     }
+
     createSimulations(board, pieces, linesCleared = false, List())
 
-    def emptySimulation: Simulation = Simulation(List(), this.board, context.specification.length)
+    def emptySimulation: Simulation = Simulation(List(), this.board, context.specification.length, 0)
 
     // now we know how long this one took - don't need to include the time to show or return it
-    val elapsed = simulationDuration.elapsed
+    val elapsedMs = simulationDuration.elapsedMillisecondsFloor.toInt
 
     // extracted for readability
-    val result = SimulationInfo(pieces, simulationCount.value, unsimulatedCount.value, best.getOrElse(emptySimulation), worst.getOrElse(emptySimulation), elapsed)
+    val result = SimulationInfo(
+      pieces,
+      simulationCount.value,
+      unsimulatedCount.value,
+      best.getOrElse(emptySimulation),
+      worst.getOrElse(emptySimulation),
+      rcChangedCountBest.value,
+      rcChangedCountWorst.value,
+      elapsedMs
+    )
 
     result
 
   }
 
-  private def pieceHandler(piece: Piece, loc: Loc, index: Int): Unit = {
+  private def pieceHandler(piece: Piece, loc: Loc, index: Int): String = {
 
     // todo - get rid of piece.cellShowFunction - it's got to work better than this
-    if (context.show) println("\nPlacing piece " + index + " at " + loc.show + "\n" + piece.show(piece.cellShowFunction) + "\n")
+    val s1 = "\nPlacing " + index.firstSecondThirdLabel + " at " + loc.show + "\n" + piece.show(piece.cellShowFunction) +
+      (piece.rows to gamePieces.tallestPiece).map(_ => "\n").mkString
 
-    board.place(piece, loc)
+    /*if (context.show) {
+      print(s1)
+    }*/
+
+    board.place(piece, loc, updateColor = true)
 
     // increment piece usage
     piece.usage.inc()
@@ -390,44 +530,51 @@ class Game(context: Context, gameInfo: GameInfo) {
     // score me baby
     score.inc(piece.pointValue)
 
-    if (context.show) println(getShowBoard)
+    val boardBeforeClearing = getShowBoard
 
-    handleLineClearing()
+    val linesClearedResult = board.clearLines(clearColor = true)
+    val linesCleared = linesClearedResult.rows > 0 || linesClearedResult.cols > 0
 
-    if (context.show) println(
-      "score: " + getScoreString(numberFormatShort, score.value)
-        + " - results:" + context.specification.getBoardResultString(board.results)
-    )
+    if (linesCleared) {
 
+      rowsCleared.inc(linesClearedResult.rows)
+      colsCleared.inc(linesClearedResult.cols)
+      score.inc(linesClearedResult.rows * Board.BOARD_SIZE + linesClearedResult.cols * Board.BOARD_SIZE - linesClearedResult.rows * linesClearedResult.cols)
+
+    }
+
+    /* if (context.show) {*/
+
+    val boardStringArray = boardBeforeClearing.split("\n")
+    val withCleared = Array(boardStringArray.head + getLinesClearedString(linesClearedResult)) ++ boardStringArray.tail
+
+    val scoreString = "score: " + score.boardScoreLabel + " - results:" + context.specification.getBoardResultString(board.results)
+
+    val s2 = withCleared.init.mkString("\n") + "\n" + withCleared.last + scoreString + "\n"
+    /*print(s2)
+    }*/
+
+    s1 + s2
   }
 
   private def getShowBoard = {
     board.show(board.cellShowFunction) /*.split("\n").zip(board.boardNeighbors).map(s => s._1 + s._2.mkString(" ")).mkString("\n")*/
   }
 
-  private def handleLineClearing() = {
+  // todo - this is ugly - clears lines and gets strings - need to separate this into distinct functions
+  private def getLinesClearedString(result: ClearedLines): String = {
 
-    val result = board.clearLines()
+    val s = if (result.rows > 0 || result.cols > 0) {
 
-    if (result.rows > 0 || result.cols > 0) {
+      def getLineClearedString(i: Int, s: String): String = if (i > 0) "cleared " + i + " " + s.plural(i) else ""
 
-      def printMe(i: Int, s: String): Unit = if (i > 0) println("cleared " + i + " " + s + (if (i > 1) "s" else ""))
-
-      if (context.show) {
-        printMe(result.rows, "row")
-        printMe(result.cols, "column")
-
-        // show an updated board reflecting the cleared lines
-        println("\n" + getShowBoard)
-      }
-
-      rowsCleared.inc(result.rows)
-      colsCleared.inc(result.cols)
-
-    }
-
-    score.inc(result.rows * Board.BOARD_SIZE + result.cols * Board.BOARD_SIZE - result.rows * result.cols)
-
+      val r = getLineClearedString(result.rows, "row")
+      val c = getLineClearedString(result.cols, "column")
+      val both = if (r.length > 0 && c.length > 0) r + ", " + c else r + c
+      both
+    } else
+      ""
+    s
   }
 
   private def showPieces(pieces: List[Piece]): Unit = {
@@ -451,84 +598,99 @@ class Game(context: Context, gameInfo: GameInfo) {
 
       }
 
-      println(Game.getHeaderString("round " + numberFormatShort.format(rounds.value)))
+      // blast these out as one string
+      val s1 = ("round " + rounds.shortLabel).header + "\n"
 
-      // turn arrays into a list so you can transpose them
-      // transpose will create a list of 1st rows, a list of 2nd rows, etc.
-      // then print them out - across and then newline delimit
-      piecesToStrings.map(a => a.toList)
+      val s2 = piecesToStrings.map(a => a.toList)
         .transpose
-        .foreach { l => print(l.mkString); println }
+        .map(l => l.mkString).mkString("\n")
 
-      // make the size of this section uniform so when it is scrolling fast on a console window
-      // we can see the previous board footer in exactly the same location each time
-      // makes it easier to parse visually
-      (tallestPiece until gamePieces.tallestPiece).foreach(_ => println)
+      val s3 = (tallestPiece to gamePieces.tallestPiece).map(_ => "\n").mkString
 
-      print(bullShit.iterator.next + "\n")
+      val s4 = bullShit.iterator.next
+
+      print(s1 + s2 + s3 + s4)
     }
   }
 
-  private def showRoundResults(gameCount: Int) = {
+  private def getRoundResultsString(gameCount: Int): String = {
 
-    if (context.show) {
+    if ((context.replayGame && context.ignoreSimulation))
+      // todo
+      "Replay Mode - no simulating.  what do you show here?"
+    else {
 
-      def avg(xs: ListBuffer[PerformanceInfo]): Double = {
-        val (sum, length) = xs.map(_.perSecond).foldLeft((0l, 0))({ case ((s, l), x) => (x + s, 1 + l) })
-        val result = sum / length
-        result
-      }
+      // average of the last 100
+      val averagePerSecond = performanceInfoList.takeRight(100).map(_.perSecond).avg.toInt
 
-      if (!(context.replayGame && context.ignoreSimulation)) {
+      val lastRoundInfo = performanceInfoList.last
+      val skippedPercent: Float = lastRoundInfo.unsimulatedCount.toFloat / lastRoundInfo.simulatedCount.toFloat
 
-        val average: Double = avg(performanceInfoList)
+      val roundsPerSecond = (rounds.value / gameTimer.elapsedSeconds).toFloat
+      val pointsPerSecond = math.floor(score.value / gameTimer.elapsedSeconds).toInt
+      val pointsPerMinute = math.floor(score.value / gameTimer.elapsedMinutes).toInt
+      val pointsPerHour = math.floor(score.value / gameTimer.elapsedHours).toInt
+      val newSessionHighScore = score.value > gameInfo.sessionHighScore
+      val sessionHighScore = if (newSessionHighScore) score.value else gameInfo.sessionHighScore
+      val averageScore = if (gameInfo.averageScore == 0) score.value else gameInfo.averageScore
+      val newMachineHighScore = score.value > gameInfo.machineHighScore
+      val machineHighScore = if (newMachineHighScore) score.value else gameInfo.machineHighScore
 
-        val lastRoundInfo = performanceInfoList.last
-        val skippedPercent: Float = lastRoundInfo.unsimulatedSimulations.toFloat / lastRoundInfo.simulations.toFloat * 100
+      val gameElapsedNanoseconds = gameTimer.elapsedNanoseconds.toFloat
 
-        val roundsPerSecond = math.floor(rounds.value / gameDuration.seconds).toInt
-        val pointsPerSecond = math.floor(score.value / gameDuration.seconds).toInt
-        val pointsPerMinute = math.floor(score.value / gameDuration.minutes).toInt
-        val pointsPerHour = math.floor(score.value / gameDuration.hours).toInt
-        val newSessionHighScore = score.value > gameInfo.sessionHighScore
-        val sessionHighScore = if (newSessionHighScore) score.value else gameInfo.sessionHighScore
-        val newMachineHighScore = score.value > gameInfo.machineHighScore
-        val machineHighScore = if (newMachineHighScore) score.value else gameInfo.machineHighScore
+      // todo: after reaching 1.9MM in 2+ hours, the non simulation time was over 7% (next time record exact number)
+      //       game 2 - 611,283 - 4.4% non-simulation time after 49M 49s
 
-        println(Game.getHeaderString("game " + numberFormatShort.format(gameCount) + " round " + numberFormatShort.format(rounds.value) + " results"))
+      val a1 = Array(
+        ("game " + gameCount.shortLabel + " round " + rounds.shortLabel + " results").header,
+        // duration info 
+        "game elapsed time".label + gameTimer.elapsedLabel,
+        "non simulation time".label + nonSimulationTimer.elapsedLabelMs + (nonSimulationTimer.elapsedNanoseconds / gameElapsedNanoseconds).percentLabel,
+        "after round time".label + roundAfterSimulationTimer.elapsedLabelMs + (roundAfterSimulationTimer.elapsedNanoseconds / gameElapsedNanoseconds).percentLabel,
+        "getChosenOne".label + getChosenOneTimer.elapsedLabelMs + (getChosenOneTimer.elapsedNanoseconds / gameElapsedNanoseconds).percentLabel,
+        "getResultsString".label + getResultsStringTimer.elapsedLabelMs + (getResultsStringTimer.elapsedNanoseconds / gameElapsedNanoseconds).percentLabel,
+        "getChosenPlcList".label + getChosenPlcListTimer.elapsedLabelMs + (getChosenPlcListTimer.elapsedNanoseconds / gameElapsedNanoseconds).percentLabel,
+        "placePieces".label + placePiecesTimer.elapsedLabelMs + (placePiecesTimer.elapsedNanoseconds / gameElapsedNanoseconds).percentLabel,
+        "getRoundResultsString".label + getRoundResultsStringTimer.elapsedLabelMs + (getRoundResultsStringTimer.elapsedNanoseconds / gameElapsedNanoseconds).percentLabel
+      )
 
-        // duration info
-        println(labelFormat.format("game elapsed time") + elapsedFormat.format(gameDuration.showElapsed))
-        // only show after game 1
-        if (gameInfo.gameCount > 1)
-          println(labelFormat.format("total elapsed time") + elapsedFormat.format(gameInfo.totalTime.showElapsed))
-        println
+      //holy cow
+      showTimer.resume
+      val a2 = Array("showTimer in array".label + showTimer.elapsedLabelMs + (showTimer.elapsedNanoseconds / gameElapsedNanoseconds).percentLabel)
+      showTimer.pause
 
-        // score info
-        println(labelFormat.format("score") + Game.GREEN + numberFormat.format(score.value) + Game.SANE)
+      val a3 = if (gameInfo.gameCount > 1) Array("total elapsed time".label + gameInfo.totalTime.elapsedLabel) else Array[String]()
 
-        println(labelFormat.format("session high score") + (if (newSessionHighScore) Game.GREEN else "") + numberFormat.format(sessionHighScore) + Game.SANE)
-        println(labelFormat.format("all time high score") + (if (newMachineHighScore) Game.GREEN else "") + numberFormat.format(machineHighScore) + Game.SANE)
-        println
-
+      val a4 = Array(
+        " ",
+        "score".label + score.scoreLabel,
+        "average score".label + averageScore.label,
+        "session high score".label + (if (newSessionHighScore) sessionHighScore.scoreLabel else sessionHighScore.label),
+        "all time high score".label + (if (newMachineHighScore) machineHighScore.scoreLabel else machineHighScore.label),
         // points/second info
-        println(labelNumberFormat.format("rounds per second", roundsPerSecond))
-        println(labelNumberFormat.format("points per second", pointsPerSecond))
-        println(labelFormat.format("points per minute") + numberFormat.format(pointsPerMinute))
-        println(labelFormat.format("points per hour") + numberFormat.format(pointsPerHour))
-        println
-
+        " ",
+        "rounds per second".label + roundsPerSecond.label,
+        "points per second".label + pointsPerSecond.label,
+        "points per minute".label + pointsPerMinute.label,
+        "points per hour".label + pointsPerHour.label,
         // simulation info
-        println(labelFormat.format("simulations") + numberFormat.format(lastRoundInfo.simulations.toInt) + " in " + "%,3d".format(lastRoundInfo.duration.toInt) + "ms")
-        println(labelFormat.format("skipped simulations") + numberFormat.format(lastRoundInfo.unsimulatedSimulations.toInt) + "     %2.0f".format(skippedPercent) + "%")
-        println
-
+        " ",
+        "simulations".label + lastRoundInfo.simulatedCount.label + lastRoundInfo.elapsedMs.msLabel(3),
+        "skipped simulations".label + lastRoundInfo.unsimulatedCount.label + skippedPercent.skippedPercentLabel,
         // speed info
-        println(labelFormat.format("simulations/second") + numberFormat.format(lastRoundInfo.perSecond) + "/s")
-        println(labelFormat.format("average per second") + Game.YELLOW + numberFormat.format(average.toInt) + "/s" + Game.SANE)
-        println(labelFormat.format("best per second") + Game.GREEN + numberFormat.format(performanceInfoList.map(_.perSecond).max) + "/s" + Game.SANE)
+        " ",
+        "simulations/sec".label + lastRoundInfo.perSecond.perSecondLabel,
+        "average/sec last 100".label + averagePerSecond.yellowPerSecondLabel,
+        "best per second".label + performanceInfoList.map(_.perSecond).max.greenPerSecondLabel,
+        // race condition info
+        " ",
+        "race cond. on best".label + performanceInfoList.map(_.rcChangedCountBest).sum.label + " (" + lastRoundInfo.rcChangedCountBest.shortLabel + ")"
+      )
 
-      }
+      val a5 = if (context.showWorst) Array("race cond. on worst".label + performanceInfoList.map(_.rcChangedCountWorst).sum.label + " (" + lastRoundInfo.rcChangedCountWorst.shortLabel + ")") else Array[String]()
+
+      (a1 ++ a2 ++ a3 ++ a4 ++ a5).mkString("\n")
+
     }
 
   }
@@ -537,90 +699,25 @@ class Game(context: Context, gameInfo: GameInfo) {
     if (context.show) {
       println
 
-      println(Game.getHeaderString(Game.RED, "GAME OVER!!"))
-      println(labelFormat.format("piece distribution"))
-      println(gamePieces.usageString)
+      println("GAME OVER!!".redHeader)
 
-      println(Game.getHeaderString("game info"))
-      println(labelFormat.format("final Score") + getScoreString(numberFormat, score.value))
-      println(labelNumberFormat.format("rounds", rounds.value))
-      println(labelNumberFormat.format("rows cleared", rowsCleared.value))
-      println(labelNumberFormat.format("cols cleared", colsCleared.value))
-      println(labelFormat.format("game elapsed time") + elapsedFormat.format(gameDuration.showElapsed))
+      // todo - there is a bug in this because each piece is re-used in gamePieces
+      //        unless you get gamePieces to create new pieces, you'll just keep incrementing
+      //println(labelFormat.format("piece distribution"))
+      //println(gamePieces.usageString)
+
+      println("game info".header)
+      println("final Score".label + score.scoreLabel)
+      println("rounds".label + rounds.label)
+      println("rows cleared".label + rowsCleared.label)
+      println("cols cleared".label + colsCleared.label)
+      println("game elapsed time".label + gameTimer.elapsedLabel)
     }
   }
 
 }
 
 object Game {
-
-  // these are used in the end game
-  private val labelFormatLength = 20
-  private val numberFormatLength = 11
-  private val headerWidth = labelFormatLength + numberFormatLength + 4
-
-  val labelFormat = "%-" + labelFormatLength.toString + "s: "
-  val numberFormat = "%," + numberFormatLength.toString + "d"
-  val numberFormatShort = "%,d"
-  val elapsedFormat = "%13s"
-  val labelNumberFormat: String = labelFormat + numberFormat
-
-  // Color code strings from:
-  // http://www.topmudsites.com/forums/mud-coding/413-java-ansi.html
-  val SANE = "\u001B[0m"
-
-  val ESCAPE = "\u001B"
-  val HIGH_INTENSITY = "\u001B[1m"
-  val LOW_INTENSITY = "\u001B[2m"
-
-  val ITALIC = "\u001B[3m"
-  val UNDERLINE = "\u001B[4m"
-  val BLINK = "\u001B[5m"
-  val RAPID_BLINK = "\u001B[6m"
-  val REVERSE_VIDEO = "\u001B[7m"
-  val INVISIBLE_TEXT = "\u001B[8m"
-
-  val BLACK = "\u001B[30m"
-  val RED = "\u001B[31m"
-  val GREEN = "\u001B[32m"
-  val YELLOW = "\u001B[33m"
-  val BLUE = "\u001B[34m"
-  val MAGENTA = "\u001B[35m"
-  val CYAN = "\u001B[36m"
-  val WHITE = "\u001B[37m"
-
-  val BRIGHT_BLACK = "\u001B[90m"
-  val BRIGHT_RED = "\u001B[91m"
-  val BRIGHT_GREEN = "\u001B[92m"
-  val BRIGHT_YELLOW = "\u001B[93m"
-  val BRIGHT_BLUE = "\u001B[94m"
-  val BRIGHT_MAGENTA = "\u001B[95m"
-  val BRIGHT_CYAN = "\u001B[96m"
-  val BRIGHT_WHITE = "\u001B[97m"
-
-  val BACKGROUND_BLACK = "\u001B[40m"
-  val BACKGROUND_RED = "\u001B[41m"
-  val BACKGROUND_GREEN = "\u001B[42m"
-  val BACKGROUND_YELLOW = "\u001B[43m"
-  val BACKGROUND_BLUE = "\u001B[44m"
-  val BACKGROUND_MAGENTA = "\u001B[45m"
-  val BACKGROUND_CYAN = "\u001B[46m"
-  val BACKGROUND_WHITE = "\u001B[47m"
-
-  def getScoreString(formatString: String, score: Int): String = GREEN + formatString.format(score) + SANE
-
-  def getHeaderString(color: String, s: String): String = {
-
-    val padLength = ((headerWidth - (s.length + 2)) / 2)
-    val pad1 = "-" * padLength
-    val pad2 = "-" * (headerWidth - (padLength + s.length + 2))
-
-    "\n" + color + pad1 + " " + s + " " + pad2 + Game.SANE
-  }
-
-  def getHeaderString(s: String): String = {
-    getHeaderString(Game.CYAN, s)
-  }
 
   def showGameStart(specification: Specification): Unit = {
 
@@ -656,25 +753,5 @@ object Game {
     )
 
   }
-
-  /*
-  // print the character colors that we have available to us
-  def printPossibleColors(): Unit = {
-    for (i <- 30 to 37) {
-      val code = i.toString
-      print(f"\u001b[38;5;$code%sm$code%3s")
-    }
-
-    println("")
-
-    for (i <- 90 to 97) {
-      val code = i.toString
-      print(f"\u001b" +
-        f"[38;5;$code%sm$code%3s")
-    }
-
-    println
-
-  }*/
 
 }

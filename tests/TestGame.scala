@@ -5,7 +5,7 @@
 import org.scalatest.FlatSpec
 
 trait GameInfoFixture {
-  val gameInfo = GameInfo(0, 0, 1, new GameTimer)
+  val gameInfo = GameInfo(0, 0, 0, 1, new GameTimer)
   val context = new Context(new Conf(Seq()))
   context.continuousMode = false
   context.show = false
@@ -42,21 +42,32 @@ class TestGame extends FlatSpec {
     }
   }
 
-  it must "end up with the same score for two consecutive seeded games in parallel mode" in {
+  // this test currently CAN'T work.  this is because in a multi-threaded, two different game runs
+  // may find a best score for a set of pieces that are equivalent but the pieces are in a
+  // different position on the board.  A way to deal with this would be to put in a tie-breaker that
+  // favors any result that is closer to 0,0.  this tie-breaker - I think - would cause
+  // repeated games to be compared and they would result in the same answer
+  it must "end up with the same score for two consecutive seeded games in parallel mode" ignore {
     new GameInfoFixture {
+
       context.randomSeed= (new scala.util.Random()).nextInt(1000000000)
-      context.stopGameAtRound=5
-      context.show = false
+      context.stopGameAtRound=10
+      context.show = true
       context.parallel = true
 
-      private val game = new Game(context, gameInfo)
-      private val results1: GameResults = game.run
+      while (true) {
+        val game = new Game(context, gameInfo)
+        val results1: GameResults = game.run
 
-      private val game2 = new Game(context, gameInfo)
-      private val results2: GameResults = game2.run
-      assert(results1.score===results2.score, "scores should match")
-      assert(results1.rounds===results2.rounds, "rounds should match")
-      assert(results1.totalSimulations===results2.totalSimulations, "total simulations should match")
+        val game2 = new Game(context, gameInfo)
+        val results2: GameResults = game2.run
+
+        assert(results1.totalSimulations === results2.totalSimulations, "total simulations should match - unsimulated1 " + results1.totalUnsimulatedSimulations + " unsimulated2 " + results2.totalUnsimulatedSimulations)
+        assert(results1.score === results2.score, "scores should match")
+        assert(results1.rounds === results2.rounds, "rounds should match")
+        println(results1.totalSimulations)
+        Thread.sleep(2000)
+      }
     }
   }
 }

@@ -60,16 +60,16 @@ abstract class Piece {
 
 // generic line class - let's you create a bunch of different lines
 // length is not marked as val because it is not a field we retain
-class Line( final val grid: OccupancyGrid, final val name: String, final val color: String, final override val weight: Int) extends Piece
+case class Line( final val grid: OccupancyGrid, final val name: String, final val color: String, final override val weight: Int) extends Piece
 
 // generic box class - let's you create boxes of different sizes
 // size is not marked as val because it is not a field we retain
 // although size does matter
-class Box( final val grid: OccupancyGrid, final val name: String, final val color: String, final override val weight: Int) extends Piece
+case class Box( final val grid: OccupancyGrid, final val name: String, final val color: String, final override val weight: Int) extends Piece
 
 // generic El class - let's you create L's of different sizes
 // size is not marked as val because it is not a field we retain
-class El( final val grid: OccupancyGrid, final val name: String, final val color: String, final override val weight: Int) extends Piece {
+case class El( final val grid: OccupancyGrid, final val name: String, final val color: String, final override val weight: Int) extends Piece {
 
   // blank out the hole in the el
 
@@ -91,7 +91,7 @@ object Piece {
   // take a piece, and create a new piece, rotated 90 degrees
   def rotate90(newName: String, pieceToCopy: Piece): Piece = {
 
-    class Rotated(
+    case class Rotated(
       val name:            String,
       val color:           String,
       val grid:            OccupancyGrid,
@@ -101,7 +101,7 @@ object Piece {
     // worst transformation ever - let's hope it's worth it
     val rotatedGrid = pieceToCopy.grid.rotate
 
-    new Rotated(newName, pieceToCopy.color, rotatedGrid, pieceToCopy.weight)
+    Rotated(newName, pieceToCopy.color, rotatedGrid, pieceToCopy.weight)
   }
 
 }

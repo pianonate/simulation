@@ -28,6 +28,7 @@
  * BigBox     1	* 4 = 4   Each BigBox is 4
  * Singleton  1	* 4 = 4   Each Singleton is 4
  */
+import Implicits._
 
 /*
  following are what the templates look like for creating lines, boxes, and El's
@@ -123,7 +124,7 @@ class Pieces(seed:Int = 0) {
 
     pieceList
       .sortBy(piece => (piece.usage.value, piece.name))
-      .map(piece => Game.labelNumberFormat.format(piece.name, piece.usage.value))
+      .map(piece => piece.name.label + piece.usage.label)
       .mkString("\n")
   }
 
@@ -167,29 +168,29 @@ object Pieces {
   val bigUpperRightElName = "BigUpperRL"
   val bigLowerRightElName = "BigLowerRL"
 
-  val singleton = new Line(Piece.getLinearGrid(1), Pieces.singletonName, Game.BLACK, 4)
+  val singleton = Line(Piece.getLinearGrid(1), Pieces.singletonName, StringFormats.BLACK, 4)
 
-  val h2Line = new Line(Piece.getLinearGrid(2), Pieces.h2LineName, Game.BRIGHT_YELLOW, 6)
+  val h2Line = Line(Piece.getLinearGrid(2), Pieces.h2LineName, StringFormats.BRIGHT_YELLOW, 6)
   val v2Line: Piece = Piece.rotate90(Pieces.v2LineName, h2Line)
 
-  val h3Line = new Line(Piece.getLinearGrid(3), Pieces.h3LineName, Game.YELLOW, 6)
+  val h3Line = Line(Piece.getLinearGrid(3), Pieces.h3LineName, StringFormats.YELLOW, 6)
   val v3Line: Piece = Piece.rotate90(Pieces.v3LineName, h3Line)
 
-  val h4Line = new Line(Piece.getLinearGrid(4), Pieces.h4LineName, Game.BRIGHT_RED, 4)
+  val h4Line = Line(Piece.getLinearGrid(4), Pieces.h4LineName, StringFormats.BRIGHT_RED, 4)
   val v4Line: Piece = Piece.rotate90(Pieces.v4LineName, h4Line)
 
-  val h5Line = new Line(Piece.getLinearGrid(5), Pieces.h5LineName, Game.RED, 4)
+  val h5Line = Line(Piece.getLinearGrid(5), Pieces.h5LineName, StringFormats.RED, 4)
   val v5Line: Piece = Piece.rotate90(Pieces.v5LineName, h5Line)
 
-  val box = new Box(Piece.getBoxGrid(2), Pieces.boxName, Game.GREEN, 12)
-  val bigBox = new Box(Piece.getBoxGrid(3), Pieces.bigBoxName, Game.CYAN, 4)
+  val box = Box(Piece.getBoxGrid(2), Pieces.boxName, StringFormats.GREEN, 12)
+  val bigBox = Box(Piece.getBoxGrid(3), Pieces.bigBoxName, StringFormats.CYAN, 4)
 
-  val lowerLeftEl = new El(Piece.getBoxGrid(2), Pieces.lowerLeftElName, Game.BRIGHT_CYAN, 3)
+  val lowerLeftEl = El(Piece.getBoxGrid(2), Pieces.lowerLeftElName, StringFormats.BRIGHT_CYAN, 3)
   val upperLeftEl: Piece = Piece.rotate90(Pieces.upperLeftElName, lowerLeftEl)
   val upperRightEl: Piece = Piece.rotate90(Pieces.upperRightElName, upperLeftEl)
   val lowerRightEl: Piece = Piece.rotate90(Pieces.lowerRightElName, upperRightEl)
 
-  val bigLowerLeftEl = new El(Piece.getBoxGrid(2), Pieces.bigLowerLeftElName, Game.BLUE, 2)
+  val bigLowerLeftEl = El(Piece.getBoxGrid(2), Pieces.bigLowerLeftElName, StringFormats.BLUE, 2)
   val bigUpperLeftEl: Piece = Piece.rotate90(Pieces.bigUpperLeftElName, bigLowerLeftEl)
   val bigUpperRightEl: Piece = Piece.rotate90(Pieces.bigUpperRightElName, bigUpperLeftEl)
   val bigLowerRightEl: Piece = Piece.rotate90(Pieces.bigLowerRightElName, bigUpperRightEl)

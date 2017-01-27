@@ -9,7 +9,7 @@ class BullShit(val rounds: Counter, gameTimer: GameTimer) extends Iterable[Strin
   private var showForRounds = showForSeconds
 
   private def setShowForRounds = {
-    val roundsPerSecond = math.floor(rounds.value / gameTimer.seconds).toInt
+    val roundsPerSecond = math.floor(rounds.value / gameTimer.elapsedSeconds).toInt
     showForRounds = showForSeconds * roundsPerSecond
   }
 
@@ -29,7 +29,7 @@ class BullShit(val rounds: Counter, gameTimer: GameTimer) extends Iterable[Strin
       }
 
       // (  if (newBullShit) "new: " + currentBullShit else "old: " + currentBullShit ) + " " + roundsPerSecond + " " + (rounds.value % (showForSeconds * roundsPerSecond))
-      Game.CYAN + currentBullShit + ("." * current) + Game.SANE
+      StringFormats.CYAN + currentBullShit/* + ("." * current)*/ + StringFormats.SANE
     }
   }
 }
@@ -148,7 +148,6 @@ object BullShit {
     "expediting",
     "exploiting",
     "extending",
-    "fantasizing about",
     "facilitating",
     "fucking up",
     "generating",

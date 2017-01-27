@@ -4,22 +4,24 @@
  */
 
 case class GameInfo(
+  averageScore:     Int,
   sessionHighScore: Int,
   machineHighScore: Int,
   gameCount:        Int,
   totalTime:        GameTimer
 )
 
-class Context(conf:Conf) {
+class Context(conf: Conf) {
 
   // vars so you can change test specifications - consider other mechanisms if you wish
+  val beep:Boolean = conf.beep()
   var continuousMode: Boolean = conf.continuousPlay()
   var maxSimulations: Int = conf.maxSimulations()
   var stopGameAtRound: Int = conf.endGameAtRound()
   var parallel: Boolean = conf.parallel()
   var show: Boolean = conf.show()
-  var randomSeed:Int = conf.randomSeed()
-
+  var showWorst:Boolean = conf.displayWorst()
+  var randomSeed: Int = conf.randomSeed()
 
   // todo maybe provide alternative constructors for testing?
   var specification: Specification = Specification()
