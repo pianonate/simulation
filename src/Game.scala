@@ -70,25 +70,8 @@ class Game(context: Context, gameInfo: GameInfo) {
   private[this] val roundAfterSimulationTimer = new GameTimer()
   roundAfterSimulationTimer.pause
 
-  private[this] val getChosenOneTimer = new GameTimer()
-  getChosenOneTimer.pause
-
-  private[this] val getResultsStringTimer = new GameTimer()
-  getResultsStringTimer.pause
-
-  private[this] val getChosenPlcListTimer = new GameTimer()
-  getChosenPlcListTimer.pause
-
-  private[this] val placePiecesTimer = new GameTimer()
-  placePiecesTimer.pause
-
   private[this] val getRoundResultsStringTimer = new GameTimer()
   getRoundResultsStringTimer.pause
-
-  private[this] val showTimer = new GameTimer()
-  showTimer.pause
-
-
 
   private[this] val bullShit = new BullShit(rounds, gameTimer)
 
@@ -215,38 +198,25 @@ class Game(context: Context, gameInfo: GameInfo) {
     nonSimulationTimer.resume
     roundAfterSimulationTimer.resume
 
-    getChosenOneTimer.resume
     val bestSimulation = getTheChosenOne(results, replayPieces)
-    getChosenOneTimer.pause
 
     if (bestSimulation.pieceCount > 0) {
 
-      getResultsStringTimer.resume
       // no need to get a results string if we're not going to show it
       val s1 = if (context.show) getResultsString(results, bestSimulation) else ""
-      getResultsStringTimer.pause
 
-      getChosenPlcListTimer.resume
       val chosenList: List[PieceLocCleared] = getChosenPlcList(replayPieces, bestSimulation)
-      getChosenPlcListTimer.pause
 
-      placePiecesTimer.resume
       // as a side effect of placing, returns a string representing board states
       // is there a better way to do this?
       val s2 = placePieces(chosenList)
-      placePiecesTimer.pause
 
       getRoundResultsStringTimer.resume
       val s3 = if (context.show) getRoundResultsString(gameInfo.gameCount: Int) else ""
       getRoundResultsStringTimer.pause
 
-      // showTimer includes time spent to construct itself in the getRoundResultsString array
-      // otherwise it fucks up a lot
-
-      showTimer.resume
       if (context.show)
         print(s1 + s2 + s3)
-      showTimer.pause
     }
 
     roundAfterSimulationTimer.pause
@@ -280,10 +250,11 @@ class Game(context: Context, gameInfo: GameInfo) {
       .toList
 
     val elapsedMs = duration.elapsedMillisecondsFloor
+
     val simulatedCount = result.map(_.simulatedCount).sum
     val unsimulatedCount = result.map(_.unsimulatedCount).sum
 
-    val perSecond = ((simulatedCount + unsimulatedCount.toDouble) / elapsedMs * GameTimer.millisecondsPerSecond).toInt
+    val perSecond = duration.perSecond(simulatedCount + unsimulatedCount)
 
     val rcChangedCountWorst = if (context.showWorst) result.map(_.rcChangedCountWorst).sum else 0
 
@@ -646,22 +617,14 @@ class Game(context: Context, gameInfo: GameInfo) {
         // duration info 
         "game elapsed time".label + gameTimer.elapsedLabel,
         "non simulation time".label + nonSimulationTimer.elapsedLabelMs + (nonSimulationTimer.elapsedNanoseconds / gameElapsedNanoseconds).percentLabel,
-        "after round time".label + roundAfterSimulationTimer.elapsedLabelMs + (roundAfterSimulationTimer.elapsedNanoseconds / gameElapsedNanoseconds).percentLabel,
-        "getChosenOne".label + getChosenOneTimer.elapsedLabelMs + (getChosenOneTimer.elapsedNanoseconds / gameElapsedNanoseconds).percentLabel,
-        "getResultsString".label + getResultsStringTimer.elapsedLabelMs + (getResultsStringTimer.elapsedNanoseconds / gameElapsedNanoseconds).percentLabel,
-        "getChosenPlcList".label + getChosenPlcListTimer.elapsedLabelMs + (getChosenPlcListTimer.elapsedNanoseconds / gameElapsedNanoseconds).percentLabel,
-        "placePieces".label + placePiecesTimer.elapsedLabelMs + (placePiecesTimer.elapsedNanoseconds / gameElapsedNanoseconds).percentLabel,
+        "post simulation time".label + roundAfterSimulationTimer.elapsedLabelMs + (roundAfterSimulationTimer.elapsedNanoseconds / gameElapsedNanoseconds).percentLabel,
         "getRoundResultsString".label + getRoundResultsStringTimer.elapsedLabelMs + (getRoundResultsStringTimer.elapsedNanoseconds / gameElapsedNanoseconds).percentLabel
       )
 
-      //holy cow
-      showTimer.resume
-      val a2 = Array("showTimer in array".label + showTimer.elapsedLabelMs + (showTimer.elapsedNanoseconds / gameElapsedNanoseconds).percentLabel)
-      showTimer.pause
+      // optional so we add an empty array when not showing this
+      val a2 = if (gameInfo.gameCount > 1) Array("total elapsed time".label + gameInfo.totalTime.elapsedLabel) else Array[String]()
 
-      val a3 = if (gameInfo.gameCount > 1) Array("total elapsed time".label + gameInfo.totalTime.elapsedLabel) else Array[String]()
-
-      val a4 = Array(
+      val a3 = Array(
         " ",
         "score".label + score.scoreLabel,
         "average score".label + averageScore.label,
@@ -687,9 +650,10 @@ class Game(context: Context, gameInfo: GameInfo) {
         "race cond. on best".label + performanceInfoList.map(_.rcChangedCountBest).sum.label + " (" + lastRoundInfo.rcChangedCountBest.shortLabel + ")"
       )
 
-      val a5 = if (context.showWorst) Array("race cond. on worst".label + performanceInfoList.map(_.rcChangedCountWorst).sum.label + " (" + lastRoundInfo.rcChangedCountWorst.shortLabel + ")") else Array[String]()
+      // optional so we add an empty array when not showing this
+      val a4 = if (context.showWorst) Array("race cond. on worst".label + performanceInfoList.map(_.rcChangedCountWorst).sum.label + " (" + lastRoundInfo.rcChangedCountWorst.shortLabel + ")") else Array[String]()
 
-      (a1 ++ a2 ++ a3 ++ a4 ++ a5).mkString("\n")
+      (a1 ++ a2 ++ a3 ++ a4).mkString("\n")
 
     }
 

@@ -52,6 +52,13 @@ class GameTimer {
     ((elapsedHoursFloor * babylonianBase * babylonianBase) +
     (minutesThisHour * babylonianBase) + secondsThisMinute) * millisecondsPerSecond ).toInt
 
+  def perSecond(i:Int):Int = {
+
+    val answer = ((i.toDouble / elapsedNanoseconds) * second).toInt
+    answer
+
+  }
+
   private def getElapsed: String = {
 
     // 3h 4m 53s
