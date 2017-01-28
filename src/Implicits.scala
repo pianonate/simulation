@@ -106,7 +106,9 @@ class StringFormats(val s:String) {
 }
 
 object StringFormats {
-  val labelFormatLength = 21
+
+  // todo revert length to 21 after info timing exercise
+  val labelFormatLength = 22
   val numberFormatLength = 11
   val headerWidth = labelFormatLength + numberFormatLength + 15
 
