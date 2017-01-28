@@ -428,7 +428,7 @@ object Board {
     a
   }
 
-  private def colorGridTemplate: Array[Array[String]] = new Array[Array[String]](BOARD_SIZE)
+  //private def colorGridTemplate: Array[Array[String]] = new Array[Array[String]](BOARD_SIZE)
 
   // todo - copy is only ever called by simulations so don't worry about copying the colorGrid - just keep the same one
   def copy(newName: String, boardToCopy: Board): Board = {

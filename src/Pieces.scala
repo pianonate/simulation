@@ -30,6 +30,8 @@
  */
 import Implicits._
 
+import scala.util.Random
+
 /*
  following are what the templates look like for creating lines, boxes, and El's
  if necessary, these are then rotated to create all the necessary piece types
@@ -71,7 +73,7 @@ import Implicits._
 
 class Pieces(seed:Int = 0) {
 
-  val randomizer = if (seed > 0) new scala.util.Random(seed) else new scala.util.Random()
+  val randomizer: Random = if (seed > 0) new scala.util.Random(seed) else new scala.util.Random()
 
 
   import Pieces._

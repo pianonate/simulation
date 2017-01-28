@@ -22,14 +22,14 @@ class Conf(arguments: Seq[String]) extends ScallopConf(arguments) {
   //todo - add stop at new high score and make that a default
   // todo - add average game score passed back in along with session high score
 
-  val beep = toggle(default=Some(true), descrYes="default: beep when game finishes", descrNo="don't beep at game end")
-  val continuousPlay = toggle(default=Some(true), descrYes="default: simulation will run continuously", descrNo="simulation will play through once till a game end occurs")
-  val maxSimulations = opt[Int](default = Some(MAX_SIMULATION_ITERATIONS), validate = ((i) => i>0 && i<=MAX_SIMULATION_ITERATIONS) , descr="integer limit for number of allowed simulations for each piece")
-  val endGameAtRound = opt[Int](default = Some(0), validate=((i) => i>=0), descr="end the game at this round number")
-  val parallel = toggle(default = Some(true), descrYes="default: uses multiple threads - faster!",  descrNo="simulation will run single threaded")
-  val show = toggle(default = Some(true), descrYes="default: show the game as it is playing", descrNo="hide the game")
-  val randomSeed = opt[Int](default = Some(0), descr="provide a seed to cause game to play with same pieces")
-  val displayWorst = toggle(default=Some(false), descrYes="show worst simulation choices each round", descrNo="default:hide worst simulation choices each round - faster")
+  val beep: ScallopOption[Boolean] = toggle(default=Some(true), descrYes="default: beep when game finishes", descrNo="don't beep at game end")
+  val continuousPlay: ScallopOption[Boolean] = toggle(default=Some(true), descrYes="default: simulation will run continuously", descrNo="simulation will play through once till a game end occurs")
+  val maxSimulations: ScallopOption[Int] = opt[Int](default = Some(MAX_SIMULATION_ITERATIONS), validate = (i) => i > 0 && i <= MAX_SIMULATION_ITERATIONS , descr="integer limit for number of allowed simulations for each piece")
+  val endGameAtRound: ScallopOption[Int] = opt[Int](default = Some(0), validate= (i) => i >= 0, descr="end the game at this round number")
+  val parallel: ScallopOption[Boolean] = toggle(default = Some(true), descrYes="default: uses multiple threads - faster!",  descrNo="simulation will run single threaded")
+  val show: ScallopOption[Boolean] = toggle(default = Some(true), descrYes="default: show the game as it is playing", descrNo="hide the game")
+  val randomSeed: ScallopOption[Int] = opt[Int](default = Some(0), descr="provide a seed to cause game to play with same pieces")
+  val displayWorst: ScallopOption[Boolean] = toggle(default=Some(false), descrYes="show worst simulation choices each round", descrNo="default:hide worst simulation choices each round - faster")
 
   footer(
     """

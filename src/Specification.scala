@@ -1,7 +1,9 @@
 /**
- * Created by nathan mccoy on 1/15/17.
+ * Created by nathan mccoy on 1/15/2017.
+ *
  * introducing the Specification in order to configure it on the context
- * so that tests can be run to ensure that all specification combinations
+ *
+ *  so that tests can be run to ensure that all specification combinations
  *   (from 1 to Specification.length) and then the permutations of those
  *   combinations all result in valid games that can play
  *   This is a general test that is useful
@@ -10,6 +12,7 @@
  *   n times to see which combination/permutation of specifications
  *   results in the highest scores...
  */
+
 
 import Implicits._
 
@@ -31,15 +34,14 @@ case class Specification(spec: Array[OptimizationFactor]) {
 
     val result = value.abs
     val resultString = optLabel match {
-        case s: Some[String] => s.get.optFactorLabel + (if (isGreen) result.greenLabel else result.redLabel)
-        case _               => (if (isGreen) result.greenLabel else result.redLabel).parens
-      }
+      case s: Some[String] => s.get.optFactorLabel + (if (isGreen) result.greenLabel else result.redLabel)
+      case _               => (if (isGreen) result.greenLabel else result.redLabel).parens
+    }
 
     resultString
   }
 
-
-  def getImprovedResultsString(simulationResults: List[SimulationInfo], chosen: Simulation, showWorst:Boolean): String = {
+  def getImprovedResultsString(simulationResults: List[SimulationInfo], chosen: Simulation, showWorst: Boolean): String = {
     // the improvement comes from gathering all simulation results and then color coding for the best
     // result out of all permutations rather than just comparing best and worst on a row by row basis
     // this is FAR superior
@@ -51,12 +53,12 @@ case class Specification(spec: Array[OptimizationFactor]) {
 
     def getResultString(simulationResult: SimulationInfo, simulationIndex: Int): String = {
 
-      def handleOptFactor(optFactor: OptimizationFactor, bestVal: Int, worstVal: Int, topValIndex: Int, showWorst:Boolean): String = {
+      def handleOptFactor(optFactor: OptimizationFactor, bestVal: Int, worstVal: Int, topValIndex: Int, showWorst: Boolean): String = {
 
         val topVal = bestOfAll(topValIndex)
 
         greenifyResult(Some(optFactor.label), bestVal == topVal, bestVal) +
-          ( if (showWorst) greenifyResult(None, worstVal == topVal, worstVal) else "" )
+          (if (showWorst) greenifyResult(None, worstVal == topVal, worstVal) else "")
       }
 
       val best = simulationResult.best.results
@@ -101,7 +103,7 @@ case class Specification(spec: Array[OptimizationFactor]) {
     // additionally, this mechanism allows us to display line clearing.
     spec
       .zip(boardResult)
-      .map(tup => greenifyResult(Some(tup._1.label), isGreen = true, tup._2) )
+      .map(tup => greenifyResult(Some(tup._1.label), isGreen = true, tup._2))
       .mkString(" -")
   }
 
@@ -147,7 +149,6 @@ object Specification {
     OptimizationFactor(enabled = true, maxContiguousName, maximize, "contiguous open lines", "number of lines (either horizontal or vertical) that are open and contiguous"),
     OptimizationFactor(enabled = false, openLinesName, maximize, "open Rows & Cols", "count of open rows plus open columns"),
     OptimizationFactor(enabled = true, twoNeighborsName, minimize, "2 neighbors", "number of positions surrounded on 2 of 4 sides")
-
 
   )
 

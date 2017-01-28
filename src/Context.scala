@@ -14,15 +14,18 @@ case class GameInfo(
 class Context(conf: Conf) {
 
   // vars so you can change test specifications - consider other mechanisms if you wish
-  val beep:Boolean = conf.beep()
+  val beep: Boolean = conf.beep()
   var continuousMode: Boolean = conf.continuousPlay()
+  //noinspection VarCouldBeVal
   var maxSimulations: Int = conf.maxSimulations()
   var stopGameAtRound: Int = conf.endGameAtRound()
   var parallel: Boolean = conf.parallel()
   var show: Boolean = conf.show()
-  var showWorst:Boolean = conf.displayWorst()
+  //noinspection VarCouldBeVal
+  var showWorst: Boolean = conf.displayWorst()
   var randomSeed: Int = conf.randomSeed()
 
+  //noinspection VarCouldBeVal
   // todo maybe provide alternative constructors for testing?
   var specification: Specification = Specification()
 

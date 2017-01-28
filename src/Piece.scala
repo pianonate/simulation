@@ -10,7 +10,7 @@ abstract class Piece {
   val grid: OccupancyGrid
   val weight: Int = 0 // defined so subclasses (such as Board) don't have to provide an implementation
 
-  final val usage = Counter(0)
+  final val usage = Counter()
 
   final val rows: Int = grid.rows
   final val cols: Int = grid.cols
@@ -92,9 +92,9 @@ object Piece {
   def rotate90(newName: String, pieceToCopy: Piece): Piece = {
 
     case class Rotated(
-      val name:            String,
-      val color:           String,
-      val grid:            OccupancyGrid,
+      name:                String,
+      color:               String,
+      grid:                OccupancyGrid,
       override val weight: Int
     ) extends Piece
 

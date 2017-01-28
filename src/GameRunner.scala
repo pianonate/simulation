@@ -3,13 +3,15 @@
  * let Main be Main
  * GameRunner owns the responsibility of running Games and managing high score persistence
  */
+import java.awt.Toolkit
+
 import Game._
 import Implicits._
 import java.io.PrintWriter
 
 object GameRunner {
 
-  val toolKit = java.awt.Toolkit.getDefaultToolkit()
+  val toolKit: Toolkit = java.awt.Toolkit.getDefaultToolkit
 
   def play(context:Context): Unit = {
 
@@ -34,7 +36,7 @@ object GameRunner {
 
       gameCount.inc()
 
-      val gameInfo = GameInfo(average, sessionHighScore, machineHighScore, gameCount.value, totalTime )
+      val gameInfo = GameInfo(average, sessionHighScore, machineHighScore, gameCount.value, totalTime)
 
       val game = new Game(context, gameInfo)
       val results = game.run
@@ -115,6 +117,6 @@ object GameRunner {
 
   }
 
-  def beep(context:Context) = if (context.beep) toolKit.beep()
+  def beep(context:Context): Unit = if (context.beep) toolKit.beep()
 
 }

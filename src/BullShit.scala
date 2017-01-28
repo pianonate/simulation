@@ -8,23 +8,24 @@ class BullShit(val rounds: Counter, gameTimer: GameTimer) extends Iterable[Strin
   private val showForSeconds = 10
   private var showForRounds = showForSeconds
 
-  private def setShowForRounds = {
+  private def setShowForRounds() = {
+    // how many rounds should we show this bullshit?
     val roundsPerSecond = math.floor(rounds.value / gameTimer.elapsedSeconds).toInt
     showForRounds = showForSeconds * roundsPerSecond
   }
 
   def iterator = new Iterator[String] {
     def hasNext = true
-    def next = {
+    def next: String = {
 
-      val current = showForRounds
+      // val current = showForRounds
       showForRounds -= 1
       val newBullShit = showForRounds == 0
 
       if (newBullShit) {
         // only update rounds per second every time you get a new one
         // so that it establishes a consistent time for however fast the program is currently running
-        setShowForRounds
+        setShowForRounds()
         currentBullShit = BullShit.getBullshit
       }
 

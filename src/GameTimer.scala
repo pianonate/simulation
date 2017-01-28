@@ -17,8 +17,8 @@ class GameTimer {
   private var resumedTime = 0l
   private var pausedDuration = 0l
 
-  def pause: Unit =  { pausedTime = getTime;require(pausedTime>startTime) }
-  def resume: Unit =  { resumedTime = getTime; require(resumedTime>pausedTime); pausedDuration += (resumedTime - pausedTime) }
+  def pause(): Unit =  { pausedTime = getTime;require(pausedTime>startTime) }
+  def resume(): Unit =  { resumedTime = getTime; require(resumedTime>pausedTime); pausedDuration += (resumedTime - pausedTime) }
 
   // so this has a funky use
   // any time you call elapsed or toString (which calls elapsed)

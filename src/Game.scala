@@ -46,16 +46,9 @@ case class SimulationInfo(
   elapsedMs:           Int
 )
 
-case class PerformanceInfo(
-  simulatedCount:      Int,
-  unsimulatedCount:    Int,
-  rcChangedCountBest:  Int,
-  rcChangedCountWorst: Int,
-  elapsedMs:           Long,
-  perSecond:           Int
-)
-
 class Game(context: Context, gameInfo: GameInfo) {
+
+  private[this] val gameStats: GameStats = new GameStats
 
   private[this] val board: Board = new Board(Board.BOARD_SIZE, context.specification)
   private[this] val gamePieces: Pieces = new Pieces(context.randomSeed)
@@ -68,27 +61,18 @@ class Game(context: Context, gameInfo: GameInfo) {
   private[this] val nonSimulationTimer = new GameTimer()
 
   private[this] val roundAfterSimulationTimer = new GameTimer()
-  roundAfterSimulationTimer.pause
+  roundAfterSimulationTimer.pause()
 
   private[this] val getRoundResultsStringTimer = new GameTimer()
-  getRoundResultsStringTimer.pause
-
-  private[this] val getGameTimeInfoTimer = new GameTimer()
-  getGameTimeInfoTimer.pause
-
-  private[this] val getScoreInfoTimer = new GameTimer()
-  getScoreInfoTimer.pause
+  getRoundResultsStringTimer.pause()
 
   private[this] val getPointsInfoTimer = new GameTimer()
-  getPointsInfoTimer.pause
+  getPointsInfoTimer.pause()
 
   private[this] val getSimulationInfoTimer = new GameTimer()
-  getSimulationInfoTimer.pause
+  getSimulationInfoTimer.pause()
 
   private[this] val bullShit = new BullShit(rounds, gameTimer)
-
-  import scala.collection.mutable.ListBuffer
-  private[this] val performanceInfoList = new ListBuffer[PerformanceInfo]
 
   def run: GameResults = {
 
@@ -119,9 +103,9 @@ class Game(context: Context, gameInfo: GameInfo) {
     GameResults(
       score.value,
       rounds.value,
-      if (context.replayGame) 0 else performanceInfoList.map(_.perSecond).max,
-      if (context.replayGame) 0l else performanceInfoList.map(_.simulatedCount).sum,
-      if (context.replayGame) 0l else performanceInfoList.map(_.unsimulatedCount).sum
+      if (context.replayGame) 0 else gameStats.bestPerSecond,
+      if (context.replayGame) 0l else gameStats.totalSimulations,
+      if (context.replayGame) 0l else gameStats.totalUnsimulatedSimulations
     )
 
   }
@@ -193,6 +177,16 @@ class Game(context: Context, gameInfo: GameInfo) {
       ).mkString
     }
 
+    def getUnplacedPiecesString(bestSimulation: Simulation, pieces: List[Piece]): String = {
+      val s = (bestSimulation.pieceCount until 3).map({ index =>
+        val piece = pieces(index)
+        val pieceString = piece.show(piece.cellShowFunction)
+        "\nDammit!  Couldn't place piece " + (index + 1) + "\n" + pieceString
+      }).mkString
+
+      s
+    }
+
     val replayPieces = getReplayPieces
 
     // get either three random pieces, or the replayPieces passed in
@@ -202,38 +196,42 @@ class Game(context: Context, gameInfo: GameInfo) {
 
     showPieces(pieces)
 
-    nonSimulationTimer.pause
-    roundAfterSimulationTimer.pause
+    nonSimulationTimer.pause()
+    roundAfterSimulationTimer.pause()
 
     val results = getResults(pieces)
 
-    nonSimulationTimer.resume
-    roundAfterSimulationTimer.resume
+    nonSimulationTimer.resume()
+    roundAfterSimulationTimer.resume()
 
     val bestSimulation = getTheChosenOne(results, replayPieces)
 
     if (bestSimulation.pieceCount > 0) {
 
       // no need to get a results string if we're not going to show it
-      val s1 = if (context.show) getResultsString(results, bestSimulation) else ""
+      val resultsString = if (context.show) getResultsString(results, bestSimulation) else ""
 
       val chosenList: List[PieceLocCleared] = getChosenPlcList(replayPieces, bestSimulation)
 
       // as a side effect of placing, returns a string representing board states
       // is there a better way to do this?
-      val s2 = placePieces(chosenList)
+      val placePiecesString = placePieces(chosenList)
 
-      getRoundResultsStringTimer.resume
-      val s3 = if (context.show) getRoundResultsString(gameInfo.gameCount: Int) else ""
-      getRoundResultsStringTimer.pause
+      getRoundResultsStringTimer.resume()
+      val roundResultsString = if (context.show) getRoundResultsString(gameInfo.gameCount: Int) else ""
+      getRoundResultsStringTimer.pause()
 
-      if (context.show)
-        print(s1 + s2 + s3)
+      val unplacedPiecesString = getUnplacedPiecesString(bestSimulation, pieces)
+
+      if (context.show) {
+        print(resultsString + placePiecesString + unplacedPiecesString + roundResultsString)
+      }
     }
 
-    roundAfterSimulationTimer.pause
+    roundAfterSimulationTimer.pause()
 
     if (bestSimulation.pieceCount < 3 || (rounds.value == context.stopGameAtRound)) {
+
       gameOver
     }
 
@@ -241,7 +239,7 @@ class Game(context: Context, gameInfo: GameInfo) {
 
   private def gameOver: Nothing = {
     // flush is a test to see what happens after a long running game ends
-    System.out.flush
+    System.out.flush()
     throw GameOver
   }
 
@@ -276,13 +274,15 @@ class Game(context: Context, gameInfo: GameInfo) {
 
     val rcChangedCountWorst = if (context.showWorst) result.map(_.rcChangedCountWorst).sum else 0
 
-    performanceInfoList append PerformanceInfo(
-      simulatedCount + unsimulatedCount,
-      unsimulatedCount,
-      result.map(_.rcChangedCountBest).sum,
-      rcChangedCountWorst,
-      elapsedMs,
-      perSecond
+    gameStats.updateStats(
+      PerformanceInfo(
+        simulatedCount + unsimulatedCount,
+        unsimulatedCount,
+        result.map(_.rcChangedCountBest).sum,
+        rcChangedCountWorst,
+        elapsedMs,
+        perSecond
+      )
     )
 
     result
@@ -604,7 +604,7 @@ class Game(context: Context, gameInfo: GameInfo) {
 
   private def getRoundResultsString(gameCount: Int): String = {
 
-    if ((context.replayGame && context.ignoreSimulation))
+    if (context.replayGame && context.ignoreSimulation)
       // todo
       "Replay Mode - no simulating.  what do you show here?"
     else {
@@ -613,7 +613,6 @@ class Game(context: Context, gameInfo: GameInfo) {
       //       game 2 - 611,283 - 4.4% non-simulation time after 49M 49s
 
       def getGameTimeInfo: Array[String] = {
-        getGameTimeInfoTimer.resume
 
         val gameElapsedNanoseconds = gameTimer.elapsedNanoseconds.toFloat
         val a1 = Array(
@@ -622,32 +621,20 @@ class Game(context: Context, gameInfo: GameInfo) {
           "game elapsed time".label + gameTimer.elapsedLabel,
           "non simulation time".label + nonSimulationTimer.elapsedLabelMs + (nonSimulationTimer.elapsedNanoseconds / gameElapsedNanoseconds).percentLabel,
           "post simulation time".label + roundAfterSimulationTimer.elapsedLabelMs + (roundAfterSimulationTimer.elapsedNanoseconds / gameElapsedNanoseconds).percentLabel,
-          "getRoundResultsString".label + getRoundResultsStringTimer.elapsedLabelMs + (getRoundResultsStringTimer.elapsedNanoseconds / gameElapsedNanoseconds).percentLabel,
-          "getGameTimeInfoTimer".label + getGameTimeInfoTimer.elapsedLabelMs + (getGameTimeInfoTimer.elapsedNanoseconds / gameElapsedNanoseconds).percentLabel
-         )
+          "getRoundResultsString".label + getRoundResultsStringTimer.elapsedLabelMs + (getRoundResultsStringTimer.elapsedNanoseconds / gameElapsedNanoseconds).percentLabel
+        )
 
-        getScoreInfoTimer.resume
-        val a2 = Array( "getScoreInfoTimer".label + getScoreInfoTimer.elapsedLabelMs + (getScoreInfoTimer.elapsedNanoseconds / gameElapsedNanoseconds).percentLabel)
-        getScoreInfoTimer.pause
-
-        getPointsInfoTimer.resume
-        val a3 = Array("getPointsInfoTimer".label + getPointsInfoTimer.elapsedLabelMs + (getPointsInfoTimer.elapsedNanoseconds / gameElapsedNanoseconds).percentLabel)
-        getPointsInfoTimer.pause
-
-        getSimulationInfoTimer.resume
-        val a4 = Array("getSimulationInfoTimer".label + getSimulationInfoTimer.elapsedLabelMs + (getSimulationInfoTimer.elapsedNanoseconds / gameElapsedNanoseconds).percentLabel)
-        getSimulationInfoTimer.pause
+        getSimulationInfoTimer.resume()
+        val a2 = Array("getSimulationInfoTimer".label + getSimulationInfoTimer.elapsedLabelMs + (getSimulationInfoTimer.elapsedNanoseconds / gameElapsedNanoseconds).percentLabel)
+        getSimulationInfoTimer.pause()
 
         // optional so we add an empty array when not showing this
-        val a5 = if (gameInfo.gameCount > 1) Array("total elapsed time".label + gameInfo.totalTime.elapsedLabel) else Array[String]()
+        val a3 = if (gameInfo.gameCount > 1) Array("total elapsed time".label + gameInfo.totalTime.elapsedLabel) else Array[String]()
 
-        getGameTimeInfoTimer.pause
-        a1 ++ a2 ++ a3 ++ a4 ++ a5
+        a1 ++ a2 ++ a3
       }
 
       def getScoreInfo: Array[String] = {
-
-        getScoreInfoTimer.resume
 
         // average of the last 100
         val newSessionHighScore = score.value > gameInfo.sessionHighScore
@@ -664,17 +651,13 @@ class Game(context: Context, gameInfo: GameInfo) {
           "all time high score".label + (if (newMachineHighScore) machineHighScore.scoreLabel else machineHighScore.label)
         )
 
-        getScoreInfoTimer.pause
-
         a
 
       }
 
       def getPointsInfo: Array[String] = {
 
-        getPointsInfoTimer.resume
-
-        val roundsPerSecond = (rounds.value / gameTimer.elapsedSeconds).toFloat
+        val roundsPerSecond = rounds.value / gameTimer.elapsedSeconds
         val pointsPerSecond = math.floor(score.value / gameTimer.elapsedSeconds).toInt
         val pointsPerMinute = math.floor(score.value / gameTimer.elapsedMinutes).toInt
         val pointsPerHour = math.floor(score.value / gameTimer.elapsedHours).toInt
@@ -689,18 +672,22 @@ class Game(context: Context, gameInfo: GameInfo) {
           "points per hour".label + pointsPerHour.label
         )
 
-        getPointsInfoTimer.pause
         a
       }
 
       def getSimulationInfo: Array[String] = {
 
-        getSimulationInfoTimer.resume
+        getSimulationInfoTimer.resume()
 
-        val lastRoundInfo = performanceInfoList.last
+        //todo - change a performance info list into it's own class that
+        // just keeps the last and the best around
+        // store it on gameInfo
+        // it can keep the most recent 100 per second so we can get a sense of overall performance...
+
+        val lastRoundInfo = gameStats.lastRoundInfo
         val skippedPercent: Float = lastRoundInfo.unsimulatedCount.toFloat / lastRoundInfo.simulatedCount.toFloat
 
-        val averagePerSecond = performanceInfoList.takeRight(100).map(_.perSecond).avg.toInt
+        val averagePerSecond = gameStats.averagePerSecond
 
         val a1 = Array(
           // simulation info
@@ -711,15 +698,15 @@ class Game(context: Context, gameInfo: GameInfo) {
           " ",
           "simulations/sec".label + lastRoundInfo.perSecond.perSecondLabel,
           "average/sec last 100".label + averagePerSecond.yellowPerSecondLabel,
-          "best per second".label + performanceInfoList.map(_.perSecond).max.greenPerSecondLabel,
+          "best per second".label + gameStats.bestPerSecond.greenPerSecondLabel,
           // race condition info
           " ",
-          "race cond. on best".label + performanceInfoList.map(_.rcChangedCountBest).sum.label + " (" + lastRoundInfo.rcChangedCountBest.shortLabel + ")"
+          "race cond. on best".label + gameStats.totalRaceConditionOnBest.label + " (" + lastRoundInfo.rcChangedCountBest.shortLabel + ")"
         )
 
         // optional so we add an empty array when not showing this
-        val a2 = if (context.showWorst) Array("race cond. on worst".label + performanceInfoList.map(_.rcChangedCountWorst).sum.label + " (" + lastRoundInfo.rcChangedCountWorst.shortLabel + ")") else Array[String]()
-        getSimulationInfoTimer.pause
+        val a2 = if (context.showWorst) Array("race cond. on worst".label + gameStats.totalRaceConditionOnWorst.label + " (" + lastRoundInfo.rcChangedCountWorst.shortLabel + ")") else Array[String]()
+        getSimulationInfoTimer.pause()
 
         a1 ++ a2
 

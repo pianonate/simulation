@@ -1,5 +1,6 @@
 /**
-  * Created by nathanmccoy on 1/24/17.
+  * Created by nathan mccoy on 1/24/17.
+  * implicits are fun
   */
 
 import scala.collection.mutable.ListBuffer
@@ -8,6 +9,8 @@ import Implicits._
 import scala.language.implicitConversions
 
 object Implicits {
+
+  implicit def array2EnhancedArray(a:Array[Int]):EnhancedArray = new EnhancedArray(a)
 
   implicit def counter2CounterFormats(counter:Counter): CounterFormats = new CounterFormats(counter)
 
@@ -35,6 +38,23 @@ class CounterFormats(val counter:Counter) {
   def scoreLabel:String = counter.value.scoreLabel
 }
 
+class EnhancedListBuffer(val xs:ListBuffer[Int]) {
+  // okay - i fucking love implicits now
+  def avg: Double = {
+    val (sum, length) = xs.foldLeft((0l, 0))({ case ((s, l), x) => (x + s, 1 + l) })
+    val result = sum / length
+    result
+  }
+}
+
+class EnhancedArray(val a:Array[Int]) {
+  def avg:Double = {
+    val (sum, length) = a.foldLeft((0l, 0))({ case ((s, l), x) => (x + s, 1 + l) })
+    val result = sum / length
+    result
+  }
+}
+
 class IntFormats(val i:Int) {
   def firstSecondThirdLabel:String = i match {
     case 1 => "1st"
@@ -45,7 +65,7 @@ class IntFormats(val i:Int) {
   def greenLabel:String = GREEN + optFactorLabel + SANE
   def greenPerSecondLabel:String = GREEN + perSecondLabel  + SANE
   def label:String = numberFormat.format(i)
-  def label(length:Int) = ("%," + length.toString + "d").format(i)
+  def label(length:Int): String = ("%," + length.toString + "d").format(i)
   def optFactorLabel:String = optFactorResultFormat.format(i)
   def perSecondLabel:String = label + "/s"
   def redLabel:String = RED + optFactorLabel + SANE
@@ -57,7 +77,7 @@ class IntFormats(val i:Int) {
 
 class FloatFormats(val f:Float) {
   def skippedPercentLabel:String = skippedSimulationPercentFormat.format(f * 100) + "%"
-  def percentLabel = percentFormat.format(f * 100) + "%"
+  def percentLabel: String = percentFormat.format(f * 100) + "%"
   def label:String = floatFormat.format(f)
 }
 
@@ -70,14 +90,7 @@ class PieceListFormats(val pieces:List[Piece]) {
   def label:String = pieces.map(_.name).mkString(", ")
 }
 
-class EnhancedListBuffer(val xs:ListBuffer[Int]) {
-  // okay - i fucking love implicits now
-  def avg: Double = {
-    val (sum, length) = xs.foldLeft((0l, 0))({ case ((s, l), x) => (x + s, 1 + l) })
-    val result = sum / length
-    result
-  }
-}
+
 
 class LongFormats(val l:Long) {
   def msLabel(length:Int):String =  " in " + ("%," + length.toString + "d").format(l) + "ms"
@@ -89,7 +102,7 @@ class StringFormats(val s:String) {
 
   private def getHeaderString(color: String): String = {
 
-    val padLength = ((headerWidth - (s.length + 2)) / 2)
+    val padLength = (headerWidth - (s.length + 2)) / 2
     val pad1 = "-" * padLength
     val pad2 = "-" * (headerWidth - (padLength + s.length + 2))
 
@@ -110,18 +123,18 @@ object StringFormats {
   // todo revert length to 21 after info timing exercise
   val labelFormatLength = 22
   val numberFormatLength = 11
-  val headerWidth = labelFormatLength + numberFormatLength + 15
+  val headerWidth: Int = labelFormatLength + numberFormatLength + 15
 
-  val labelFormat = "%-" + labelFormatLength.toString + "s: "
+  val labelFormat: String = "%-" + labelFormatLength.toString + "s: "
   val optFactorLabelFormat = " %s: "
   val optFactorResultFormat = "%,2d"
 
-  val numberFormat = "%," + numberFormatLength.toString + "d"
-  val floatFormat = "%" + (numberFormatLength+2).toString + ".1f"
+  val numberFormat: String = "%," + numberFormatLength.toString + "d"
+  val floatFormat: String = "%" + (numberFormatLength+2).toString + ".1f"
 
   val numberFormatShort = "%,d"
-  val elapsedFormat = "%" + (numberFormatLength +2).toString + "s"
-  val elapsedFormatMs = "%" + (numberFormatLength + 7).toString + "s"
+  val elapsedFormat: String = "%" + (numberFormatLength +2).toString + "s"
+  val elapsedFormatMs: String = "%" + (numberFormatLength + 7).toString + "s"
 
   val percentFormat = " %2.2f"
   val skippedSimulationPercentFormat = "     %2.0f"
