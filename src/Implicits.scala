@@ -28,7 +28,6 @@ object Implicits {
 
   implicit def string2StringFormats(s:String):StringFormats = new StringFormats(s)
 
-
 }
 
 class CounterFormats(val counter:Counter) {
@@ -87,7 +86,7 @@ class GameTimerFormats(val gameTimer:GameTimer) {
 }
 
 class PieceListFormats(val pieces:List[Piece]) {
-  def label:String = pieces.map(_.name).mkString(", ")
+  def label:String = pieces.map(piece => StringFormats.pieceNameFormat.format(piece.name)).mkString(" ")
 }
 
 
@@ -120,8 +119,7 @@ class StringFormats(val s:String) {
 
 object StringFormats {
 
-  // todo revert length to 21 after info timing exercise
-  val labelFormatLength = 22
+  val labelFormatLength = 21
   val numberFormatLength = 11
   val headerWidth: Int = labelFormatLength + numberFormatLength + 15
 
@@ -180,5 +178,9 @@ object StringFormats {
   val BACKGROUND_MAGENTA = "\u001B[45m"
   val BACKGROUND_CYAN = "\u001B[46m"
   val BACKGROUND_WHITE = "\u001B[47m"
+
+
+  val longestNameLength = (new Pieces).longestName
+  val pieceNameFormat = "%-" + longestNameLength + "s"
 
 }

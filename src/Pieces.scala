@@ -75,7 +75,6 @@ class Pieces(seed:Int = 0) {
 
   val randomizer: Random = if (seed > 0) new scala.util.Random(seed) else new scala.util.Random()
 
-
   import Pieces._
 
   // format: OFF
@@ -109,6 +108,7 @@ class Pieces(seed:Int = 0) {
   // used for outputting a set of three pieces
   val tallestPiece:Int = pieceList.map(_.rows).max
 
+
   private val pieceDistribution = pieceList.flatMap(piece => List.fill(piece.weight)(piece.name))
 
   def getRandomPiece: Piece = {
@@ -138,15 +138,8 @@ class Pieces(seed:Int = 0) {
     println
   }
 
+  val longestName:Int = pieceList.map(_.name.length).max
 }
-
-/*ase class PieceSpecification(
-  name:      String,
-  pieceType: String, // how could you turn this into
-  size:      Int,
-  color:     String,
-  weight:    Int
-)*/
 
 object Pieces {
 
@@ -192,7 +185,7 @@ object Pieces {
   val upperRightEl: Piece = Piece.rotate90(Pieces.upperRightElName, upperLeftEl)
   val lowerRightEl: Piece = Piece.rotate90(Pieces.lowerRightElName, upperRightEl)
 
-  val bigLowerLeftEl = El(Piece.getBoxGrid(2), Pieces.bigLowerLeftElName, StringFormats.BLUE, 2)
+  val bigLowerLeftEl = El(Piece.getBoxGrid(3), Pieces.bigLowerLeftElName, StringFormats.BLUE, 2)
   val bigUpperLeftEl: Piece = Piece.rotate90(Pieces.bigUpperLeftElName, bigLowerLeftEl)
   val bigUpperRightEl: Piece = Piece.rotate90(Pieces.bigUpperRightElName, bigUpperLeftEl)
   val bigLowerRightEl: Piece = Piece.rotate90(Pieces.bigLowerRightElName, bigUpperRightEl)

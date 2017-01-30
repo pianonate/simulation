@@ -140,7 +140,6 @@ object Specification {
     // much more flexible than it used to be
 
     // todo - run through all specification combinations of off and on and run 1000? games on each to see which specification is the best
-    //        after a thousand games
     OptimizationFactor(enabled = true, maximizerCountName, maximize, "maximizer", "positions in which a 3x3 piece can fit"),
     OptimizationFactor(enabled = true, occupiedCountName, minimize, "occupied", "occupied positions"),
     OptimizationFactor(enabled = true, fourNeighborsName, minimize, "4 neighbors", "number of positions surrounded on all 4 sides"),

@@ -27,25 +27,6 @@ object GameOver extends Exception
 
 case class GameResults(score: Int, rounds: Int, bestPerSecond: Int, totalSimulations: Long, totalUnsimulatedSimulations: Long)
 
-/**
- * SimulationInfo is used to display results at the end of each round
- * @param pieces - the list of pieces that were placed this round
- * @param simulatedCount - how many combinations of locations were simulated for these three pieces
- * @param best - the best simulation as determined by the Specification
- * @param worst - the worst simulation as determined by the Specification
- * @param elapsedMs - how much time did it take to run all of the simulationCount simulations
- */
-case class SimulationInfo(
-  pieces:              List[Piece],
-  simulatedCount:      Int,
-  unsimulatedCount:    Int,
-  best:                Simulation,
-  worst:               Simulation,
-  rcChangedCountBest:  Int,
-  rcChangedCountWorst: Int,
-  elapsedMs:           Int
-)
-
 // this constructor is used in testing to pass in a pre-constructed board state
 class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
@@ -153,8 +134,11 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
     def getResultsString(results: List[SimulationInfo], bestSimulation: Simulation): String = {
       if (context.replayGame && context.ignoreSimulation)
         "\ninstrumented game - skipping results\n"
-      else
-        "\n" + context.specification.getImprovedResultsString(results, bestSimulation, context.showWorst) + "\n"
+      else {
+        val resultsString = "\n" + context.specification.getImprovedResultsString(results, bestSimulation, context.showWorst) + "\n"
+        val heightBuffer = if (results.length < 6) (results.length until 6).map(i => i+1).mkString(":\n") + "\n" else ""
+        resultsString + heightBuffer
+      }
 
     }
 
@@ -167,13 +151,19 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
     def placePieces(chosenList: List[PieceLocCleared]): String = {
       // zip the piece location cleared list it's index so we don't have to keep a
       // global track of placed pieces
-      chosenList.zipWithIndex.map(
+      val a: List[List[String]] = chosenList.zipWithIndex.map(
         plc => pieceHandler(
           plc._1.piece,
           plc._1.loc,
           plc._2 + 1
-        )
-      ).mkString
+        ).split("\n")
+      ).transpose
+
+      val boards = a.init.map(each => each.mkString("  ")).mkString("\n")
+      val scores = a.last.mkString("\n")
+
+      boards + "\n\n" + scores
+
     }
 
     def getUnplacedPiecesString(bestSimulation: Simulation): String = {
@@ -187,14 +177,17 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
       s
     }
-
+    import sys.process._
+    import scala.language.postfixOps
     def resetTerminalBuffer: Unit = {
-      // reset terminal every 400 rounds
-      import sys.process._
-      import scala.language.postfixOps
-      // default is 400 rounds
+      // reset terminal every 1000 rounds
       if (rounds.value % context.eraseTerminalBufferAfterRound == 0)
         "printf '\u001B[3J'" !
+    }
+
+    def clearScreen:Unit = {
+      "clear" !
+      // "printf \u001B[2J" !
     }
 
     val replayPieces = getReplayPieces
@@ -204,7 +197,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
     rounds.inc()
 
-    showPieces(pieces)
+    val roundPiecesString = getRoundPiecesString(pieces)
 
     nonSimulationTimer.pause()
 
@@ -230,12 +223,18 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
       val unplacedPiecesString = getUnplacedPiecesString(bestSimulation)
 
       if (context.show) {
+
+        // setTerm
+
+
         print(
-          resultsString +
+          roundPiecesString +
+            resultsString +
             placePiecesString +
             unplacedPiecesString +
             roundResultsString
         )
+        clearScreen
 
         resetTerminalBuffer
 
@@ -537,9 +536,36 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
   private def pieceHandler(piece: Piece, loc: Loc, index: Int): String = {
 
+    val boardBuffer = (Board.BOARD_SIZE * 2 - 1)
+    val pieceBuffer = boardBuffer - (piece.cols * 2 - 1)
+
+    def getLinesClearedString(result: ClearedLines): String = {
+
+      val clearedString = if (result.rows > 0 || result.cols > 0) {
+
+        def getLineClearedString(i: Int, s: String): String = {
+          val clearedString = if (i > 0) "cleared " + i + " " + s.plural(i) else ""
+          val spaces = " " * (boardBuffer - clearedString.length)
+          clearedString + spaces + "  \n"
+        }
+
+        val r = getLineClearedString(result.rows, "row")
+        val c = getLineClearedString(result.cols, "column")
+
+        r + c
+
+      } else
+        " " * (boardBuffer) + "  \n" +
+          " " * (boardBuffer) + "  \n"
+
+      clearedString
+    }
+
     // todo - get rid of piece.cellShowFunction - it's got to work better than this
-    val placingString = "\nPlacing " + index.firstSecondThirdLabel + " at " + loc.show + "\n" + piece.show(piece.cellShowFunction) +
-      (piece.rows to gamePieces.tallestPiece).map(_ => "\n").mkString
+
+    val placingString = "\nPlacing " + index.firstSecondThirdLabel + " at " + loc.show + " \n" +
+      piece.show(piece.cellShowFunction).split("\n").map(each => each + " " * pieceBuffer).mkString("\n") +
+      (piece.rows to gamePieces.tallestPiece).map(_ => "\n" + " " * (boardBuffer + 2)).mkString
 
     board.place(piece, loc, updateColor = true)
 
@@ -562,70 +588,46 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
     }
 
-    val boardStringArray = boardBeforeClearing.split("\n")
-    val withCleared = Array(boardStringArray.head + getLinesClearedString(linesClearedResult)) ++ boardStringArray.tail
-
     val scoreString = "score: " + score.boardScoreLabel + " - results:" + context.specification.getBoardResultString(board.results)
+    val s = placingString + "\n" + boardBeforeClearing + "\n" + getLinesClearedString(linesClearedResult) + scoreString
 
-    val boardString = withCleared.init.mkString("\n") + "\n" + withCleared.last + scoreString + "\n"
-
-    placingString + boardString
+    s
   }
 
   private def getShowBoard = {
     board.show(board.cellShowFunction) /*.split("\n").zip(board.boardNeighbors).map(s => s._1 + s._2.mkString(" ")).mkString("\n")*/
   }
 
-  // todo - this is ugly - clears lines and gets strings - need to separate this into distinct functions
-  private def getLinesClearedString(result: ClearedLines): String = {
+  private def getRoundPiecesString(pieces: List[Piece]): String = {
 
-    val s = if (result.rows > 0 || result.cols > 0) {
+    // we'll need the height of the tallest piece as a guard for shorter pieces where we need to
+    // print out spaces as placeholders.  otherwise array access in the for would be broken
+    // if we did some magic to append fill rows to the pieces as strings array...
+    val tallestPiece = pieces.map(_.rows).max
 
-      def getLineClearedString(i: Int, s: String): String = if (i > 0) "cleared " + i + " " + s.plural(i) else ""
+    // because we're not printing out one piece, but three across, we need to split
+    // the toString from each piece into an Array.  In this case, we'll create a List[Array[String]]
+    val piecesToStrings = pieces map { piece =>
 
-      val r = getLineClearedString(result.rows, "row")
-      val c = getLineClearedString(result.cols, "column")
-      val both = if (r.length > 0 && c.length > 0) r + ", " + c else r + c
-      both
-    } else
-      ""
-    s
-  }
+      val a = piece.show(piece.cellShowFunction).split('\n')
+      if (a.length < tallestPiece)
+        a ++ Array.fill(tallestPiece - a.length)(piece.printFillString) // fill out the array
+      else
+        a // just return the array
 
-  private def showPieces(pieces: List[Piece]): Unit = {
-
-    if (context.show) {
-
-      // we'll need the height of the tallest piece as a guard for shorter pieces where we need to
-      // print out spaces as placeholders.  otherwise array access in the for would be broken
-      // if we did some magic to append fill rows to the pieces as strings array...
-      val tallestPiece = pieces.map(_.rows).max
-
-      // because we're not printing out one piece, but three across, we need to split
-      // the toString from each piece into an Array.  In this case, we'll create a List[Array[String]]
-      val piecesToStrings = pieces map { piece =>
-
-        val a = piece.show(piece.cellShowFunction).split('\n')
-        if (a.length < tallestPiece)
-          a ++ Array.fill(tallestPiece - a.length)(piece.printFillString) // fill out the array
-        else
-          a // just return the array
-
-      }
-
-      // blast these out as one string
-      val s1 = ("round " + rounds.shortLabel).header + "\n"
-
-      val s2 = piecesToStrings.map(a => a.toList)
-        .transpose
-        .map(l => l.mkString).mkString("\n")
-
-      val s3 = (tallestPiece to gamePieces.tallestPiece).map(_ => "\n").mkString
-
-      val s4 = bullShit.iterator.next
-
-      print(s1 + s2 + s3 + s4)
     }
+
+    // blast these out as one string
+    val roundLabel = ("round " + rounds.shortLabel).header + "\n"
+
+    val piecesString = piecesToStrings.map(a => a.toList)
+      .transpose
+      .map(l => l.mkString).mkString("\n")
+
+    val heightBufferString = (tallestPiece to gamePieces.tallestPiece).map(_ => "\n").mkString
+
+    roundLabel + piecesString + heightBufferString
+
   }
 
   private def getRoundResultsString(gameCount: Int): String = {
@@ -714,7 +716,11 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
           "best per second".label + gameStats.bestPerSecond.greenPerSecondLabel,
           // race condition info
           " ",
-          "race cond. on best".label + gameStats.totalRaceConditionOnBest.label + " (" + lastRoundInfo.rcChangedCountBest.shortLabel + ")"
+          "race cond. on best".label + gameStats.totalRaceConditionOnBest.label + " (" + lastRoundInfo.rcChangedCountBest.shortLabel + ")",
+          ("round " + rounds.value.shortLabel).header,
+          " ",
+          bullShit.iterator.next
+
         )
 
         // optional so we add an empty array when not showing this
