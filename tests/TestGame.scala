@@ -5,7 +5,7 @@
 import org.scalatest.FlatSpec
 
 trait GameInfoFixture {
-  val gameInfo = GameInfo(0, 0, 0, 1, new GameTimer)
+  val multiGameStats = MultiGameStats(0, 0, 0, 1, new GameTimer)
   val context = new Context(new Conf(Seq()))
   context.continuousMode = false
   context.show = false
@@ -34,11 +34,65 @@ class TestGame extends FlatSpec {
       // setReplayList will put the game in a mode where it only plays from the specified list (in this case the one above)
       context.setReplayList(plcList)
 
-      private val game = new Game(context, gameInfo)
+      private val game = new Game(context, multiGameStats)
       private val results: GameResults = game.run
 
       // 39 is a magic value - but this MUST be the score based on the pieces setup above
       assert(results.score === 39)
+    }
+  }
+
+  it must "place three big boxes on a particular board that invoked a comparison bug" in {
+    new GameInfoFixture {
+
+      // this board was an end of game scenario where sometimes
+      // under thread race conditions, the wrong board would be chosen
+      // when the plcList length was 2 when there was a 3 option available
+      // addd an additional else clause in Simulation.compare to account for this
+      // the following ensures we don't regress
+      val a = Array(
+        Array(0, 0, 0, 0, 0, 0, 1, 1, 1, 0), //0
+        Array(0, 0, 1, 1, 0, 0, 0, 0, 1, 1), //1
+        Array(0, 1, 1, 0, 0, 0, 0, 0, 0, 0), //2
+        Array(0, 1, 1, 1, 0, 0, 0, 0, 0, 0), //3
+        Array(0, 1, 1, 1, 0, 0, 0, 0, 0, 0), //4
+        Array(0, 1, 1, 1, 1, 0, 0, 0, 0, 0), //5
+        Array(0, 1, 1, 1, 0, 0, 0, 0, 0, 0), //6
+        Array(0, 1, 1, 1, 0, 0, 0, 0, 0, 0), //7
+        Array(0, 1, 0, 1, 1, 1, 0, 1, 1, 1), //8
+        Array(0, 1, 0, 1, 1, 1, 1, 1, 1, 1) //9
+      )
+
+      val grid = OccupancyGrid(Board.BOARD_SIZE, Board.BOARD_SIZE, filled = false)
+      val colorGrid = Array.fill[String](10, 10)(Board.BOARD_COLOR)
+
+      for {
+        i <- a.indices
+        j <- a(0).indices
+      } {
+        if (a(i)(j) == 1) {
+          grid.occupy(i, j)
+          colorGrid(i)(j) = StringFormats.GREEN
+        }
+      }
+
+      val board = new Board("testBoard", Board.BOARD_COLOR, grid, colorGrid, context.specification)
+
+      val plcList = List(
+        PieceLocCleared(Pieces.bigBox, Loc(0, 0), clearedLines = false),
+        PieceLocCleared(Pieces.bigBox, Loc(0, 5), clearedLines = false),
+        PieceLocCleared(Pieces.bigBox, Loc(5, 9), clearedLines = false)
+
+      )
+
+      context.setReplayList(plcList)
+      context.ignoreSimulation = false
+      context.show = false
+
+      val game = new Game(context, multiGameStats, board)
+      val results: GameResults = game.run
+      assert(results.score === 37)
+
     }
   }
 
@@ -50,16 +104,16 @@ class TestGame extends FlatSpec {
   it must "end up with the same score for two consecutive seeded games in parallel mode" ignore {
     new GameInfoFixture {
 
-      context.randomSeed= (new scala.util.Random()).nextInt(1000000000)
-      context.stopGameAtRound=10
+      context.randomSeed = (new scala.util.Random()).nextInt(1000000000)
+      context.stopGameAtRound = 10
       context.show = true
       context.parallel = true
 
       while (true) {
-        val game = new Game(context, gameInfo)
+        val game = new Game(context, multiGameStats)
         val results1: GameResults = game.run
 
-        val game2 = new Game(context, gameInfo)
+        val game2 = new Game(context, multiGameStats)
         val results2: GameResults = game2.run
 
         assert(results1.totalSimulations === results2.totalSimulations, "total simulations should match - unsimulated1 " + results1.totalUnsimulatedSimulations + " unsimulated2 " + results2.totalUnsimulatedSimulations)

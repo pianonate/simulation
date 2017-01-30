@@ -378,7 +378,7 @@ class Board(
 object Board {
 
   val BOARD_SIZE = 10
-  private val BOARD_COLOR = StringFormats.BRIGHT_WHITE
+  val BOARD_COLOR = StringFormats.BRIGHT_WHITE
 
   val BOX_CHAR: String = "\u25A0" + StringFormats.SANE
 
@@ -455,7 +455,7 @@ object Board {
       i += 1
     }
 */
-    new Board(newName, BOARD_COLOR, boardToCopy.grid.copy, /*newColorGrid*/boardToCopy.colorGrid, boardToCopy.specification)
+    new Board(newName, BOARD_COLOR, boardToCopy.grid.copy, boardToCopy.colorGrid, boardToCopy.specification)
 
   }
 

@@ -44,11 +44,13 @@ case class Simulation(plcList: List[PieceLocCleared], board: Board, specLength: 
 
   def compare(that: Simulation): Int = {
 
-    // if the PieceLocCleared length is less than the comparison
+     // if the PieceLocCleared length is less than the comparison
     // then this instance is _worse_ than the other - indicate
     // that by returning a 1 and bailing
-    if ((this.plcList.length compare that.plcList.length) < 0)
-      1
+    if (this.pieceCount < that.pieceCount)
+      1 // if this length is less, then we definitely want this one to be considered inferior
+    else if (this.pieceCount > that.pieceCount)
+      -1 // if this one has a greater lengthm, no need to compare results, it's superior by definition
     else {
 
       // the following provides tuple ordering to ordered to make the tuple comparison work

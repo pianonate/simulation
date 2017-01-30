@@ -19,7 +19,7 @@ class TestSpecification extends FlatSpec {
       context.show = false // don't show results as the game is playing
 
       context.specification = Specification(fullSpec)
-      val game = new Game(context, gameInfo)
+      val game = new Game(context, multiGameStats)
       val result: GameResults = game.run
       assert(result.score > 0)
       assert(result.rounds > 0)

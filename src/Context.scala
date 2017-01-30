@@ -3,7 +3,7 @@
  * parses command line and sets defaults
  */
 
-case class GameInfo(
+case class MultiGameStats(
   averageScore:     Int,
   sessionHighScore: Int,
   machineHighScore: Int,
@@ -16,6 +16,7 @@ class Context(conf: Conf) {
   // vars so you can change test specifications - consider other mechanisms if you wish
   val beep: Boolean = conf.beep()
   var continuousMode: Boolean = conf.continuousPlay()
+  val eraseTerminalBufferAfterRound = conf.eraseTerminalBufferAt()
   //noinspection VarCouldBeVal
   var maxSimulations: Int = conf.maxSimulations()
   var stopGameAtRound: Int = conf.endGameAtRound()
@@ -23,10 +24,10 @@ class Context(conf: Conf) {
   var show: Boolean = conf.show()
   //noinspection VarCouldBeVal
   var showWorst: Boolean = conf.displayWorst()
+  val stopAtNewHighScore:Boolean = conf.stopAtNewHighScore()
   var randomSeed: Int = conf.randomSeed()
 
   //noinspection VarCouldBeVal
-  // todo maybe provide alternative constructors for testing?
   var specification: Specification = Specification()
 
   var replayGame: Boolean = false

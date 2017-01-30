@@ -13,7 +13,7 @@ object GameRunner {
 
   val toolKit: Toolkit = java.awt.Toolkit.getDefaultToolkit
 
-  def play(context:Context): Unit = {
+  def play(context: Context): Unit = {
 
     import scala.collection.mutable.ListBuffer
 
@@ -25,10 +25,8 @@ object GameRunner {
 
     Game.showGameStart(context.specification)
 
-
     // run the game, my friend
     do {
-
 
       val machineHighScore = getHighScore
       val sessionHighScore = if (scores.isEmpty) 0 else scores.max
@@ -36,7 +34,7 @@ object GameRunner {
 
       gameCount.inc()
 
-      val gameInfo = GameInfo(average, sessionHighScore, machineHighScore, gameCount.value, totalTime)
+      val gameInfo = MultiGameStats(average, sessionHighScore, machineHighScore, gameCount.value, totalTime)
 
       val game = new Game(context, gameInfo)
       val results = game.run
@@ -49,22 +47,26 @@ object GameRunner {
       val mostRounds = rounds.max
       val bestPerSecond = simulationsPerSecond.max
 
-      println
+      val endGameString = "multiple game stats".header + "\n" +
+        "games played".label + gameCount.label + "\n" +
+        "average score".label + scores.avg.toInt.scoreLabel + "\n" +
+        "session high score".label + scores.max.scoreLabel + "\n" +
+        "all time high score".label + allTimeHighScore.scoreLabel + "\n" +
+        "most rounds".label + mostRounds.label + "\n" +
+        "most simulations/s".label + bestPerSecond.label + "\n" +
+        "total elapsed time".label + totalTime.elapsedLabel + "\n\n"
 
-      println("multiple game stats".header)
-      println("games played".label + gameCount.label)
-      println("average score".label + scores.avg.toInt.scoreLabel)
-      println("session high score".label + scores.max.scoreLabel)
-      println("all time high score".label + allTimeHighScore.scoreLabel)
-      println("most rounds".label + mostRounds.label )
-      println("most simulations/s".label + bestPerSecond.label)
-      println("total elapsed time".label +  totalTime.elapsedLabel)
+      if (context.show)
+        print(endGameString)
 
       if (allTimeHighScore > machineHighScore) {
         saveHighScore(allTimeHighScore)
-        context.continuousMode = false
-        println("new high score!!!!".greenHeader)
 
+        if (context.show)
+          print("\n" + "new high score!!!!".greenHeader + "\n")
+
+        if (context.stopAtNewHighScore)
+          context.continuousMode = false
 
       }
 
@@ -75,9 +77,9 @@ object GameRunner {
   }
 
   private def countDown(context: Context) = {
-    if (context.continuousMode) {
-      println
-      print("starting new game in ")
+    if (context.continuousMode && context.show) {
+
+      print("\nstarting new game in ")
 
       // countdown timer
       (1 to 10).reverse.foreach { i =>
@@ -86,9 +88,8 @@ object GameRunner {
         Thread.sleep(500)
       }
 
-      println
-      println("Go!")
-      println
+      print("\nGo!\n")
+
     }
   }
 
@@ -117,6 +118,6 @@ object GameRunner {
 
   }
 
-  def beep(context:Context): Unit = if (context.beep) toolKit.beep()
+  def beep(context: Context): Unit = if (context.beep) toolKit.beep()
 
 }
