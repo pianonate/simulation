@@ -177,10 +177,12 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
     }
 
     def getUnplacedPiecesString(bestSimulation: Simulation): String = {
+      // todo - store the unplaced piece and print it out
+
       val s = (bestSimulation.pieceCount until 3).map({ index =>
-        val piece = bestSimulation.plcList(index).piece
-        val pieceString = piece.show(piece.cellShowFunction)
-        "\nDammit!  Couldn't place piece " + (index + 1) + "\n" + pieceString
+        //val piece = bestSimulation.plcList(index).piece
+        // val pieceString = piece.show(piece.cellShowFunction)
+        "\nDammit!  Couldn't place piece " + (index + 1) + "\n" // + pieceString
       }).mkString("\n")
 
       s

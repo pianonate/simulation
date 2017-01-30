@@ -13,7 +13,6 @@
  *   results in the highest scores...
  */
 
-
 import Implicits._
 
 case class Specification(spec: Array[OptimizationFactor]) {
