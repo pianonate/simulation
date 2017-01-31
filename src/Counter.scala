@@ -8,7 +8,6 @@ case class Counter(from: Int = 0) {
 
   def value: Int = counter
   override def toString: String = value.toString
-
   // this can be accessed from multiple threads so protect it
   // returned value can be used for simulation ID to avoid calling .hashcode
   // which takes up 7% of execution time right now
