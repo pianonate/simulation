@@ -112,11 +112,18 @@ case class OptimizationFactor(
   enabled:     Boolean,
   fieldName:   String,
   minimize:    Boolean,
+  maxVal:      Int,
   label:       String,
   explanation: String
 )
 
 object Specification {
+
+  // one of the optimizations is to ensure that the maximum number of
+  // maximum pieces can fit on a board from all the boards simulated in the permutation of a set of pieces
+  // apparently it's important that this be declared after Game.CYAN is declared above :)
+  // this is not private because we show the maximizer piece at game start
+  val maximizer: Box = Pieces.bigBox
 
   // for readability
   private val minimize = true
@@ -132,6 +139,13 @@ object Specification {
 
   private val MINIMUM_SPEC_LENGTH: Int = 5
 
+  // todo - normalize each optfactor from 0 to 1.  then multiply by a weight (established at the outset)
+  //        then sum the optfactors and compare to previous sum to see if you can mimic the existing
+  //        comparison - once that's done then drop the old comparison as you now have a mechanism that
+  //        can scale to examining future states and also doing supervised learning
+
+  private val totalPositions = math.pow(Board.BOARD_SIZE, 2).toInt
+
   val fullSpecification = Array(
 
     // specification provides the ordering of the optimization as well as whether a particular optimization is maximized or minimized
@@ -140,13 +154,15 @@ object Specification {
     // much more flexible than it used to be
 
     // todo - run through all specification combinations of off and on and run 1000? games on each to see which specification is the best
-    OptimizationFactor(enabled = true, maximizerCountName, maximize, "maximizer", "positions in which a 3x3 piece can fit"),
-    OptimizationFactor(enabled = true, occupiedCountName, minimize, "occupied", "occupied positions"),
-    OptimizationFactor(enabled = true, fourNeighborsName, minimize, "4 neighbors", "number of positions surrounded on all 4 sides"),
-    OptimizationFactor(enabled = true, threeNeighborsName, minimize, "3 neighbors", "number of positions surrounded on 3 of 4 sides"),
-    OptimizationFactor(enabled = true, maxContiguousName, maximize, "contiguous open lines", "number of lines (either horizontal or vertical) that are open and contiguous"),
-    OptimizationFactor(enabled = false, openLinesName, maximize, "open Rows & Cols", "count of open rows plus open columns"),
-    OptimizationFactor(enabled = true, twoNeighborsName, minimize, "2 neighbors", "number of positions surrounded on 2 of 4 sides")
+    OptimizationFactor(enabled = true, maximizerCountName, maximize, math.pow((Board.BOARD_SIZE - maximizer.cols + 1), 2).toInt, "maximizer", "positions in which a 3x3 piece can fit"),
+    OptimizationFactor(enabled = true, occupiedCountName, minimize, totalPositions, "occupied", "occupied positions"),
+    OptimizationFactor(enabled = true, fourNeighborsName, minimize, totalPositions / 2, "4 neighbors", "number of positions surrounded on all 4 sides"),
+    OptimizationFactor(enabled = true, threeNeighborsName, minimize, totalPositions / 2, "3 neighbors", "number of positions surrounded on 3 of 4 sides"),
+    OptimizationFactor(enabled = true, maxContiguousName, maximize, Board.BOARD_SIZE, "contiguous open lines", "number of lines (either horizontal or vertical) that are open and contiguous"),
+    OptimizationFactor(enabled = false, openLinesName, maximize, Board.BOARD_SIZE + Board.BOARD_SIZE - 1, "open Rows & Cols", "count of open rows plus open columns"),
+    // i'm really not sure that 60 is the maximum number of two neighbors that can be created on a board
+    // but i couldn't find another solution that was better
+    OptimizationFactor(enabled = true, twoNeighborsName, minimize, (totalPositions * .6).toInt, "2 neighbors", "number of positions surrounded on 2 of 4 sides")
 
   )
 
@@ -177,9 +193,4 @@ object Specification {
 
   }
 
-  // one of the optimizations is to ensure that the maximum number of
-  // maximum pieces can fit on a board from all the boards simulated in the permutation of a set of pieces
-  // apparently it's important that this be declared after Game.CYAN is declared above :)
-  // this is not private because we show the maximizer piece at game start
-  val maximizer: Box = Pieces.bigBox
 }

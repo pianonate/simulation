@@ -80,15 +80,18 @@ object GameRunner {
     if (context.continuousMode && context.show) {
 
       print("\nstarting new game in ")
+      Console.out.flush()
 
       // countdown timer
       (1 to 10).reverse.foreach { i =>
         print(i + "...")
+        Console.out.flush()
         beep(context)
         Thread.sleep(500)
       }
 
       print("\nGo!\n")
+      Console.out.flush()
 
     }
   }

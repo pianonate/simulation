@@ -21,7 +21,7 @@ you can continue to play (that's the tetris-like capability)
 
 Stats:
 * right now my own top score playing the IOS game is 24,594  
-* simulation top score:  4,475,123!!! (beats the top human score, I've been told)
+* simulation top score:  1,177,681!!! (beats the top human score, I've been told)
 * long term goal - simulation never loses
 
 Also - feel free to contribute. 

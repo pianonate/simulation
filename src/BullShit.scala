@@ -41,20 +41,20 @@ object BullShit {
 
     def getBS(a: Array[String]): String = a(scala.util.Random.nextInt(a.length))
 
-    getBS(starterPhrases) + " " + getBS(prepositions) + " " + getBS(verbs) + " " + getBS(adjectives) + " " + getBS(nouns)
+     getBS(verbs) + " " + getBS(adjectives) + " " + getBS(nouns) + " " + getBS(prepositions) + " " + getBS(endingPhrases)
 
   }
 
-  private val starterPhrases = Array(
+  private val endingPhrases = Array(
     "expanding the business",
     "generating fomo",
     "breaking down silos",
     "wrapping our heads around uncertainty",
     "faking it until making it",
-    "enhancing data decision decision making",
+    "enhancing data driven decision making",
     "driving a win-win",
     "being a team player",
-     "circling back",
+    "circling back",
     "thinking outside the box",
     "increasing bandwidth",
     "right-sizing it",
@@ -95,7 +95,6 @@ object BullShit {
     "demonstrating an open door policy",
     "making it viral",
     "burning the candle on both ends",
-    "scaling",
     "adding value",
     "creating the go-to-market plan",
     "drinking from the fire hose",
@@ -120,11 +119,7 @@ object BullShit {
 
   private val prepositions = Array(
     "by",
-    "via",
     "through",
-    "in",
-    "around",
-    "on",
     "while"
   )
 

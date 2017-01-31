@@ -13,12 +13,17 @@
 
 case class ClearedLines(rows: Int, cols: Int)
 
+case class BoardResults(
+  results:Array[Int], // current mechanism
+  normalizedResults:Array[Double], // normalize each from 0 to 1
+  weightedResults:Array[Double], // apply weights from the specification
+  weightedSum:Double)  // sum the weighted results and use this as an alternative comparison to current mechanism
+
 class Board(
   final val name:      String,
   final val color:     String,
   final val grid:      OccupancyGrid,
   final val colorGrid: Array[Array[String]],
-  //final val neighborsArray: Array[Array[Int]],
   final val specification: Specification
 ) extends Piece {
 
@@ -330,14 +335,19 @@ class Board(
     case 7 => Array(0, 0, 0, 0, 0, 0, 0)
   }
 
+  private def getResultDoubleArray = specification.length match {
+    case 5 => Array(0.0, 0.0, 0.0, 0.0, 0.0)
+    case 6 => Array(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+    case 7 => Array(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+  }
+
   def emptyResults:Array[Int] = getResultArray
+
+  def emptyResultDoubleArray:Array[Double] = getResultDoubleArray
 
   def results: Array[Int] = {
 
     val neighbors = this.countNeighbors(Board.allLocations)
-
-    /*val oldNeighbors =
-    assert(neighbors(1)==oldNeighbors(1) && neighbors(2)==oldNeighbors(2) && neighbors(3)==oldNeighbors(3) && neighbors(4)==oldNeighbors(4))*/
 
     import Specification._
     def getNamedResult(name: String): Int = {

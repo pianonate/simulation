@@ -644,6 +644,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
         val gameElapsedNanoseconds = gameTimer.elapsedNanoseconds.toFloat
         val standardTimingsString = Array(
+          "",
           ("game " + gameCount.shortLabel + " round " + rounds.shortLabel + " results").header,
           // duration info
           "game elapsed time".label + gameTimer.elapsedLabel,
@@ -717,9 +718,9 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
           // race condition info
           " ",
           "race cond. on best".label + gameStats.totalRaceConditionOnBest.label + " (" + lastRoundInfo.rcChangedCountBest.shortLabel + ")",
-          ("round " + rounds.value.shortLabel).header,
-          " ",
-          bullShit.iterator.next
+          "",
+          bullShit.iterator.next,
+          ""
 
         )
 
