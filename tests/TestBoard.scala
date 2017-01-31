@@ -13,14 +13,14 @@ trait BoardFixture {
 
   def addRow(at: Int): Unit = {
 
-    board.place(Pieces.h5Line, Loc(at, 0), updateColor=true)
-    board.place(Pieces.h5Line, Loc(at, 5), updateColor=true)
+    board.place(Pieces.h5Line, Loc(at, 0), updateColor = true)
+    board.place(Pieces.h5Line, Loc(at, 5), updateColor = true)
 
   }
 
   def addCol(at: Int): Unit = {
-    board.place(Pieces.v5Line, Loc(0, at), updateColor=true)
-    board.place(Pieces.v5Line, Loc(5, at), updateColor=true)
+    board.place(Pieces.v5Line, Loc(0, at), updateColor = true)
+    board.place(Pieces.v5Line, Loc(5, at), updateColor = true)
   }
 }
 
@@ -28,7 +28,7 @@ class TestBoard extends FlatSpec {
 
   trait BoardCopyFixture extends BoardFixture {
 
-    board.place(pieces.getRandomPiece, Loc(boardSize / 2, boardSize / 2), updateColor=true) // just place one in the middle
+    board.place(pieces.getRandomPiece, Loc(boardSize / 2, boardSize / 2), updateColor = true) // just place one in the middle
 
     val copy: Board = Board.copy("copy", board)
 
@@ -62,7 +62,7 @@ class TestBoard extends FlatSpec {
     new BoardCopyFixture {
       // place the random piece at the beginning
       val piece: Piece = pieces.getRandomPiece
-      board.place(piece, Loc(0, 0), updateColor=true) // we know that the source board is empty at (0,0) as it is not filled in on the fixture
+      board.place(piece, Loc(0, 0), updateColor = true) // we know that the source board is empty at (0,0) as it is not filled in on the fixture
 
       // iterate through piece indices as they will match the board at location (0,0)
       for {
@@ -84,11 +84,11 @@ class TestBoard extends FlatSpec {
       //        are returned in a different order, we may not
       //        clear enough lines to have this execute safely
       for (piece <- pieces.pieceList) {
-        board.clearLines(clearColor=true)
+        board.clearLines(clearColor = true)
         val boardScore = board.grid.popCount
         val pieceScore = piece.pointValue
         val loc = board.legalPlacements(piece).head
-        board.place(piece, loc, updateColor=true)
+        board.place(piece, loc, updateColor = true)
         assert(board.grid.popCount === boardScore + pieceScore, "- " + piece.name + " - index:" + i)
         i += 1
       }
@@ -124,7 +124,7 @@ class TestBoard extends FlatSpec {
     new BoardFixture {
 
       addRow(boardSize / 2)
-      board.clearLines(clearColor=true)
+      board.clearLines(clearColor = true)
       assert(board.grid.openLineCount === initialOpenLines)
 
     }
@@ -133,7 +133,7 @@ class TestBoard extends FlatSpec {
   it must "have same number of open lines after adding and clearing the same column" in {
     new BoardFixture {
       addCol(boardSize / 2)
-      board.clearLines(clearColor=true)
+      board.clearLines(clearColor = true)
       assert(board.grid.openLineCount === initialOpenLines)
 
     }
@@ -143,7 +143,7 @@ class TestBoard extends FlatSpec {
     new BoardFixture {
       addCol(boardSize / 2)
       addRow(boardSize / 2)
-      board.clearLines(clearColor=true)
+      board.clearLines(clearColor = true)
       assert(board.grid.openLineCount === initialOpenLines)
 
     }
@@ -153,12 +153,12 @@ class TestBoard extends FlatSpec {
     new BoardFixture {
       (0 to 3).foreach(i => addRow(i))
       assert(board.grid.popCount === (4 * boardSize))
-      assert(board.clearLines(clearColor=false).rows === 4)
+      assert(board.clearLines(clearColor = false).rows === 4)
       assert(board.grid.popCount === 0)
 
       (0 to 3).foreach(i => addCol(i))
       assert(board.grid.popCount === (4 * boardSize))
-      assert(board.clearLines(clearColor=false).cols === 4)
+      assert(board.clearLines(clearColor = false).cols === 4)
       assert(board.grid.popCount === 0)
 
     }
@@ -173,12 +173,12 @@ class TestBoard extends FlatSpec {
         addRow(i)
         val rowMax = board.grid.maxContiguousOpenLines
         assert(expected === rowMax)
-        board.clearLines(clearColor=true)
+        board.clearLines(clearColor = true)
 
         addCol(i)
         val colMax = board.grid.maxContiguousOpenLines
         assert(expected === colMax)
-        board.clearLines(clearColor=true)
+        board.clearLines(clearColor = true)
 
       }
       /*
@@ -201,7 +201,7 @@ class TestBoard extends FlatSpec {
     new BoardFixture {
       val occupancy: Int = board.grid.popCount
       addRow(0)
-      board.clearLines(clearColor=true)
+      board.clearLines(clearColor = true)
       for {
         i <- board.colorGrid.indices
         j <- board.colorGrid(0).indices
