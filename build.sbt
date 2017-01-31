@@ -8,3 +8,4 @@ fork in run := true
 cancelable in Global := true
 javaOptions in run += "-Xmx2048M"
 javaOptions in run += "-Xms2048M"
+
