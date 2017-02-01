@@ -13,12 +13,6 @@
 
 case class ClearedLines(rows: Int, cols: Int)
 
-case class BoardResults(
-  results:Array[Int], // current mechanism
-  normalizedResults:Array[Double], // normalize each from 0 to 1
-  weightedResults:Array[Double], // apply weights from the specification
-  weightedSum:Double)  // sum the weighted results and use this as an alternative comparison to current mechanism
-
 class Board(
   final val name:      String,
   final val color:     String,
@@ -37,6 +31,9 @@ class Board(
       specification
     )
   }
+
+  def score:BoardScore = BoardScore(this, specification)
+  def results = score.results // this causes score to create a new BoardScore each time it is called
 
   // the board output shows unoccupied cells so just call .show on every cell
   // different than the Piece.show which will not output unoccupied Cell's in other pieces
@@ -277,7 +274,7 @@ class Board(
 
   }
 
-  private def countNeighbors(locs: Array[Loc]): Array[Int] = {
+  def countNeighbors(locs: Array[Loc]): Array[Int] = {
 
     val counts = Array(0, 0, 0, 0, 0)
     val locLength = locs.length
@@ -329,66 +326,12 @@ class Board(
 
   }
 
-  private def getResultArray = specification.length match {
-    case 5 => Array(0, 0, 0, 0, 0)
-    case 6 => Array(0, 0, 0, 0, 0, 0)
-    case 7 => Array(0, 0, 0, 0, 0, 0, 0)
-  }
-
-  private def getResultDoubleArray = specification.length match {
-    case 5 => Array(0.0, 0.0, 0.0, 0.0, 0.0)
-    case 6 => Array(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
-    case 7 => Array(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
-  }
-
-  def emptyResults:Array[Int] = getResultArray
-
-  def emptyResultDoubleArray:Array[Double] = getResultDoubleArray
-
-  def results: Array[Int] = {
-
-    val neighbors = this.countNeighbors(Board.allLocations)
-
-    import Specification._
-    def getNamedResult(name: String): Int = {
-      name match {
-        // multiply times -1 to make compare work without having to
-        // move this._ and that._ values around
-        case s if s == occupiedCountName  => grid.popCount
-        case s if s == maximizerCountName => this.maximizerCount * -1
-        case s if s == fourNeighborsName  => neighbors(4)
-        case s if s == threeNeighborsName => neighbors(3)
-        case s if s == twoNeighborsName   => neighbors(2)
-        case s if s == maxContiguousName  => this.grid.maxContiguousOpenLines * -1
-        case s if s == openLinesName      => this.grid.openLineCount * -1
-      }
-    }
-
-    // getResults is 3,915/second with while loop
-    // vs. 3,133/second with this map - good golly
-    //specification.map(spec => getResult(spec.fieldName))
-
-    val a = getResultArray
-    var i = 0
-
-    //val parspec = specification.spec.par
-    // al parspec = specification.spec.zipWithIndex.par
-    // parspec.foreach(spec => a(spec._2) = getNamedResult(spec._1.fieldName))
-
-    while (i < specification.length /*parspec.length*/ ) {
-      a(i) = getNamedResult(specification(i).fieldName) /*parspec(i).fieldName*/
-      i += 1
-    }
-    a
-
-  }
-
 }
 
 object Board {
 
   val BOARD_SIZE = 10
-  val BOARD_COLOR = StringFormats.BRIGHT_WHITE
+  val BOARD_COLOR = StringFormats.BRIGHT_BLACK
 
   val BOX_CHAR: String = "\u25A0" + StringFormats.SANE
 
@@ -423,7 +366,7 @@ object Board {
 
   }
 
-  private val allLocations: Array[Loc] = getLocations(BOARD_SIZE).toArray
+  val allLocations: Array[Loc] = getLocations(BOARD_SIZE).toArray
   private val directions = Array(Loc(-1, 0), Loc(0, -1), Loc(1, 0), Loc(0, 1))
 
   private val allLocationNeighbors: Array[Array[Loc]] = {

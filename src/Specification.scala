@@ -14,16 +14,50 @@
  */
 
 import Implicits._
+import scala.collection.immutable.ListMap
 
-case class Specification(spec: Array[OptimizationFactor]) {
+case class Specification(spec: ListMap[String, OptimizationFactor]) {
 
-  val length: Int = spec.length
+  val length: Int = spec.size
 
-  def apply(i: Int): OptimizationFactor = spec(i)
+  //def apply(i: Int): OptimizationFactor = weightedSpec(i)
+  def apply(s:String): OptimizationFactor = weightedSpec(s)
+
+  private val weightedSpec:ListMap[String, OptimizationFactor] = {
+
+    // divide each by 100 and then the next one divies previous by 100
+    val weights = Array.tabulate(7)(n=>1/(math.pow(10,n)*math.pow(10,n)))
+    val totalOfWeights = weights.sum
+    val normalizedWeights = weights.map(_/totalOfWeights)
+
+
+    // divide weights by totalOfWeights so that when you multiply weights time values, we will get a distribution from 0 to 1
+    // beautiful
+    // Brendan's suggestion
+    val weighted = spec.zip(normalizedWeights).map{ case (specEntry, weight) =>
+      specEntry match {
+        case (key, opt) => (key, OptimizationFactor(opt.enabled,opt.fieldName,opt.minimize,weight,opt.maxVal,opt.label,opt.explanation))
+      }
+    }
+
+    weighted
+  }
+
+  // provided so that the getNamedResult function in boardScore can iterate over a while loop
+  // as using named keys into the ListMap along with apply() access is VERY SLOW
+  val optimizationFactors: Array[OptimizationFactor] = weightedSpec.values.toArray
+
+  val occupiedOptFactor: OptimizationFactor = weightedSpec(Specification.occupiedCountName)
+  val maximizerOptFactor: OptimizationFactor = weightedSpec(Specification.maximizerCountName)
+  val fourNeighborsOptFactor: OptimizationFactor = weightedSpec(Specification.fourNeighborsName)
+  val threeNeighborOptFactor: OptimizationFactor = weightedSpec(Specification.threeNeighborsName)
+  val twoNeighborsOptFactor: OptimizationFactor = weightedSpec(Specification.twoNeighborsName)
+  val maxContiguousLinesOptFactor: OptimizationFactor = weightedSpec(Specification.maxContiguousName)
+  val openLinesOptFactor: OptimizationFactor = weightedSpec(Specification.openLinesName)
 
   def getOptimizationFactorExplanations: String = {
     // used by showGameStart
-    spec.map(optFactor => "* " + optFactor.label + " - " + optFactor.explanation).mkString("\n")
+    spec.map(optFactor => "* " + optFactor._2.label + " - " + optFactor._2.explanation).mkString("\n")
   }
 
   private[this] def greenifyResult(optLabel: Option[String], isGreen: Boolean, value: Int): String = {
@@ -48,7 +82,10 @@ case class Specification(spec: Array[OptimizationFactor]) {
     // for outputting the results this is the best individual result at any position
     // concatenate the results from the best and the worst, transpose it for finding min, then turn that into an array
     // Boom! - best choices for each result
-    val bestOfAll = (simulationResults.map(_.best.results) ++ simulationResults.map(_.worst.results)).transpose.map(_.min).toArray
+    val bestOfAll = (
+      simulationResults.map(_.best.results) ++ // best result
+      (if (showWorst) simulationResults.map(_.worst.get.results) else List[Array[Int]]()) // worst results (or empty if not showing anything)
+    ).transpose.map(_.min).toArray // sort out the best of all...
 
     def getResultString(simulationResult: SimulationInfo, simulationIndex: Int): String = {
 
@@ -63,15 +100,17 @@ case class Specification(spec: Array[OptimizationFactor]) {
       val best = simulationResult.best.results
 
       val worst = if (showWorst)
-        simulationResult.worst.results
+        simulationResult.worst.get.results
       else
-        simulationResult.worst.emptyResults // no need to calculate it we're not showing
+        // todo - can we get empty results from the context rather than
+        // storing it redundantly on each simulation?
+        simulationResult.best.emptyResults
 
       (simulationIndex + 1) + ": " + simulationResult.pieces.label + " -" +
         spec
         .zip(best).zip(worst).zipWithIndex
         .map(tup => (tup._1._1._1, tup._1._1._2, tup._1._2, tup._2))
-        .map(tup => handleOptFactor(tup._1, tup._2, tup._3, tup._4, showWorst))
+        .map(tup => handleOptFactor(tup._1._2, tup._2, tup._3, tup._4, showWorst))
         .mkString(" -")
 
     }
@@ -83,15 +122,19 @@ case class Specification(spec: Array[OptimizationFactor]) {
 
       val s = getResultString(result, index) + " - simulations: " + (result.simulatedCount + result.unsimulatedCount).label(9) + result.elapsedMs.msLabel(5)
 
-      //todo - fix: there seems to be a situation where it underlines two rows that have the same results
-
       // underline is for closers (Glengarry Glen Ross)
       if (result.best == chosen) {
-        val parts = s.splitAt(s.indexOf(" ") + 1)
-        parts._1 + StringFormats.UNDERLINE + parts._2.split(StringFormats.ESCAPE).mkString(StringFormats.UNDERLINE + StringFormats.ESCAPE) + StringFormats.SANE
+        val parts = s.splitAt(s.indexOf(" ") + 1) // start underlining after the #:_ at the beginnning of each line
+        parts._1 +
+          StringFormats.UNDERLINE + // thus begins the underlining
+          parts._2 // it seems to make it work in both terminal and in intellij IDE, have to do both sets of splits below
+          .split(" ").mkString(StringFormats.UNDERLINE + " ") // starting at all spaces
+          .split(StringFormats.ESCAPE) // split on escape characters // underlines starting at all color codings
+          .mkString(StringFormats.UNDERLINE + StringFormats.ESCAPE) + StringFormats.SANE
       } else
-        StringFormats.SANE + s
+        s
     }.mkString("\n")
+
   }
 
   def getBoardResultString(boardResult: Array[Int]): String = {
@@ -102,7 +145,7 @@ case class Specification(spec: Array[OptimizationFactor]) {
     // additionally, this mechanism allows us to display line clearing.
     spec
       .zip(boardResult)
-      .map(tup => greenifyResult(Some(tup._1.label), isGreen = true, tup._2))
+      .map(tup => greenifyResult(Some(tup._1._2.label), isGreen = true, tup._2))
       .mkString(" -")
   }
 
@@ -112,6 +155,7 @@ case class OptimizationFactor(
   enabled:     Boolean,
   fieldName:   String,
   minimize:    Boolean,
+  weight:      Double,
   maxVal:      Int,
   label:       String,
   explanation: String
@@ -146,29 +190,30 @@ object Specification {
 
   private val totalPositions = math.pow(Board.BOARD_SIZE, 2).toInt
 
-  val fullSpecification = Array(
+  val fullSpecification = ListMap(
 
     // specification provides the ordering of the optimization as well as whether a particular optimization is maximized or minimized
-    // you'll need to update board.results, Simulation.compare and MINIMUM_SPEC_LENGTH if you change the length of the fullSpecification Array
+    // you'll need to update board.results, Simulation.compare, class Specification, and MINIMUM_SPEC_LENGTH if you change the length of the fullSpecification Array
     // other than that, you can rearrange rows in the specification, or turn entries off or on at will
     // much more flexible than it used to be
 
     // todo - run through all specification combinations of off and on and run 1000? games on each to see which specification is the best
-    OptimizationFactor(enabled = true, maximizerCountName, maximize, math.pow((Board.BOARD_SIZE - maximizer.cols + 1), 2).toInt, "maximizer", "positions in which a 3x3 piece can fit"),
-    OptimizationFactor(enabled = true, occupiedCountName, minimize, totalPositions, "occupied", "occupied positions"),
-    OptimizationFactor(enabled = true, fourNeighborsName, minimize, totalPositions / 2, "4 neighbors", "number of positions surrounded on all 4 sides"),
-    OptimizationFactor(enabled = true, threeNeighborsName, minimize, totalPositions / 2, "3 neighbors", "number of positions surrounded on 3 of 4 sides"),
-    OptimizationFactor(enabled = true, maxContiguousName, maximize, Board.BOARD_SIZE, "contiguous open lines", "number of lines (either horizontal or vertical) that are open and contiguous"),
-    OptimizationFactor(enabled = false, openLinesName, maximize, Board.BOARD_SIZE + Board.BOARD_SIZE - 1, "open Rows & Cols", "count of open rows plus open columns"),
+    maximizerCountName -> OptimizationFactor(enabled = true, maximizerCountName, maximize, 0.0, math.pow((Board.BOARD_SIZE - maximizer.cols + 1), 2).toInt, "maximizer", "positions in which a 3x3 piece can fit"),
+    occupiedCountName -> OptimizationFactor(enabled = true, occupiedCountName, minimize, 0.0, totalPositions, "occupied", "occupied positions"),
+    fourNeighborsName -> OptimizationFactor(enabled = true, fourNeighborsName, minimize, 0.0, totalPositions / 2, "4 neighbors", "number of positions surrounded on all 4 sides"),
+    threeNeighborsName -> OptimizationFactor(enabled = true, threeNeighborsName, minimize, 0.0, totalPositions / 2, "3 neighbors", "number of positions surrounded on 3 of 4 sides"),
+    maxContiguousName -> OptimizationFactor(enabled = true, maxContiguousName, maximize, 0.0, Board.BOARD_SIZE, "contiguous open lines", "number of lines (either horizontal or vertical) that are open and contiguous"),
+
     // i'm really not sure that 60 is the maximum number of two neighbors that can be created on a board
     // but i couldn't find another solution that was better
-    OptimizationFactor(enabled = true, twoNeighborsName, minimize, (totalPositions * .6).toInt, "2 neighbors", "number of positions surrounded on 2 of 4 sides")
+    twoNeighborsName -> OptimizationFactor(enabled = true, twoNeighborsName, minimize, 0.0, (totalPositions * .6).toInt, "2 neighbors", "number of positions surrounded on 2 of 4 sides"),
+    openLinesName -> OptimizationFactor(enabled = true, openLinesName, maximize, 0.0, Board.BOARD_SIZE + Board.BOARD_SIZE - 1, "open rows + cols", "count of open rows plus open columns")
 
   )
 
   // by default return the full specification
   def apply(): Specification = {
-    val filteredSpec = Specification(fullSpecification.filter(_.enabled))
+    val filteredSpec: Specification = Specification(fullSpecification.filter(opt => opt._2.enabled))
     require(filteredSpec.length >= MINIMUM_SPEC_LENGTH)
     filteredSpec
   }
@@ -180,9 +225,9 @@ object Specification {
    */
   def getAllSpecifications: Array[Array[Array[OptimizationFactor]]] = {
 
-    val r = (1 to fullSpecification.length).toArray
+    val r = (1 to fullSpecification.size /*length*/ ).toArray
 
-    val combinations = for { i <- r } yield fullSpecification.combinations(i).toArray
+    val combinations = for { i <- r } yield fullSpecification.values.toArray.combinations(i).toArray
 
     val result = for {
       comboArray <- combinations

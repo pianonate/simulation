@@ -3,6 +3,7 @@ scalaSource in Compile := baseDirectory.value / "src"
 scalacOptions ++= Seq("-opt:_", "-target:jvm-1.8")
 libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.1" % "test"
 libraryDependencies += "org.rogach" %% "scallop" % "2.0.6"
+libraryDependencies += "net.java.dev.jna" % "jna-platform" % "4.1.0"
 //libraryDependencies += "com.github.cb372" %% "scalacache-ehcache" % "0.9.3"
 fork in run := true
 cancelable in Global := true

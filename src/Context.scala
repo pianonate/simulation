@@ -23,7 +23,7 @@ class Context(conf: Conf) {
   var parallel: Boolean = conf.parallel()
   var show: Boolean = conf.show()
   //noinspection VarCouldBeVal
-  var showWorst: Boolean = conf.displayWorst()
+  var showWorst: Boolean = conf.showWorst()
   val stopAtNewHighScore:Boolean = conf.stopAtNewHighScore()
   var randomSeed: Int = conf.randomSeed()
 

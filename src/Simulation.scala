@@ -33,7 +33,7 @@ case class SimulationInfo(
   simulatedCount:      Int,
   unsimulatedCount:    Int,
   best:                Simulation,
-  worst:               Simulation,
+  worst:               Option[Simulation],
   rcChangedCountBest:  Int,
   rcChangedCountWorst: Int,
   elapsedMs:           Int
@@ -46,7 +46,7 @@ case class SimulationInfo(
  * @param plcList - PieceLocCleared list
  * @param board - the resultant Board after placing all pieces in PieceLocCleared.
  */
-case class Simulation(plcList: List[PieceLocCleared], board: Board, specLength: Int, id:Int) extends Ordered[Simulation] {
+case class Simulation(plcList: List[PieceLocCleared], board: Board, specLength: Int, id:Int, emptyResults:Array[Int]) extends Ordered[Simulation] {
 
   import Implicits._
   override def toString: String = this.plcList.map(plc => plc.piece).label // visible in debugger
@@ -56,8 +56,8 @@ case class Simulation(plcList: List[PieceLocCleared], board: Board, specLength: 
   val pieceCount: Int = plcList.length
 
   // results
-  val results: Array[Int] = board.results
-  val emptyResults:Array[Int] = board.emptyResults
+  lazy val results: Array[Int] = board.results
+  val weightedSum = board.score.weightedSum
 
   //todo see if you can quickly build a bitset and use it as a key or try scalacache and guava
 
@@ -93,8 +93,9 @@ case class Simulation(plcList: List[PieceLocCleared], board: Board, specLength: 
   }
 }
 
+/*
 object Simulation {
 
   val aSim = new Array[Simulation](1000000)
 
-}
+}*/

@@ -12,8 +12,8 @@ class TestSpecification extends FlatSpec {
 
     new GameInfoFixture {
 
-      val fullSpec: Array[OptimizationFactor] = Specification.fullSpecification
-      assert(fullSpec.length > 0)
+      val fullSpec: scala.collection.immutable.ListMap[String,OptimizationFactor] = Specification.fullSpecification
+      assert(fullSpec.size > 0)
       context.maxSimulations = 10 // ensure the game runs super fast - just to exercise code
       context.continuousMode = false // only run one game
       context.show = false // don't show results as the game is playing
