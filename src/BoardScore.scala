@@ -42,7 +42,6 @@ case class BoardScore(
 
   private val neighbors = board.countNeighbors(Board.allLocations)
 
-  //val occupied:Int = board.grid.popCount
   val occupiedScore: ScoreComponent = getScore(specification.occupiedOptFactor, board.grid.popCount)
   val maximizerScore: ScoreComponent = getScore(specification.maximizerOptFactor, board.maximizerCount)
   val fourNeighborsScore: ScoreComponent = getScore(specification.fourNeighborsOptFactor, neighbors(4))
@@ -94,19 +93,7 @@ case class BoardScore(
     sum
   }
 
-  val results: Array[Int] = getResultsArray // current mechanism
-
-  /*  val normalizedScores:Array[Double] =  // normalize each from 0 to 1
-    val weightedScores:Array[Double], // apply weights from the specification
-    val score:Double*/
-
-  /*  private def getResultDoubleArray = specification.length match {
-      case 5 => Array(0.0, 0.0, 0.0, 0.0, 0.0)
-      case 6 => Array(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
-      case 7 => Array(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
-    }
-
-    def emptyResultDoubleArray:Array[Double] = getResultDoubleArray*/
+  lazy val results: Array[Int] = getResultsArray // current mechanism
 
   private def getResultsArray: Array[Int] = {
 
