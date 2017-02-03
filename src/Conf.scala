@@ -22,7 +22,7 @@ class Conf(arguments: Seq[String]) extends ScallopConf(arguments) {
   )
 
   val beep: ScallopOption[Boolean] = toggle(default = Some(true), descrYes = "default: beep when game finishes", descrNo = "don't beep at game end")
-  val continuousPlay: ScallopOption[Boolean] = toggle(default = Some(true), descrYes = "default: simulation will run continuously", descrNo = "simulation will play through once till a game end occurs")
+  val continuous: ScallopOption[Boolean] = toggle(default = Some(true), descrYes = "default: simulation will run continuously", descrNo = "simulation will play through once till a game end occurs")
   val maxSimulations: ScallopOption[Int] = opt[Int](default = Some(MAX_SIMULATION_ITERATIONS), validate = (i) => i > 0 && i <= MAX_SIMULATION_ITERATIONS, descr = "integer limit for number of allowed simulations for each piece")
   val endGameAtRound: ScallopOption[Int] = opt[Int](default = Some(0), validate = (i) => i >= 0, descr = "end the game at this round number")
   val parallel: ScallopOption[Boolean] = toggle(default = Some(true), descrYes = "default: uses multiple threads - faster!", descrNo = "simulation will run single threaded")

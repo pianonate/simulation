@@ -57,7 +57,12 @@ case class Simulation(plcList: List[PieceLocCleared], board: Board, specLength: 
 
   // results
   lazy val results: Array[Int] = board.results
-  val weightedSum = board.score.weightedSum
+
+  // pieceCount to weighted sum so Best choice always considers a solution that includes all pieces
+  // to be better than a solution with less pieces
+  // this only works because the weighted sum is normalized to range from 0 to 1 so can never
+  // cause a 2 piece solution to be better than a 3 piece solution
+  val weightedSum: Double = pieceCount + board.score.weightedSum
 
   //todo see if you can quickly build a bitset and use it as a key or try scalacache and guava
 

@@ -23,12 +23,12 @@ class TestGame extends FlatSpec {
 
       // set up a game that will have a row and a column that will clear at the same time
       private val plcList = List(
-        PieceLocCleared(Pieces.h5Line, Loc(0, 0), clearedLines = false), // 5
-        PieceLocCleared(Pieces.h4Line, Loc(0, 5), clearedLines = false), // 4 rt:9
-        PieceLocCleared(Pieces.v5Line, Loc(5, 9), clearedLines = false), // 5 rt:14
-        PieceLocCleared(Pieces.v4Line, Loc(1, 9), clearedLines = false), // 4 rt 18
-        PieceLocCleared(Pieces.singleton, Loc(0, 9), clearedLines = true), // 1 rt:19 w+ 10 + 9 :rt 38
-        PieceLocCleared(Pieces.singleton, Loc(0, 0), clearedLines = false) // rt:39
+        PieceLocCleared(GamePieces.h5Line, Loc(0, 0), clearedLines = false), // 5
+        PieceLocCleared(GamePieces.h4Line, Loc(0, 5), clearedLines = false), // 4 rt:9
+        PieceLocCleared(GamePieces.v5Line, Loc(5, 9), clearedLines = false), // 5 rt:14
+        PieceLocCleared(GamePieces.v4Line, Loc(1, 9), clearedLines = false), // 4 rt 18
+        PieceLocCleared(GamePieces.singleton, Loc(0, 9), clearedLines = true), // 1 rt:19 w+ 10 + 9 :rt 38
+        PieceLocCleared(GamePieces.singleton, Loc(0, 0), clearedLines = false) // rt:39
       )
 
       // setReplayList will put the game in a mode where it only plays from the specified list (in this case the one above)
@@ -79,9 +79,9 @@ class TestGame extends FlatSpec {
       val board = new Board("testBoard", Board.BOARD_COLOR, grid, colorGrid, context.specification)
 
       val plcList = List(
-        PieceLocCleared(Pieces.bigBox, Loc(0, 0), clearedLines = false),
-        PieceLocCleared(Pieces.bigBox, Loc(0, 5), clearedLines = false),
-        PieceLocCleared(Pieces.bigBox, Loc(5, 9), clearedLines = false)
+        PieceLocCleared(GamePieces.bigBox, Loc(0, 0), clearedLines = false),
+        PieceLocCleared(GamePieces.bigBox, Loc(0, 5), clearedLines = false),
+        PieceLocCleared(GamePieces.bigBox, Loc(5, 9), clearedLines = false)
 
       )
 

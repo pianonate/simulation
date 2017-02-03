@@ -7,20 +7,20 @@ import org.scalatest.{FlatSpec, _}
 trait BoardFixture {
   val boardSize = Board.BOARD_SIZE
   val board = new Board(boardSize, Specification())
-  val pieces = new Pieces
+  val pieces = new GamePieces
   val initialOccupied: Int = board.grid.popCount
   val initialOpenLines: Int = board.grid.openLineCount
 
   def addRow(at: Int): Unit = {
 
-    board.place(Pieces.h5Line, Loc(at, 0), updateColor = true)
-    board.place(Pieces.h5Line, Loc(at, 5), updateColor = true)
+    board.place(GamePieces.h5Line, Loc(at, 0), updateColor = true)
+    board.place(GamePieces.h5Line, Loc(at, 5), updateColor = true)
 
   }
 
   def addCol(at: Int): Unit = {
-    board.place(Pieces.v5Line, Loc(0, at), updateColor = true)
-    board.place(Pieces.v5Line, Loc(5, at), updateColor = true)
+    board.place(GamePieces.v5Line, Loc(0, at), updateColor = true)
+    board.place(GamePieces.v5Line, Loc(5, at), updateColor = true)
   }
 }
 
@@ -215,7 +215,7 @@ class TestBoard extends FlatSpec {
       (boardSize - piece.rows + 1) * (boardSize - piece.cols + 1)
     }
 
-    val pieces = new Pieces
+    val pieces = new GamePieces
     for {
       piece <- pieces.pieceList
       board = new Board(Board.BOARD_SIZE, Specification())

@@ -71,11 +71,11 @@ import scala.util.Random
 
  */
 
-class Pieces(seed:Int = 0) {
+class GamePieces(seed:Int = 0) {
 
   val randomizer: Random = if (seed > 0) new scala.util.Random(seed) else new scala.util.Random()
 
-  import Pieces._
+  import GamePieces._
 
   // format: OFF
   // map as a convenience for requesting specific named pieces
@@ -104,10 +104,6 @@ class Pieces(seed:Int = 0) {
   // format: ON
 
   val pieceList: List[Piece] = pieceMap.values.toList
-
-  // used for outputting a set of three pieces
-  val tallestPiece:Int = pieceList.map(_.rows).max
-
 
   private val pieceDistribution = pieceList.flatMap(piece => List.fill(piece.weight)(piece.name))
 
@@ -138,10 +134,11 @@ class Pieces(seed:Int = 0) {
     println
   }
 
-  val longestName:Int = pieceList.map(_.name.length).max
 }
 
-object Pieces {
+object GamePieces {
+
+  val numPiecesInRound:Int = 3
 
   val singletonName = "Singleton"
   val h2LineName = "HLine2"
@@ -163,30 +160,37 @@ object Pieces {
   val bigUpperRightElName = "BigUpperRL"
   val bigLowerRightElName = "BigLowerRL"
 
-  val singleton = Line(Piece.getLinearGrid(1), Pieces.singletonName, StringFormats.BLACK, 4)
+  def singleton = Line(Piece.getLinearGrid(1), GamePieces.singletonName, StringFormats.BLACK, 4)
 
-  val h2Line = Line(Piece.getLinearGrid(2), Pieces.h2LineName, StringFormats.BRIGHT_YELLOW, 6)
-  val v2Line: Piece = Piece.rotate90(Pieces.v2LineName, h2Line)
+  def h2Line = Line(Piece.getLinearGrid(2), GamePieces.h2LineName, StringFormats.BRIGHT_YELLOW, 6)
+  def v2Line: Piece = Piece.rotate90(GamePieces.v2LineName, h2Line)
 
-  val h3Line = Line(Piece.getLinearGrid(3), Pieces.h3LineName, StringFormats.YELLOW, 6)
-  val v3Line: Piece = Piece.rotate90(Pieces.v3LineName, h3Line)
+  def h3Line = Line(Piece.getLinearGrid(3), GamePieces.h3LineName, StringFormats.YELLOW, 6)
+  def v3Line: Piece = Piece.rotate90(GamePieces.v3LineName, h3Line)
 
-  val h4Line = Line(Piece.getLinearGrid(4), Pieces.h4LineName, StringFormats.BRIGHT_RED, 4)
-  val v4Line: Piece = Piece.rotate90(Pieces.v4LineName, h4Line)
+  def h4Line = Line(Piece.getLinearGrid(4), GamePieces.h4LineName, StringFormats.BRIGHT_RED, 4)
+  def v4Line: Piece = Piece.rotate90(GamePieces.v4LineName, h4Line)
 
-  val h5Line = Line(Piece.getLinearGrid(5), Pieces.h5LineName, StringFormats.RED, 4)
-  val v5Line: Piece = Piece.rotate90(Pieces.v5LineName, h5Line)
+  def h5Line = Line(Piece.getLinearGrid(5), GamePieces.h5LineName, StringFormats.RED, 4)
+  def v5Line: Piece = Piece.rotate90(GamePieces.v5LineName, h5Line)
 
-  val box = Box(Piece.getBoxGrid(2), Pieces.boxName, StringFormats.GREEN, 12)
-  val bigBox = Box(Piece.getBoxGrid(3), Pieces.bigBoxName, StringFormats.CYAN, 4)
+  def box = Box(Piece.getBoxGrid(2), GamePieces.boxName, StringFormats.GREEN, 12)
+  def bigBox = Box(Piece.getBoxGrid(3), GamePieces.bigBoxName, StringFormats.CYAN, 4)
 
-  val lowerLeftEl = El(Piece.getBoxGrid(2), Pieces.lowerLeftElName, StringFormats.BRIGHT_CYAN, 3)
-  val upperLeftEl: Piece = Piece.rotate90(Pieces.upperLeftElName, lowerLeftEl)
-  val upperRightEl: Piece = Piece.rotate90(Pieces.upperRightElName, upperLeftEl)
-  val lowerRightEl: Piece = Piece.rotate90(Pieces.lowerRightElName, upperRightEl)
+  def lowerLeftEl = El(Piece.getBoxGrid(2), GamePieces.lowerLeftElName, StringFormats.BRIGHT_CYAN, 3)
+  def upperLeftEl: Piece = Piece.rotate90(GamePieces.upperLeftElName, lowerLeftEl)
+  def upperRightEl: Piece = Piece.rotate90(GamePieces.upperRightElName, upperLeftEl)
+  def lowerRightEl: Piece = Piece.rotate90(GamePieces.lowerRightElName, upperRightEl)
 
-  val bigLowerLeftEl = El(Piece.getBoxGrid(3), Pieces.bigLowerLeftElName, StringFormats.BLUE, 2)
-  val bigUpperLeftEl: Piece = Piece.rotate90(Pieces.bigUpperLeftElName, bigLowerLeftEl)
-  val bigUpperRightEl: Piece = Piece.rotate90(Pieces.bigUpperRightElName, bigUpperLeftEl)
-  val bigLowerRightEl: Piece = Piece.rotate90(Pieces.bigLowerRightElName, bigUpperRightEl)
+  def bigLowerLeftEl = El(Piece.getBoxGrid(3), GamePieces.bigLowerLeftElName, StringFormats.BLUE, 2)
+  def bigUpperLeftEl: Piece = Piece.rotate90(GamePieces.bigUpperLeftElName, bigLowerLeftEl)
+  def bigUpperRightEl: Piece = Piece.rotate90(GamePieces.bigUpperRightElName, bigUpperLeftEl)
+  def bigLowerRightEl: Piece = Piece.rotate90(GamePieces.bigLowerRightElName, bigUpperRightEl)
+
+  private val gamePieces = new GamePieces
+  // used for outputting a set of three pieces
+  val tallestPiece:Int = gamePieces.pieceList.map(_.rows).max
+  val widestPiece:Int = gamePieces.pieceList.map(_.cols).max
+  val longestNameLength:Int = gamePieces.pieceList.map(_.name.length).max
+
 }

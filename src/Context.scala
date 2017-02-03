@@ -15,7 +15,7 @@ class Context(conf: Conf) {
 
   // vars so you can change test specifications - consider other mechanisms if you wish
   val beep: Boolean = conf.beep()
-  var continuousMode: Boolean = conf.continuousPlay()
+  var continuousMode: Boolean = conf.continuous()
   val eraseTerminalBufferAfterRound = conf.eraseTerminalBufferAt()
   //noinspection VarCouldBeVal
   var maxSimulations: Int = conf.maxSimulations()

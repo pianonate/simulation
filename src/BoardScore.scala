@@ -38,7 +38,7 @@ case class BoardScore(
 
   }
 
-  val neighbors = board.countNeighbors(Board.allLocations)
+  private val neighbors = board.countNeighbors(Board.allLocations)
 
   //val occupied:Int = board.grid.popCount
   val occupiedScore: ScoreComponent = getScore(specification.occupiedOptFactor, board.grid.popCount)
@@ -49,16 +49,36 @@ case class BoardScore(
   val maxContiguousLinesScore: ScoreComponent = getScore(specification.maxContiguousLinesOptFactor, board.grid.maxContiguousOpenLines)
   val openLinesScore: ScoreComponent = getScore(specification.openLinesOptFactor, board.grid.openLineCount)
 
+/*  lazy val scores:List[ScoreComponent] = {
+
+    specification.spec.map { case (_, opt) =>
+        opt match {
+          case specification.occupiedOptFactor => occupiedScore
+          case specification.maximizerOptFactor => maximizerScore
+          case specification.fourNeighborsOptFactor => fourNeighborsScore
+          case specification.threeNeighborOptFactor => threeNeighborsScore
+          case specification.twoNeighborsOptFactor => twoNeighborsScore
+          case specification.maxContiguousLinesOptFactor => maxContiguousLinesScore
+          case specification.openLinesOptFactor => openLinesScore
+        }
+    }.toList
+
+  }*/
+
   // once you get the weights kicked in, this weightedSum
   // will be what you use to compare Simulations to each other
-  // ideally the compare will go _a lot_ faster when using this
-  val weightedSum = occupiedScore.weightedValue +
+  // the compare will go _a lot_ faster when using this - basically the tuple compare goes away and now we're just comparing doubles
+
+  val weightedSum = { val sum = occupiedScore.weightedValue +
     maximizerScore.weightedValue +
     fourNeighborsScore.weightedValue +
     threeNeighborsScore.weightedValue +
     twoNeighborsScore.weightedValue +
     maxContiguousLinesScore.weightedValue +
     openLinesScore.weightedValue
+    require(sum < 1.0, "something is messed up your weighted sum exceeds 1.0: " + sum)
+    sum
+  }
 
   val results: Array[Int] = getResultsArray // current mechanism
 
@@ -76,6 +96,8 @@ case class BoardScore(
 
   private def getResultsArray: Array[Int] = {
 
+    // import for the known names - but do we need that anymore?
+    // todo - replace with a map function...
     import Specification._
     def getNamedResult(name: String): Int = {
       name match {
