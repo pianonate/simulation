@@ -44,7 +44,7 @@ class Board(
     val color = colorGrid(row)(col)
 
     if (occupied)
-      color + Board.BOX_CHAR
+      color + Board.BOX_CHAR + StringFormats.SANE
     else
       Board.UNOCCUPIED_BOX_CHAR
   }

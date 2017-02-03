@@ -160,7 +160,7 @@ object GamePieces {
   val bigUpperRightElName = "BigUpperRL"
   val bigLowerRightElName = "BigLowerRL"
 
-  def singleton = Line(Piece.getLinearGrid(1), GamePieces.singletonName, StringFormats.BLACK, 4)
+  def singleton = Line(Piece.getLinearGrid(1), GamePieces.singletonName, StringFormats.BLUE, 4)
 
   def h2Line = Line(Piece.getLinearGrid(2), GamePieces.h2LineName, StringFormats.BRIGHT_YELLOW, 6)
   def v2Line: Piece = Piece.rotate90(GamePieces.v2LineName, h2Line)
@@ -182,7 +182,7 @@ object GamePieces {
   def upperRightEl: Piece = Piece.rotate90(GamePieces.upperRightElName, upperLeftEl)
   def lowerRightEl: Piece = Piece.rotate90(GamePieces.lowerRightElName, upperRightEl)
 
-  def bigLowerLeftEl = El(Piece.getBoxGrid(3), GamePieces.bigLowerLeftElName, StringFormats.BLUE, 2)
+  def bigLowerLeftEl = El(Piece.getBoxGrid(3), GamePieces.bigLowerLeftElName, StringFormats.CYAN, 2)
   def bigUpperLeftEl: Piece = Piece.rotate90(GamePieces.bigUpperLeftElName, bigLowerLeftEl)
   def bigUpperRightEl: Piece = Piece.rotate90(GamePieces.bigUpperRightElName, bigUpperLeftEl)
   def bigLowerRightEl: Piece = Piece.rotate90(GamePieces.bigLowerRightElName, bigUpperRightEl)

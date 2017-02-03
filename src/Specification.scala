@@ -15,7 +15,7 @@
 
 
 import Implicits._
-
+import Specification._
 import scala.collection.immutable.{Iterable, ListMap}
 
 case class Specification(spec: ListMap[String, OptimizationFactor]) {
@@ -89,8 +89,6 @@ case class Specification(spec: ListMap[String, OptimizationFactor]) {
     spec.map(optFactor => "* " + optFactor._2.label + " - " + optFactor._2.explanation).mkString("\n")
   }
 
-  private val longestOptimizationFactorLabel: Int = weightedSpec.values.map(_.label.length).max
-
   private[this] def greenifyResult(optLabel: Option[String], isGreen: Boolean, value: Int): String = {
     // maximized results are negated to work with Simulation.compare so
     // as not to have to jump through hoops in that method
@@ -106,13 +104,15 @@ case class Specification(spec: ListMap[String, OptimizationFactor]) {
   }
 
   def getImprovedSimulationResultsString(simulationResults: List[SimulationInfo], chosen: Simulation, showWorst: Boolean): String = {
-
+//todo add in simulations, skipped simulations, rounds cleared, persecond information
+    // also add cleared to total
+    // allow for outputting worst
+    // todo - generate json for both brendan and lior
+    // todo - find out why first row turns white
       /*(
       simulationResults.map(_.best.weightedSum) ++ // best result
         (if (showWorst) simulationResults.map(_.worst.get.weightedSum) else List[Array[Double]]()) // worst results (or empty if not showing anything)
       ).transpose.map(_.max).toArray // sort out the best of all...*/
-
-    val piecePrefixLength = 0.indexLabel.length + longestOptimizationFactorLabel + StringFormats.weightFormatLength + 2
 
     val piecesString = simulationResults
       .zipWithIndex
@@ -124,29 +124,17 @@ case class Specification(spec: ListMap[String, OptimizationFactor]) {
     // transpose them to get all the same score values on the same row
     val scores: List[List[ScoreComponent]] = simulationResults.map(info => info.best.board.scores).transpose
 
-    val prefixPaddingLength = longestOptimizationFactorLabel + 2 + StringFormats.weightFormatLength + 3
-
-
-    val padding = GamePieces.numPiecesInRound * 2
-
-    val columnHeader = "score".rightAlignedPadded(padding + 1) +
-      "normalized".rightAlignedPadded(padding + 6) +
-      "weighted".rightAlignedPadded(StringFormats.weightFormatLength + 2) +
-      " " + StringFormats.VERTICAL_LINE
-
     val horizontal =StringFormats.HORIZONTAL_LINE.repeat(prefixPaddingLength) +
       (StringFormats.CROSS_PIECE + StringFormats.HORIZONTAL_LINE.repeat(columnHeader.length-1)).repeat(simulationResults.length) +
       StringFormats.VERTICAL_AND_LEFT + "\n"
-
 
     val header = "score factor".leftAlignedPadded(longestOptimizationFactorLabel).addColon +
       "weight".rightAlignedPadded(StringFormats.weightFormatLength + 2) + " " + StringFormats.VERTICAL_LINE +
       columnHeader.repeat(simulationResults.length) + "\n"
 
-
     val scoreString = scores.map(optScores =>
       optScores.head.label.leftAlignedPadded(longestOptimizationFactorLabel).addColon +  optScores.head.weight.yellowColoredWeightLabel + StringFormats.VERTICAL_LINE +
-      optScores.map(score => " " + score.intValue.abs.optFactorLabel.rightAlignedPadded(padding) + score.normalizedValue.label(2).rightAlignedPadded(padding+4) + "  " + score.weightedValue.yellowColoredWeightLabel)
+      optScores.map(score => " " + score.intValue.abs.optFactorLabel.rightAlignedPadded(columnPadding) + score.normalizedValue.label(2).rightAlignedPadded(columnPadding+4) + "  " + score.weightedValue.yellowColoredWeightLabel)
         .mkString(StringFormats.VERTICAL_LINE)
     ).mkString(StringFormats.VERTICAL_LINE + "\n") + StringFormats.VERTICAL_LINE
 
@@ -256,6 +244,10 @@ case class OptimizationFactor(
 
 object Specification {
 
+
+
+
+
   // one of the optimizations is to ensure that the maximum number of
   // maximum pieces can fit on a board from all the boards simulated in the permutation of a set of pieces
   // apparently it's important that this be declared after Game.CYAN is declared above :)
@@ -275,11 +267,6 @@ object Specification {
   val openLinesName = "openLines"
 
   private val MINIMUM_SPEC_LENGTH: Int = 5
-
-  // todo - normalize each optFactor from 0 to 1.  then multiply by a weight (established at the outset)
-  //        then sum the optFactors and compare to previous sum to see if you can mimic the existing
-  //        comparison - once that's done then drop the old comparison as you now have a mechanism that
-  //        can scale to examining future states and also doing supervised learning
 
   private val totalPositions = math.pow(Board.BOARD_SIZE, 2).toInt
 
@@ -303,6 +290,20 @@ object Specification {
     openLinesName -> OptimizationFactor(enabled = true, openLinesName, maximize, 0.0, 100, Board.BOARD_SIZE + Board.BOARD_SIZE - 1, "open rows + cols", "count of open rows plus open columns")
 
   )
+
+
+  // following are used to construct results
+  private val longestOptimizationFactorLabel: Int = fullSpecification.values.map(_.label.length).max
+  private val piecePrefixLength = 0.indexLabel.length + longestOptimizationFactorLabel + StringFormats.weightFormatLength + 2
+  private val prefixPaddingLength = longestOptimizationFactorLabel + 2 + StringFormats.weightFormatLength + 3
+  private val columnPadding = GamePieces.numPiecesInRound * 2
+  private val columnHeader = "score".rightAlignedPadded(columnPadding + 1) +
+    "normalized".rightAlignedPadded(columnPadding + 6) +
+    "weighted".rightAlignedPadded(StringFormats.weightFormatLength + 2) +
+    " " + StringFormats.VERTICAL_LINE
+
+
+
 
   // by default return the full specification
   def apply(): Specification = {

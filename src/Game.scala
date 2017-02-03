@@ -211,11 +211,11 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
       "clear".!
     }
 
-    /*def moveCursorTopLeft: Unit = {
+    def moveCursorTopLeft: Unit = {
       //"clear" !
       "tput cup 10 4" !
       // "printf \u001B[2J" !
-    }*/
+    }
 
     val replayPieces = getReplayPieces
 
@@ -223,8 +223,6 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
     val pieces = piecesForRound(replayPieces)
 
     rounds.inc()
-
-    val selectedPiecesString = getRoundPiecesString(pieces)
 
     nonSimulationTimer.pause()
 
@@ -237,34 +235,42 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
     if (bestSimulation.pieceCount > 0) {
 
       // no need to get a results string if we're not going to show it
-      val simulationResultsString = getSimulationResultsString(results, bestSimulation)
+      //val simulationResultsString = getSimulationResultsString(results, bestSimulation)
 
       val improvedSimulationResultsString = getImprovedSimulationResultsString(results, bestSimulation)
+      clearScreen()
+      print(improvedSimulationResultsString)
 
       val chosenList: List[PieceLocCleared] = getChosenPlcList(replayPieces, bestSimulation)
 
       // as a side effect of placing, returns a string representing board states
       // is there a better way to do this?
+      // todo - put the board scores next to each board and spread across the screen
+      // fewer lines of output
       val placePiecesString = placePieces(chosenList)
+      print(placePiecesString)
 
       val endOfRoundResultsString = getRoundResultsString(multiGameStats.gameCount: Int)
+      print(endOfRoundResultsString)
 
       val unplacedPiecesString = getUnplacedPiecesString(bestSimulation)
 
       if (context.show) {
 
-        clearScreen()
+        //moveCursorTopLeft
+        //clearScreen()
 
         print(
-          selectedPiecesString +
-            simulationResultsString +
-            improvedSimulationResultsString +
-            placePiecesString +
+            //simulationResultsString +
+            //endOfRoundResultsString +
+            //placePiecesString +
             unplacedPiecesString +
-            endOfRoundResultsString
+             // improvedSimulationResultsString +
+            "\n"
         )
 
-        Console.out.flush()
+//Thread.sleep(250)
+        //Console.out.flush()
 
         // todo, see if this actually matters with iTerm - which seems to be superior terminal manager
         // resetTerminalBuffer
@@ -645,37 +651,6 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
     board.show(board.cellShowFunction) /*.split("\n").zip(board.boardNeighbors).map(s => s._1 + s._2.mkString(" ")).mkString("\n")*/
   }
 
-  private def getRoundPiecesString(pieces: List[Piece]): String = {
-
-    // we'll need the height of the tallest piece as a guard for shorter pieces where we need to
-    // print out spaces as placeholders.  otherwise array access in the for would be broken
-    // if we did some magic to append fill rows to the pieces as strings array...
-    val tallestPiece = pieces.map(_.rows).max
-
-    // because we're not printing out one piece, but three across, we need to split
-    // the toString from each piece into an Array.  In this case, we'll create a List[Array[String]]
-    val piecesToStrings = pieces map { piece =>
-
-      val a = piece.show(piece.cellShowFunction).split('\n')
-      if (a.length < tallestPiece)
-        a ++ Array.fill(tallestPiece - a.length)(piece.printFillString) // fill out the array
-      else
-        a // just return the array
-
-    }
-
-    // blast these out as one string
-    val roundLabel = ("round " + rounds.shortLabel).header + "\n"
-
-    val piecesString = piecesToStrings.map(a => a.toList)
-      .transpose
-      .map(l => l.mkString).mkString("\n")
-
-    val heightBufferString = (tallestPiece to GamePieces.tallestPiece).map(_ => "\n").mkString
-
-    roundLabel + piecesString + heightBufferString
-
-  }
 
   private def getRoundResultsString(gameCount: Int): String = {
 
