@@ -32,8 +32,9 @@ class Board(
     )
   }
 
-  def score:BoardScore = BoardScore(this, specification)
-  def results = score.results // this causes score to create a new BoardScore each time it is called
+  def boardScore:BoardScore = BoardScore(this, specification)
+  def scores: List[ScoreComponent] = boardScore.scores
+  def results: Array[Int] = boardScore.results // this causes score to create a new BoardScore each time it is called
 
   // the board output shows unoccupied cells so just call .show on every cell
   // different than the Piece.show which will not output unoccupied Cell's in other pieces
@@ -71,7 +72,7 @@ class Board(
   def clearLines(clearColor:Boolean): ClearedLines = {
 
     //hmmm - so clearColor is only necessary on the real board, but not on simulations.  We don't use
-    //       colorgrid to determine occupancy anymore so...
+    //       colorGrid to determine occupancy anymore so...
 
     // todo - can delegate to OccupancyGrid once we get rid of colorGrid.occupied
     // maybe not because the color grid is updated as part of this.

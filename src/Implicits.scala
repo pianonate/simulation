@@ -103,7 +103,7 @@ class GameTimerFormats(val gameTimer: GameTimer) {
 
 class PieceListFormats(val pieceList: List[Piece]) {
 
-  private val permutationHeaderBuffer = (GamePieces.widestPiece * 2 - 1)
+  private val permutationHeaderBuffer = GamePieces.widestPiece * 2 - 1
 
   def label: String = pieceList.map(piece => StringFormats.pieceNameFormat.format(piece.name)).mkString(" ")
 
@@ -120,7 +120,7 @@ class PieceListFormats(val pieceList: List[Piece]) {
       piece => {
         val pieceBuffer = permutationHeaderBuffer - (piece.cols * 2 - 1)
 
-        piece.show(piece.cellShowFunction).split("\n").map(each => each + (" ".repeat(pieceBuffer))).mkString("\n") +
+        piece.show(piece.cellShowFunction).split("\n").map(each => each + " ".repeat(pieceBuffer)).mkString("\n") +
           (piece.rows to GamePieces.tallestPiece).map(_ => "\n" + " ".repeat(permutationHeaderBuffer + 2)).mkString
 
       }
@@ -138,7 +138,7 @@ class LongFormats(val l: Long) {
 class StringFormats(val s: String) {
   def label: String = labelFormat.format(s)
   def elapsedLabel: String = elapsedFormat.format(s)
-  def repeat(length:Int) = s * length
+  def repeat(length:Int): String = s * length
 
   private def getHeaderString(color: String): String = {
 
@@ -153,6 +153,7 @@ class StringFormats(val s: String) {
   def greenHeader: String = getHeaderString(GREEN)
   def redHeader: String = getHeaderString(RED)
   def optFactorLabel: String = optFactorLabelFormat.format(s)
+  def paddedLabel(length:Int): String = ("%" + length.toString + "s").format(s)
   def parens: String = " (" + s + ")"
   def plural(i: Int): String = s + (if (i == 1) "" else "s")
 
@@ -171,7 +172,8 @@ object StringFormats {
   val numberFormat: String = "%," + numberFormatLength.toString + "d"
   val floatFormat: String = "%" + (numberFormatLength + 2).toString + ".1f"
 
-  val weightFormat:String = "%1.7f"
+  val weightFormatLength = 9
+  val weightFormat:String = "%1." + weightFormatLength + "f "
 
   val numberFormatShort = "%,d"
   val elapsedFormat: String = "%" + (numberFormatLength + 2).toString + "s"
@@ -180,7 +182,7 @@ object StringFormats {
   val percentFormat = " %2.2f"
   val skippedSimulationPercentFormat = "     %2.0f"
 
-  val pieceNameFormat = "%-" + GamePieces.longestNameLength + "s"
+  val pieceNameFormat: String = "%-" + GamePieces.longestNameLength + "s"
 
 
   val DOUBLE_VERTICAL_LINE = "\u2551"

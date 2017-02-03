@@ -2,7 +2,7 @@
  * Created by nathan mccoy on 1/15/17.
  * used to test all combinations of specification entries
  */
-import org.scalatest.{FlatSpec, _}
+import org.scalatest.FlatSpec
 
 class TestSpecification extends FlatSpec {
 
@@ -13,7 +13,7 @@ class TestSpecification extends FlatSpec {
     new GameInfoFixture {
 
       val fullSpec: scala.collection.immutable.ListMap[String,OptimizationFactor] = Specification.fullSpecification
-      assert(fullSpec.size > 0)
+      assert(fullSpec.nonEmpty)
       context.maxSimulations = 10 // ensure the game runs super fast - just to exercise code
       context.continuousMode = false // only run one game
       context.show = false // don't show results as the game is playing

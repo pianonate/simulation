@@ -42,13 +42,31 @@ class TestGame extends FlatSpec {
     }
   }
 
+  it must "not get a weighted score larger than 1 when the board is cleared" in {
+    new GameInfoFixture {
+      // set up a game that will have a row and a column that will clear at the same time
+      private val plcList = List(
+        PieceLocCleared(GamePieces.h5Line, Loc(0, 0), clearedLines = false),
+        PieceLocCleared(GamePieces.h4Line, Loc(0, 5), clearedLines = false),
+        PieceLocCleared(GamePieces.singleton, Loc(5, 9), clearedLines = false)
+      )
+      // setReplayList will put the game in a mode where it only plays from the specified list (in this case the one above)
+      context.setReplayList(plcList)
+      context.ignoreSimulation = false
+      context.show = false
+      private val game = new Game(context, multiGameStats)
+      private val results: GameResults = game.run
+      assert(results.score===20)
+    }
+  }
+
   it must "place three big boxes on a particular board that invoked a comparison bug" in {
     new GameInfoFixture {
 
       // this board was an end of game scenario where sometimes
       // under thread race conditions, the wrong board would be chosen
       // when the plcList length was 2 when there was a 3 option available
-      // addd an additional else clause in Simulation.compare to account for this
+      // add an additional else clause in Simulation.compare to account for this
       // the following ensures we don't regress
       val a = Array(
         Array(0, 0, 0, 0, 0, 0, 1, 1, 1, 0), //0
@@ -64,7 +82,7 @@ class TestGame extends FlatSpec {
       )
 
       val grid = OccupancyGrid(Board.BOARD_SIZE, Board.BOARD_SIZE, filled = false)
-      val colorGrid = Array.fill[String](10, 10)(Board.BOARD_COLOR)
+      val colorGrid: Array[Array[String]] = Array.fill[String](10, 10)(Board.BOARD_COLOR)
 
       for {
         i <- a.indices
@@ -104,7 +122,7 @@ class TestGame extends FlatSpec {
   it must "end up with the same score for two consecutive seeded games in parallel mode" ignore {
     new GameInfoFixture {
 
-      context.randomSeed = (new scala.util.Random()).nextInt(1000000000)
+      context.randomSeed = new scala.util.Random().nextInt(1000000000)
       context.stopGameAtRound = 10
       context.show = true
       context.parallel = true

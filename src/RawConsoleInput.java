@@ -35,6 +35,7 @@ import com.sun.jna.ptr.IntByReference;
  * <p>This class is used for console mode programs.
  * It supports non-blocking reads of single key strokes without echo.
  */
+@SuppressWarnings("ALL")
 public class RawConsoleInput {
 
     private static final boolean           isWindows     = System.getProperty("os.name").startsWith("Windows");
@@ -165,6 +166,7 @@ public class RawConsoleInput {
         int _getwch();
         int getwchar(); }
 
+    @SuppressWarnings("unused")
     private static class Kernel32Defs {
         static final int  STD_INPUT_HANDLE       = -10;
         static final long INVALID_HANDLE_VALUE   = (Pointer.SIZE == 8) ? -1 : 0xFFFFFFFFL;
@@ -173,6 +175,7 @@ public class RawConsoleInput {
         static final int  ENABLE_ECHO_INPUT      = 0x0004;
         static final int  ENABLE_WINDOW_INPUT    = 0x0008; }
 
+    @SuppressWarnings("SameParameterValue")
     private static interface Kernel32 extends Library {
         int GetConsoleMode (Pointer hConsoleHandle, IntByReference lpMode);
         int SetConsoleMode (Pointer hConsoleHandle, int dwMode);
@@ -271,6 +274,7 @@ public class RawConsoleInput {
         setTerminalAttrs(stdinFd, originalTermios);
         consoleModeAltered = false; }
 
+    @SuppressWarnings("unused")
     protected static class Termios extends Structure {         // termios.h
         public int      c_iflag;
         public int      c_oflag;
@@ -297,6 +301,7 @@ public class RawConsoleInput {
         static final int ECHONL  = 0000100;
         static final int TCSANOW = 0; }
 
+    @SuppressWarnings("SameParameterValue")
     private static interface Libc extends Library {
         // termios.h
         int tcgetattr (int fd, Termios termios) throws LastErrorException;

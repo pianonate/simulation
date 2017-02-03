@@ -62,7 +62,7 @@ case class Simulation(plcList: List[PieceLocCleared], board: Board, specLength: 
   // to be better than a solution with less pieces
   // this only works because the weighted sum is normalized to range from 0 to 1 so can never
   // cause a 2 piece solution to be better than a 3 piece solution
-  val weightedSum: Double = pieceCount + board.score.weightedSum
+  val weightedSum: Double = pieceCount + board.boardScore.weightedSum
 
   //todo see if you can quickly build a bitset and use it as a key or try scalacache and guava
 
@@ -74,7 +74,7 @@ case class Simulation(plcList: List[PieceLocCleared], board: Board, specLength: 
     if (this.pieceCount < that.pieceCount)
       1 // if this length is less, then we definitely want this one to be considered inferior
     else if (this.pieceCount > that.pieceCount)
-      -1 // if this one has a greater lengthm, no need to compare results, it's superior by definition
+      -1 // if this one has a greater length, no need to compare results, it's superior by definition
     else {
 
       // the following provides tuple ordering to ordered to make the tuple comparison work

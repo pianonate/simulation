@@ -31,6 +31,7 @@ class Conf(arguments: Seq[String]) extends ScallopConf(arguments) {
   val showWorst: ScallopOption[Boolean] = toggle(default = Some(false), descrYes = "show worst simulation choices each round", descrNo = "default:hide worst simulation choices each round - faster")
   val stopAtNewHighScore: ScallopOption[Boolean] = toggle(default = Some(true), short='n', descrYes = "default:stop a continuous play game if a new high score is reached", descrNo = "don't stop a continuous play game if a new high score is reached")
 
+  //todo - does this still happen on iterm? if not, then fuckit.  get rid of it
   val eraseTerminalBufferAt: ScallopOption[Int] = opt[Int](
     default = Some(ERASE_TERMINAL_BUFFER_EVERY_N_ROUNDS),
     validate = (i) => i > 0 && i <= ERASE_TERMINAL_BUFFER_EVERY_N_ROUNDS,

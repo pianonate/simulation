@@ -21,7 +21,7 @@
  */
 
 import scala.collection.GenSeq
-import sys.process._
+import scala.sys.process._
 import scala.language.postfixOps
 import Implicits._
 
@@ -201,21 +201,21 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
       s
     }
 
-    def resetTerminalBuffer: Unit = {
+    /*def resetTerminalBuffer: Unit = {
       // reset terminal every 1000 rounds
       if (rounds.value % context.eraseTerminalBufferAfterRound == 0)
         "printf '\u001B[3J'" !
+    }*/
+
+    def clearScreen(): Unit = {
+      "clear".!
     }
 
-    def clearScreen: Unit = {
-      "clear" !
-    }
-
-    def moveCursorTopLeft: Unit = {
+    /*def moveCursorTopLeft: Unit = {
       //"clear" !
       "tput cup 10 4" !
       // "printf \u001B[2J" !
-    }
+    }*/
 
     val replayPieces = getReplayPieces
 
@@ -253,7 +253,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
       if (context.show) {
 
-        clearScreen
+        clearScreen()
 
         print(
           selectedPiecesString +
@@ -339,15 +339,12 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
     // use this method to return specific pieces under specific circumstances
     // under normal conditions if (false
     // just return a random set of 3 pieces
-    val pieces = {
-
-      //List.fill(3)(gamePieces.getNamedPiece("VLine5"))
+    val gamePiecesForRound = {
       // List(Pieces.box,Pieces.h3line,Pieces.upperLeftEl)
       List.fill(3)(gamePieces.getRandomPiece)
-
     }
 
-    pieces
+    gamePiecesForRound
   }
 
   private def simulatePermutation(pieces: List[Piece], permutationIndex: Int, totalPermutations: Int): SimulationInfo = {
@@ -403,14 +400,16 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
       def updateBestAndWorst(simulation: Simulation): Unit = {
 
         def simulationIsBetterThanBest: Boolean = {
-          /*best.get.plcList.length < simulation.plcList.length ||
-            (best.get.plcList.length == simulation.plcList.length && */best.get.weightedSum < simulation.weightedSum/*)*/
+         /* val oldWay = simulation < best.get */
+          val newWay = best.get.weightedSum < simulation.weightedSum
+         /* assert(oldWay==newWay)*/
+          newWay
+
         }
 
-        def safeUpdateBest: Unit = {
+        def safeUpdateBest(): Unit = {
           val bestID = best.get.id
           // contention
-          // if (simulation < best.get)
           if (simulationIsBetterThanBest)
             // as long as best hasn't changed and we are in a better simulation then update it
             synchronized {
@@ -419,7 +418,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
                 best = Some(simulation)
               } else {
                 // if the other thread put a better one in there, then who cares - don't update it
-                // first check if simulation updated on the other thread is better than the curent simulation
+                // first check if simulation updated on the other thread is better than the current simulation
                 //if (simulation < best.get) {
                 if (simulationIsBetterThanBest) {
 
@@ -433,12 +432,12 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
         best match {
           case Some(_) =>
-            safeUpdateBest
+            safeUpdateBest()
 
           case None => synchronized {
             best match {
               case Some(_) =>
-                safeUpdateBest
+                safeUpdateBest()
               case None =>
                 best = Some(simulation) // first simulation is best
             }
@@ -448,14 +447,12 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
         if (context.showWorst) {
 
           def simulationIsWorseThanWorst: Boolean = {
-            /*worst.get.plcList.length > simulation.plcList.length || // simulation is worse than worst
-              (worst.get.plcList.length == simulation.plcList.length && */worst.get.weightedSum > simulation.weightedSum/*)*/
+            worst.get.weightedSum > simulation.weightedSum
           }
 
-          def safeUpdateWorst: Unit = {
+          def safeUpdateWorst(): Unit = {
             val worstID = worst.get.id
             // contention
-            // if (simulation > worst.get)
             if (simulationIsWorseThanWorst)
               // as long as best hasn't changed and we are in a better simulation then update it
               synchronized {
@@ -476,12 +473,12 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
           worst match {
             case Some(_) =>
-              safeUpdateWorst
+              safeUpdateWorst()
 
             case None => synchronized {
               worst match {
                 case Some(_) =>
-                  safeUpdateWorst
+                  safeUpdateWorst()
                 case None =>
                   worst = Some(simulation) // first simulation is worst
               }
@@ -586,7 +583,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
   private def pieceHandler(piece: Piece, loc: Loc, index: Int): String = {
 
-    val boardBuffer = (Board.BOARD_SIZE * 2 - 1)
+    val boardBuffer = Board.BOARD_SIZE * 2 - 1
     val pieceBuffer = boardBuffer - (piece.cols * 2 - 1)
 
     def getLinesClearedString(result: ClearedLines): String = {
@@ -605,8 +602,8 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
         r + c
 
       } else
-        " " * (boardBuffer) + "  \n" +
-          " " * (boardBuffer) + "  \n"
+        " " * boardBuffer + "  \n" +
+          " " * boardBuffer + "  \n"
 
       clearedString
     }

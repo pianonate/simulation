@@ -13,8 +13,10 @@
  *   results in the highest scores...
  */
 
+
 import Implicits._
-import scala.collection.immutable.ListMap
+
+import scala.collection.immutable.{Iterable, ListMap}
 
 case class Specification(spec: ListMap[String, OptimizationFactor]) {
 
@@ -29,20 +31,30 @@ case class Specification(spec: ListMap[String, OptimizationFactor]) {
   //        the sort chose - from the best of the best...
   private val weightedSpec: ListMap[String, OptimizationFactor] = {
 
-    // divide each by 100 and then the next one divies previous by 100
+    // divide each by 100 and then the next one divides previous by 100
     // val weights = Array.tabulate(length)(n => 1 / (math.pow(10, n) * math.pow(10, n)))
-    val weights = spec.map(each => each._2.initialWeightFactor).scanLeft(1.0)((a, b) => a / b).tail
+    val weights = spec.values.map(each => each.initialWeightFactor).scanLeft(1.0)((a, b) => a / b).tail
 
-    val totalOfWeights = weights.sum
-    val normalizedWeights = weights.map(_ / totalOfWeights)
+    // the idea to normalize weights this way is that when you multiply weights times the
+    // the normalized values derived from creating the scores, we will get a distribution from 0 to 1
+    // Brendan's idea and I like it.  Makes it easy to grok the scores
+    // however, just calculating it by mapping each weight over the sum caused a bug
+    // when the board clears, the scores are perfect - all normalize to 1.0
+    // but when multiplying by normalized weights, we ended up with this number:
+    // 1.0000000000000002
+    // which is larger than one - and unnacceptable :)
+    // so the answer is to take the first n normalized weights and to calculate the last one by
+    // subtracting the sum of the first n from 1.  And here it is:
+    val sumOfWeights = weights.sum
+    val initialNormalized = weights.init.map(_ / sumOfWeights)
+    val last:Double = 1.0 - initialNormalized.sum
+    val normalizedWeights = initialNormalized ++ Iterable(last)
 
-    // divide weights by totalOfWeights so that when you multiply weights time values, we will get a distribution from 0 to 1
-    // beautiful
-    // Brendan's suggestion
+
     val weighted = spec.zip(normalizedWeights).map {
       case (specEntry, weight) =>
         specEntry match {
-          case (key, opt) => (key, OptimizationFactor(opt.enabled, opt.fieldName, opt.minimize, weight, opt.initialWeightFactor, opt.maxVal, opt.label, opt.explanation))
+          case (key, opt) => (key, OptimizationFactor(opt.enabled, opt.name, opt.minimize, weight, opt.initialWeightFactor, opt.maxVal, opt.label, opt.explanation))
         }
     }
 
@@ -53,6 +65,7 @@ case class Specification(spec: ListMap[String, OptimizationFactor]) {
   // as using named keys into the ListMap along with apply() access is VERY SLOW
   val optimizationFactors: Array[OptimizationFactor] = weightedSpec.values.toArray
 
+  // initialize named optimization factors
   private def getOptimizationFactor(name: String): OptimizationFactor = {
     // a filtered spec is passed in - non non-enabled specifications are allowed
     // because of this, the direct values we provide on this Specification instance
@@ -60,7 +73,7 @@ case class Specification(spec: ListMap[String, OptimizationFactor]) {
     if (weightedSpec.contains(name))
       weightedSpec(name)
     else
-      OptimizationFactor(false, name, false, 0.0, 0.0, 0, "", "")
+      OptimizationFactor(enabled = false, name, minimize = false, 0.0, 0.0, 0, "", "")
   }
 
   val occupiedOptFactor: OptimizationFactor = getOptimizationFactor(Specification.occupiedCountName)
@@ -76,7 +89,7 @@ case class Specification(spec: ListMap[String, OptimizationFactor]) {
     spec.map(optFactor => "* " + optFactor._2.label + " - " + optFactor._2.explanation).mkString("\n")
   }
 
-  private val longestOptimizationFactorName = weightedSpec.values.map(_.fieldName.length).max
+  private val longestOptimizationFactorLabel = weightedSpec.values.map(_.label.length).max
 
   private[this] def greenifyResult(optLabel: Option[String], isGreen: Boolean, value: Int): String = {
     // maximized results are negated to work with Simulation.compare so
@@ -94,7 +107,7 @@ case class Specification(spec: ListMap[String, OptimizationFactor]) {
 
   def getImprovedSimulationResultsString(simulationResults: List[SimulationInfo], chosen: Simulation, showWorst: Boolean): String = {
 
-    val piecePrefixLength = 0.indexLabel.length + longestOptimizationFactorName
+    val piecePrefixLength = 0.indexLabel.length + longestOptimizationFactorLabel + StringFormats.weightFormatLength
 
     val piecesString = simulationResults
       .zipWithIndex
@@ -103,8 +116,14 @@ case class Specification(spec: ListMap[String, OptimizationFactor]) {
 
 
     // get the scores from the simulationInfo
-    //val scores: List[List[ScoreComponent]] = simulationResults.map(info => info.best.board.score.scores)
+    // transpose them to get all the same score values on the same row
+    val scores: List[List[ScoreComponent]] = simulationResults.map(info => info.best.board.scores).transpose
 
+    val s = scores.map(optScores =>
+      optScores.head.label.paddedLabel(longestOptimizationFactorLabel) + ": " + optScores.head.weight.weightLabel + "|" +
+      optScores.map(score => score.intValue.abs.optFactorLabel + " " + score.normalizedValue.weightLabel + score.weightedValue.weightLabel)
+        .mkString("|")
+    ).mkString("\n")
 
 /*    val specString = weightedSpec
       .values
@@ -113,7 +132,7 @@ case class Specification(spec: ListMap[String, OptimizationFactor]) {
         simulationResults.map(info => info(index).toString)}
       .mkString("\n")*/
 
-    piecesString + "\n" /*+ specString*/
+    piecesString + "\n" + s
   }
 
   def getSimulationResultsString(simulationResults: List[SimulationInfo], chosen: Simulation, showWorst: Boolean): String = {
@@ -166,12 +185,12 @@ case class Specification(spec: ListMap[String, OptimizationFactor]) {
 
       // underline is for closers (Glengarry Glen Ross)
       if (result.best == chosen) {
-        val parts = s.splitAt(s.indexOf(" ") + 1) // start underlining after the #:_ at the beginnning of each line
+        val parts = s.splitAt(s.indexOf(" ") + 1) // start underlining after the #:_ at the beginning of each line
         parts._1 +
           StringFormats.UNDERLINE + // thus begins the underlining
           parts._2 // it seems to make it work in both terminal and in intellij IDE, have to do both sets of splits below
           .split(" ").mkString(StringFormats.UNDERLINE + " ") // starting at all spaces
-          .split(StringFormats.ESCAPE) // split on escape characters // underlines starting at all color codings
+          .split(StringFormats.ESCAPE) // split on escape characters // underlines starting at all color coding
           .mkString(StringFormats.UNDERLINE + StringFormats.ESCAPE) + StringFormats.SANE
       } else
         s
@@ -193,14 +212,14 @@ case class Specification(spec: ListMap[String, OptimizationFactor]) {
 }
 
 case class OptimizationFactor(
-  enabled:             Boolean,
-  fieldName:           String,
-  minimize:            Boolean,
-  weight:              Double,
-  initialWeightFactor: Double,
-  maxVal:              Int,
-  label:               String,
-  explanation:         String
+                               enabled:             Boolean,
+                               name:           String,
+                               minimize:            Boolean,
+                               weight:              Double,
+                               initialWeightFactor: Double,
+                               maxVal:              Int,
+                               label:               String,
+                               explanation:         String
 )
 
 object Specification {
@@ -225,8 +244,8 @@ object Specification {
 
   private val MINIMUM_SPEC_LENGTH: Int = 5
 
-  // todo - normalize each optfactor from 0 to 1.  then multiply by a weight (established at the outset)
-  //        then sum the optfactors and compare to previous sum to see if you can mimic the existing
+  // todo - normalize each optFactor from 0 to 1.  then multiply by a weight (established at the outset)
+  //        then sum the optFactors and compare to previous sum to see if you can mimic the existing
   //        comparison - once that's done then drop the old comparison as you now have a mechanism that
   //        can scale to examining future states and also doing supervised learning
 
@@ -240,11 +259,11 @@ object Specification {
     // much more flexible than it used to be
 
     // todo - run through all specification combinations of off and on and run 1000? games on each to see which specification is the best
-    maximizerCountName -> OptimizationFactor(enabled = true, maximizerCountName, maximize, 0.0, 1.0, math.pow((Board.BOARD_SIZE - maximizer.cols + 1), 2).toInt, "maximizer", "positions in which a 3x3 piece can fit"),
+    maximizerCountName -> OptimizationFactor(enabled = true, maximizerCountName, maximize, 0.0, 1.0, math.pow(Board.BOARD_SIZE - maximizer.cols + 1, 2).toInt, "maximizer", "positions in which a 3x3 piece can fit"),
     occupiedCountName -> OptimizationFactor(enabled = true, occupiedCountName, minimize, 0.0, 100, totalPositions, "occupied", "occupied positions"),
     fourNeighborsName -> OptimizationFactor(enabled = true, fourNeighborsName, minimize, 0.0, 100, totalPositions / 2, "4 neighbors", "number of positions surrounded on all 4 sides"),
     threeNeighborsName -> OptimizationFactor(enabled = true, threeNeighborsName, minimize, 0.0, 100, totalPositions / 2, "3 neighbors", "number of positions surrounded on 3 of 4 sides"),
-    maxContiguousName -> OptimizationFactor(enabled = true, maxContiguousName, maximize, 0.0, 100, Board.BOARD_SIZE, "contiguous open lines", "number of lines (either horizontal or vertical) that are open and contiguous"),
+    maxContiguousName -> OptimizationFactor(enabled = true, maxContiguousName, maximize, 0.0, 100, Board.BOARD_SIZE, "connected open", "number of lines (either horizontal or vertical) that are open and contiguous"),
 
     // i'm really not sure that 60 is the maximum number of two neighbors that can be created on a board
     // but i couldn't find another solution that was better
