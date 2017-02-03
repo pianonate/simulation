@@ -89,7 +89,7 @@ case class Specification(spec: ListMap[String, OptimizationFactor]) {
     spec.map(optFactor => "* " + optFactor._2.label + " - " + optFactor._2.explanation).mkString("\n")
   }
 
-  private val longestOptimizationFactorLabel = weightedSpec.values.map(_.label.length).max
+  private val longestOptimizationFactorLabel: Int = weightedSpec.values.map(_.label.length).max
 
   private[this] def greenifyResult(optLabel: Option[String], isGreen: Boolean, value: Int): String = {
     // maximized results are negated to work with Simulation.compare so
@@ -107,32 +107,64 @@ case class Specification(spec: ListMap[String, OptimizationFactor]) {
 
   def getImprovedSimulationResultsString(simulationResults: List[SimulationInfo], chosen: Simulation, showWorst: Boolean): String = {
 
-    val piecePrefixLength = 0.indexLabel.length + longestOptimizationFactorLabel + StringFormats.weightFormatLength
+      /*(
+      simulationResults.map(_.best.weightedSum) ++ // best result
+        (if (showWorst) simulationResults.map(_.worst.get.weightedSum) else List[Array[Double]]()) // worst results (or empty if not showing anything)
+      ).transpose.map(_.max).toArray // sort out the best of all...*/
+
+    val piecePrefixLength = 0.indexLabel.length + longestOptimizationFactorLabel + StringFormats.weightFormatLength + 2
 
     val piecesString = simulationResults
       .zipWithIndex
-      .map { case (result, index) => result.pieces.permutationShowPiecesHeader(index) }
-      .spreadHorizontal(piecePrefixLength, StringFormats.DOUBLE_VERTICAL_LINE + " ")
+      .map { case (result, index) => result.pieces.permutationPiecesHeader(index) }
+      .spreadHorizontal(startAt = piecePrefixLength, bracketWith = StringFormats.VERTICAL_LINE + " ", separator = (StringFormats.VERTICAL_LINE + " "))
 
 
     // get the scores from the simulationInfo
     // transpose them to get all the same score values on the same row
     val scores: List[List[ScoreComponent]] = simulationResults.map(info => info.best.board.scores).transpose
 
-    val s = scores.map(optScores =>
-      optScores.head.label.paddedLabel(longestOptimizationFactorLabel) + ": " + optScores.head.weight.weightLabel + "|" +
-      optScores.map(score => score.intValue.abs.optFactorLabel + " " + score.normalizedValue.weightLabel + score.weightedValue.weightLabel)
-        .mkString("|")
-    ).mkString("\n")
+    val prefixPaddingLength = longestOptimizationFactorLabel + 2 + StringFormats.weightFormatLength + 3
 
-/*    val specString = weightedSpec
-      .values
-      .zipWithIndex
-      .map { case (opt, index) => index.indexLabel + opt.fieldName +
-        simulationResults.map(info => info(index).toString)}
-      .mkString("\n")*/
 
-    piecesString + "\n" + s
+    val padding = GamePieces.numPiecesInRound * 2
+
+    val columnHeader = "score".rightAlignedPadded(padding + 1) +
+      "normalized".rightAlignedPadded(padding + 6) +
+      "weighted".rightAlignedPadded(StringFormats.weightFormatLength + 2) +
+      " " + StringFormats.VERTICAL_LINE
+
+    val horizontal =StringFormats.HORIZONTAL_LINE.repeat(prefixPaddingLength) +
+      (StringFormats.CROSS_PIECE + StringFormats.HORIZONTAL_LINE.repeat(columnHeader.length-1)).repeat(simulationResults.length) +
+      StringFormats.VERTICAL_AND_LEFT + "\n"
+
+
+    val header = "score factor".leftAlignedPadded(longestOptimizationFactorLabel).addColon +
+      "weight".rightAlignedPadded(StringFormats.weightFormatLength + 2) + " " + StringFormats.VERTICAL_LINE +
+      columnHeader.repeat(simulationResults.length) + "\n"
+
+
+    val scoreString = scores.map(optScores =>
+      optScores.head.label.leftAlignedPadded(longestOptimizationFactorLabel).addColon +  optScores.head.weight.yellowColoredWeightLabel + StringFormats.VERTICAL_LINE +
+      optScores.map(score => " " + score.intValue.abs.optFactorLabel.rightAlignedPadded(padding) + score.normalizedValue.label(2).rightAlignedPadded(padding+4) + "  " + score.weightedValue.yellowColoredWeightLabel)
+        .mkString(StringFormats.VERTICAL_LINE)
+    ).mkString(StringFormats.VERTICAL_LINE + "\n") + StringFormats.VERTICAL_LINE
+
+    val winner = simulationResults.map(_.best.weightedSum).max
+
+    val weightedSumString = "sum".leftAlignedPadded(longestOptimizationFactorLabel).addColon +
+      scores.map(optScores=>optScores.head.weight).sum.yellowColoredWeightLabel + StringFormats.VERTICAL_LINE +
+    simulationResults.map{result =>
+
+      val winner = result.best==chosen
+      val sum = result.best.board.scores.map(scoreComponent => scoreComponent.weightedValue).sum.weightLabel
+      val sumWithLabel = (if (winner) "winner: " + sum else sum).rightAlignedPadded(22 + StringFormats.weightFormatLength)
+      if (winner) sumWithLabel.greenDigits else sumWithLabel.yellowDigits
+
+    }.mkString(StringFormats.VERTICAL_LINE) +
+    StringFormats.VERTICAL_LINE
+
+    piecesString + "\n" + horizontal + header + horizontal + scoreString + "\n" + horizontal + weightedSumString
   }
 
   def getSimulationResultsString(simulationResults: List[SimulationInfo], chosen: Simulation, showWorst: Boolean): String = {
@@ -167,7 +199,7 @@ case class Specification(spec: ListMap[String, OptimizationFactor]) {
         // storing it redundantly on each simulation?
         simulationResult.best.emptyResults
 
-      (simulationIndex + 1) + ": " + simulationResult.pieces.label + " -" +
+      (simulationIndex).indexLabel  + simulationResult.pieces.label + " -" +
         spec
         .zip(best).zip(worst).zipWithIndex
         .map(tup => (tup._1._1._1, tup._1._1._2, tup._1._2, tup._2))
@@ -267,8 +299,8 @@ object Specification {
 
     // i'm really not sure that 60 is the maximum number of two neighbors that can be created on a board
     // but i couldn't find another solution that was better
-    twoNeighborsName -> OptimizationFactor(enabled = false, twoNeighborsName, minimize, 0.0, 100, (totalPositions * .6).toInt, "2 neighbors", "number of positions surrounded on 2 of 4 sides"),
-    openLinesName -> OptimizationFactor(enabled = false, openLinesName, maximize, 0.0, 100, Board.BOARD_SIZE + Board.BOARD_SIZE - 1, "open rows + cols", "count of open rows plus open columns")
+    twoNeighborsName -> OptimizationFactor(enabled = true, twoNeighborsName, minimize, 0.0, 100, (totalPositions * .6).toInt, "2 neighbors", "number of positions surrounded on 2 of 4 sides"),
+    openLinesName -> OptimizationFactor(enabled = true, openLinesName, maximize, 0.0, 100, Board.BOARD_SIZE + Board.BOARD_SIZE - 1, "open rows + cols", "count of open rows plus open columns")
 
   )
 

@@ -42,7 +42,19 @@ class CounterFormats(val counter: Counter) {
 }
 
 class DoubleFormats(val d:Double) {
-  def weightLabel:String = weightFormat.format(d)
+  def label(length:Int):String = ("%1." + length + "f ").format(d)
+  def weightLabel:String = label(StringFormats.weightFormatLength)
+  def rightAlignedPadded(length:Int):String = d.toString.rightAlignedPadded(length)
+
+
+  private def coloredWeightLabel(color:String):String = {
+    val s = d.weightLabel
+    val replaced = s.replaceAll("([^0\\.])", color + "$1" + SANE)
+    replaced
+  }
+  def greenColoredWeightLabel:String = coloredWeightLabel(GREEN)
+  def yellowColoredWeightLabel:String = coloredWeightLabel(YELLOW)
+
 }
 
 class EnhancedListBuffer(val xs: ListBuffer[Int]) {
@@ -63,10 +75,10 @@ class EnhancedArray(val a: Array[Int]) {
 }
 
 class EnhancedListString(val xs:List[String]) {
-  def spreadHorizontal(prefixLength:Int = 0, separator:String = " "):String =
+  def spreadHorizontal(startAt:Int = 0, bracketWith:String = "", separator:String = " "):String =
     xs.map(_.split("\n"))
     .transpose
-      .map(each => " ".repeat(prefixLength) + each.mkString(separator))
+      .map(each => " ".repeat(startAt) + bracketWith + each.mkString(separator).init + (if (bracketWith.length > 0) " " else "") + bracketWith)
       .mkString("\n")
 }
 
@@ -79,7 +91,7 @@ class IntFormats(val i: Int) {
   }
   def greenLabel: String = GREEN + optFactorLabel + SANE
   def greenPerSecondLabel: String = GREEN + perSecondLabel + SANE
-  def indexLabel:String = (i + 1) + ": "
+  def indexLabel:String = (i + 1).toString.addColon
   def label: String = numberFormat.format(i)
   def label(length: Int): String = ("%," + length.toString + "d").format(i)
   def optFactorLabel: String = optFactorResultFormat.format(i)
@@ -103,30 +115,30 @@ class GameTimerFormats(val gameTimer: GameTimer) {
 
 class PieceListFormats(val pieceList: List[Piece]) {
 
-  private val permutationHeaderBuffer = GamePieces.widestPiece * 2 - 1
+  private val maxPieceWidth = GamePieces.widestPiece * 2 - 1 // * 2 because there are spaces between each box
 
   def label: String = pieceList.map(piece => StringFormats.pieceNameFormat.format(piece.name)).mkString(" ")
 
-  def permutationShowPiecesHeader(index: Int): String = {
+  def permutationPiecesHeader(index: Int): String = {
 
     val numPieces = GamePieces.numPiecesInRound
 
-    val header = ("Permutation: " + (index + 1)) + (if (index==1) " (selected by game)" else "")
-    val headerBuffer = (permutationHeaderBuffer * numPieces) + (numPieces * numPieces - 1) - header.length
+    val header = "Permutation".addColon + (index + 1) + (if (index==0) " (game selected)" else "")
+    val headerBuffer = (maxPieceWidth * numPieces) + (numPieces * 3) - (header.length+2)
     val paddedHeader = header + " ".repeat(headerBuffer) + "\n"
 
     val pieceStrings = paddedHeader +
       pieceList.map(
       piece => {
-        val pieceBuffer = permutationHeaderBuffer - (piece.cols * 2 - 1)
+        val pieceBuffer = maxPieceWidth - (piece.cols * 2 - 1)
 
         piece.show(piece.cellShowFunction).split("\n").map(each => each + " ".repeat(pieceBuffer)).mkString("\n") +
-          (piece.rows to GamePieces.tallestPiece).map(_ => "\n" + " ".repeat(permutationHeaderBuffer + 2)).mkString
+          (piece.rows to GamePieces.tallestPiece).map(_ => "\n" + " ".repeat(maxPieceWidth + 2)).mkString
 
       }
     ).spreadHorizontal()
 
-    pieceStrings
+     pieceStrings
 
   }
 }
@@ -136,10 +148,6 @@ class LongFormats(val l: Long) {
 }
 
 class StringFormats(val s: String) {
-  def label: String = labelFormat.format(s)
-  def elapsedLabel: String = elapsedFormat.format(s)
-  def repeat(length:Int): String = s * length
-
   private def getHeaderString(color: String): String = {
 
     val padLength = (headerWidth - (s.length + 2)) / 2
@@ -149,13 +157,25 @@ class StringFormats(val s: String) {
     "\n" + color + pad1 + " " + s + " " + pad2 + SANE
   }
 
-  def header: String = getHeaderString(CYAN)
+  private def coloredDigitsLabel(color:String):String = {
+    val replaced = s.replaceAll("([^0\\.])", color + "$1" + SANE)
+    replaced
+  }
+
+  def addColon:String = s + ": "
+  def elapsedLabel: String = elapsedFormat.format(s)
   def greenHeader: String = getHeaderString(GREEN)
-  def redHeader: String = getHeaderString(RED)
+  def greenDigits:String = coloredDigitsLabel(GREEN)
+  def header: String = getHeaderString(CYAN)
+  def label: String = labelFormat.format(s)
   def optFactorLabel: String = optFactorLabelFormat.format(s)
-  def paddedLabel(length:Int): String = ("%" + length.toString + "s").format(s)
+  def leftAlignedPadded(length:Int): String = ("%-" + length.toString + "s").format(s)
   def parens: String = " (" + s + ")"
   def plural(i: Int): String = s + (if (i == 1) "" else "s")
+  def redHeader: String = getHeaderString(RED)
+  def repeat(length:Int): String = s * length
+  def rightAlignedPadded(length:Int): String = ("%" + length.toString + "s").format(s)
+  def yellowDigits:String = coloredDigitsLabel(YELLOW)
 
 }
 
@@ -172,8 +192,7 @@ object StringFormats {
   val numberFormat: String = "%," + numberFormatLength.toString + "d"
   val floatFormat: String = "%" + (numberFormatLength + 2).toString + ".1f"
 
-  val weightFormatLength = 9
-  val weightFormat:String = "%1." + weightFormatLength + "f "
+  val weightFormatLength = 13
 
   val numberFormatShort = "%,d"
   val elapsedFormat: String = "%" + (numberFormatLength + 2).toString + "s"
@@ -185,7 +204,10 @@ object StringFormats {
   val pieceNameFormat: String = "%-" + GamePieces.longestNameLength + "s"
 
 
-  val DOUBLE_VERTICAL_LINE = "\u2551"
+  val VERTICAL_LINE = "\u2503"
+  val HORIZONTAL_LINE = "\u2501"
+  val CROSS_PIECE = "\u254B"
+  val VERTICAL_AND_LEFT = "\u252B"
 
   // Color escape sequence strings from:
   // http://www.topmudsites.com/forums/mud-coding/413-java-ansi.html

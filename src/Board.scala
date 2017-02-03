@@ -334,7 +334,7 @@ object Board {
   val BOARD_SIZE = 10
   val BOARD_COLOR = StringFormats.BRIGHT_BLACK
 
-  val BOX_CHAR: String = "\u25A0" + StringFormats.SANE
+  val BOX_CHAR: String = /*"\u25A0"*/ "\u25A9" + StringFormats.SANE
 
   private val UNOCCUPIED_BOX_CHAR = BOARD_COLOR + BOX_CHAR
 
