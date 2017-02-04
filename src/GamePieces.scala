@@ -177,7 +177,7 @@ object GamePieces {
   def box = Box(Piece.getBoxGrid(2), GamePieces.boxName, StringFormats.GREEN, 12)
   def bigBox = Box(Piece.getBoxGrid(3), GamePieces.bigBoxName, StringFormats.CYAN, 4)
 
-  def lowerLeftEl = El(Piece.getBoxGrid(2), GamePieces.lowerLeftElName, StringFormats.BRIGHT_CYAN, 3)
+  def lowerLeftEl = El(Piece.getBoxGrid(2), GamePieces.lowerLeftElName, StringFormats.MAGENTA, 3)
   def upperLeftEl: Piece = Piece.rotate90(GamePieces.upperLeftElName, lowerLeftEl)
   def upperRightEl: Piece = Piece.rotate90(GamePieces.upperRightElName, upperLeftEl)
   def lowerRightEl: Piece = Piece.rotate90(GamePieces.lowerRightElName, upperRightEl)

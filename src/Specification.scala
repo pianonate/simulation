@@ -109,6 +109,8 @@ case class Specification(spec: ListMap[String, OptimizationFactor]) {
     // allow for outputting worst
     // todo - generate json for both brendan and lior
     // todo - find out why first row turns white
+
+    // todo Add lines cleared. Plus count simulation of all combinations of 3x3 1x5 and 5x1
       /*(
       simulationResults.map(_.best.weightedSum) ++ // best result
         (if (showWorst) simulationResults.map(_.worst.get.weightedSum) else List[Array[Double]]()) // worst results (or empty if not showing anything)
@@ -128,19 +130,19 @@ case class Specification(spec: ListMap[String, OptimizationFactor]) {
       (StringFormats.CROSS_PIECE + StringFormats.HORIZONTAL_LINE.repeat(columnHeader.length-1)).repeat(simulationResults.length) +
       StringFormats.VERTICAL_AND_LEFT + "\n"
 
-    val header = "score factor".leftAlignedPadded(longestOptimizationFactorLabel).addColon +
+    val header = "score factor".leftAlignedPadded(maxOptFactorLabelLength).addColon +
       "weight".rightAlignedPadded(StringFormats.weightFormatLength + 2) + " " + StringFormats.VERTICAL_LINE +
       columnHeader.repeat(simulationResults.length) + "\n"
 
     val scoreString = scores.map(optScores =>
-      optScores.head.label.leftAlignedPadded(longestOptimizationFactorLabel).addColon +  optScores.head.weight.yellowColoredWeightLabel + StringFormats.VERTICAL_LINE +
+      optScores.head.label.leftAlignedPadded(maxOptFactorLabelLength).addColon +  optScores.head.weight.yellowColoredWeightLabel + StringFormats.VERTICAL_LINE +
       optScores.map(score => " " + score.intValue.abs.optFactorLabel.rightAlignedPadded(columnPadding) + score.normalizedValue.label(2).rightAlignedPadded(columnPadding+4) + "  " + score.weightedValue.yellowColoredWeightLabel)
         .mkString(StringFormats.VERTICAL_LINE)
     ).mkString(StringFormats.VERTICAL_LINE + "\n") + StringFormats.VERTICAL_LINE
 
     val winner = simulationResults.map(_.best.weightedSum).max
 
-    val weightedSumString = "sum".leftAlignedPadded(longestOptimizationFactorLabel).addColon +
+    val weightedSumString = "sum".leftAlignedPadded(maxOptFactorLabelLength).addColon +
       scores.map(optScores=>optScores.head.weight).sum.yellowColoredWeightLabel + StringFormats.VERTICAL_LINE +
     simulationResults.map{result =>
 
@@ -287,15 +289,15 @@ object Specification {
     // i'm really not sure that 60 is the maximum number of two neighbors that can be created on a board
     // but i couldn't find another solution that was better
     twoNeighborsName -> OptimizationFactor(enabled = true, twoNeighborsName, minimize, 0.0, 100, (totalPositions * .6).toInt, "2 neighbors", "number of positions surrounded on 2 of 4 sides"),
-    openLinesName -> OptimizationFactor(enabled = true, openLinesName, maximize, 0.0, 100, Board.BOARD_SIZE + Board.BOARD_SIZE - 1, "open rows + cols", "count of open rows plus open columns")
+    openLinesName -> OptimizationFactor(enabled = false, openLinesName, maximize, 0.0, 100, Board.BOARD_SIZE + Board.BOARD_SIZE - 1, "open rows + cols", "count of open rows plus open columns")
 
   )
 
 
   // following are used to construct results
-  private val longestOptimizationFactorLabel: Int = fullSpecification.values.map(_.label.length).max
-  private val piecePrefixLength = 0.indexLabel.length + longestOptimizationFactorLabel + StringFormats.weightFormatLength + 2
-  private val prefixPaddingLength = longestOptimizationFactorLabel + 2 + StringFormats.weightFormatLength + 3
+  val maxOptFactorLabelLength: Int = fullSpecification.values.map(_.label.length).max
+  private val piecePrefixLength = 0.indexLabel.length + maxOptFactorLabelLength + StringFormats.weightFormatLength + 2
+  private val prefixPaddingLength = maxOptFactorLabelLength + 2 + StringFormats.weightFormatLength + 3
   private val columnPadding = GamePieces.numPiecesInRound * 2
   private val columnHeader = "score".rightAlignedPadded(columnPadding + 1) +
     "normalized".rightAlignedPadded(columnPadding + 6) +

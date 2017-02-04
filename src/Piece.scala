@@ -47,13 +47,13 @@ abstract class Piece {
       s ++= box + " " + nl
     }
 
-    // we don't need the final newline as we're sending these things out via println
+    // we don't need the final newline
     s.toString.dropRight(1)
   }
 
   def cellShowFunction(row: Int, col: Int): String = {
     val occupied = grid.occupancyGrid(row)(col)
-    if (occupied) color + Board.BOX_CHAR else " "
+    if (occupied) color + Board.BOX_CHAR + StringFormats.SANE else " "
   }
 
 }

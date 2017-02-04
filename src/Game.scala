@@ -182,10 +182,10 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
         ).split("\n")
       ).transpose
 
-      val boards = a.init.map(each => each.mkString("  ")).mkString("\n")
-      val scores = a.last.mkString("\n")
 
-      boards + "\n\n" + scores
+
+      val boards = a.map(each => each.mkString("   ")).mkString("\n")
+      boards
 
     }
 
@@ -608,8 +608,8 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
         r + c
 
       } else
-        " " * boardBuffer + "  \n" +
-          " " * boardBuffer + "  \n"
+        " " .repeat(boardBuffer) + "  \n" +
+          " ".repeat(boardBuffer) + "  \n"
 
       clearedString
     }
@@ -641,14 +641,37 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
     }
 
-    val scoreString = "score: " + score.boardScoreLabel + " - results:" + context.specification.getBoardResultString(board.results)
-    val s = placingString + "\n" + boardBeforeClearing + "\n" + getLinesClearedString(linesClearedResult) + scoreString
+    // todo - get rid of board results
+    val scoreLength = score.shortLabel.length
+    val valuesLength = scoreLength.max(2)
+
+    val newScore = Array(
+      "score".leftAlignedPadded(Specification.maxOptFactorLabelLength).addColon + score.boardScoreLabel,
+      "cleared rows".leftAlignedPadded(Specification.maxOptFactorLabelLength).addColon + linesClearedResult.rows.label(valuesLength),
+      "cleared cols".leftAlignedPadded(Specification.maxOptFactorLabelLength).addColon + linesClearedResult.cols.label(valuesLength))
+
+    val newBoardResultsString = context.specification.spec.values.zip(board.scores)
+      .map{ case (optFactor,scoreComponent) =>
+        optFactor.label.leftAlignedPadded(Specification.maxOptFactorLabelLength).addColon + scoreComponent.intValue.abs.label(valuesLength)
+      }.toArray
+
+    val remainingLines = ((newScore.length + newBoardResultsString.length) until Board.BOARD_SIZE)
+      .map(_ => " ".repeat(Specification.maxOptFactorLabelLength + valuesLength + 2)).toArray
+
+    val newResults = newScore ++ newBoardResultsString ++ remainingLines
+    assert(newResults.length==Board.BOARD_SIZE, "new results don't equal board size:" + newResults.length)
+
+    val newBoard = boardBeforeClearing.split("\n").zip(newResults).map{ case (a,b) => a+b }.mkString("\n")
+
+    // todo - if the last board cleared a line, then show an extra board with the line cleared on it
+
+    val s = placingString + "\n" + newBoard
 
     s
   }
 
   private def getShowBoard = {
-    board.show(board.cellShowFunction) /*.split("\n").zip(board.boardNeighbors).map(s => s._1 + s._2.mkString(" ")).mkString("\n")*/
+    board.show(board.cellShowFunction)
   }
 
 

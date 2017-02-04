@@ -115,7 +115,10 @@ class Board(
       var i = 0
       while (i < rowsToClear.length && rowsToClear(i) > -1) {
         val n = rowsToClear(i).toInt
-        clearRow(n, this.colorGrid(i))
+        // holy crap - just fixed this bug that's been in there FOR A WHILE
+        // i had colorGrid(i) rather than colorGrid(n)
+        // one reason why functional programming is better - even if slower - fewer mistakes
+        clearRow(n, this.colorGrid(n))
         i += 1
       }
       i
