@@ -30,7 +30,7 @@ class BullShit(val rounds: Counter, gameTimer: GameTimer) extends Iterable[Strin
       }
 
       // (  if (newBullShit) "new: " + currentBullShit else "old: " + currentBullShit ) + " " + roundsPerSecond + " " + (rounds.value % (showForSeconds * roundsPerSecond))
-      StringFormats.CYAN + currentBullShit/* + ("." * current)*/ + StringFormats.SANE
+      /*StringFormats.CYAN +*/ currentBullShit/* + ("." * current)*/ /*+ StringFormats.SANE*/
     }
   }
 }

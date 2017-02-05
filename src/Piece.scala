@@ -20,11 +20,6 @@ abstract class Piece {
   // 3x improvement in 'isOccupied" - which even still uses about 6% of the code...
   final val cachedOccupancyGrid: Array[Array[Boolean]] = grid.getOccupancyGrid
 
-  // todo - pass in fill string as the board doesn't need it
-  // for now:  hack!
-
-  final val printFillString: String = if (cols != Board.BOARD_SIZE) List.fill(cols * 2 + 1)(" ").mkString else "" // used by the game to output a blank row when printed side by side with other pieces
-
   /**
    * point value is calculated once and used to know the point of a piece
    * it's not just a convenience as we will call pointValue a lot and don't need to

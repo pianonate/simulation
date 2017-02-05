@@ -24,30 +24,6 @@ class TestSpecification extends FlatSpec {
       assert(result.score > 0)
       assert(result.rounds > 0)
 
-      /*      var i = 0
-      allSpecs.foreach { perm =>
-        perm.par.foreach { spec =>
-
-          i += 1
-
-          // show something is happening as this whole test takes about 8seconds to run on the Mac Pro
-          if (i % 100 == 0) println("spec #: " + i + " - length: " + spec.length + " factors: " + spec.map(s => s.fieldName).mkString(", "))
-
-
-
-          // override some defaults
-          context.specification = Specification(spec)
-
-          val game = new Game(context, gameInfo) // get a valid game
-
-          val result = game.run // run that game and get the score and number of rounds
-
-          // todo return game results rather than a tuple - it will be easier to parse
-          assert(result._1 > 0) // it just has to have a score
-          assert(result._2 > 0) // it just has to have played some rounds
-
-        }
-      }*/
     }
   }
 

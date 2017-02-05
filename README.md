@@ -21,7 +21,7 @@ you can continue to play (that's the tetris-like capability)
 
 Stats:
 * right now my own top score playing the IOS game is 24,594  
-* simulation top score:  1,177,681!!! (beats the top human score, I've been told)
+* simulation top score:  1,904,862!!! (beats the top human score, I've been told)
 * long term goal - simulation never loses
 
 Also - feel free to contribute. 
@@ -30,3 +30,68 @@ It would be cool if you wrote your own simulation to see if you can beat my top 
 
 Enjoy
 
+## get things going
+
+\
+
+install java 8 (you can go to oracle but for me it was simpler to just use brew)
+
+```
+$ brew cask install java
+```
+
+install sbt via instructions here: http://www.scala-sbt.org/download.html
+
+again the brew way
+```
+$ brew isntall sbt
+```
+
+i don't recall if sbt does a dependency check for scala when installing via brew. if it does
+then install scala first (https://www.scala-lang.org/download/)
+
+```
+$ brew install scala 
+```
+
+install git via instructions here: https://git-scm.com/book/en/v2/Getting-Started-Installing-Git 
+
+or just use brew
+
+```
+$ brew install git
+```
+
+clone this repository wherever you want
+```
+$ git clone https://github.com/rhialtotm/simulation
+```
+
+then from the same location you cloned the repository, 
+use packInstall which is provided by the awesome: https://github.com/xerial/sbt-pack 
+
+```
+$ sbt packInstall
+```
+
+which will create a launchable script in ~/local/bin
+
+then run simulate from command line either from 
+
+```
+$ ~/local/bin/simulate
+```
+
+or if you add `~/local/bin` to your path then just
+
+```
+$ simulate
+```
+
+once you've cloned the repository, any time you want to pick up the latest and greatest just run 
+```
+$ git pull
+```
+from the same location you originally did the `git clone`
+
+enjoy the fun!

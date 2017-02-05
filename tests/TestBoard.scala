@@ -225,6 +225,4 @@ class TestBoard extends FlatSpec {
     }
   }
 
-  // todo test that specifications of all combinations and permutations are actually invoked correctly
-
 }

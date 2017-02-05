@@ -1,29 +1,17 @@
 /**
  * Created by nathan on 12/10/16.
  * Game will hold a reference to the current board and will also invoke simulations
- *
- * todo show the recent n games in the round summary
- *
- * Todo: at end of game you can often place one or two pieces, but we don't place any - find out why
- *
- * TODO: Kevin suggests assigning values from 0 to 5 to 0 on both axes and minimize for placement on higher valued squares
- *       I.e., stay out of the middle
- *
- * Todo: save every move in a game so you can replay it if it's awesome
- *
- * Todo: start looking at the points your game loses at - find out where you disagree with the choices it made
- *
- * Todo: introduce random seed and then follow that particular seeded game through to completion -
- *       you can optimize one game play at a time rather than trying to run them over and over
- *
- * Todo:  save datasets of all of the top say 90% of boards for each of your stats in games where you lose.  then keep track of whether or not you lose in the next
- *        round for each of them.  then you'll have a data set to run a machine learning algorithm of of our stats to better pick the best options
  */
+
+//import java.util.concurrent.ThreadPoolExecutor.DiscardPolicy
+//import java.util.concurrent.{Executors, LinkedBlockingQueue, ThreadPoolExecutor, TimeUnit}
 
 import scala.collection.GenSeq
 import scala.sys.process._
 import scala.language.postfixOps
 import Implicits._
+
+import scala.collection.parallel.ForkJoinTaskSupport
 
 object GameOver extends Exception
 
@@ -83,10 +71,11 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
       case GameOver =>
       case e: Throwable =>
         println("abnormal run termination:\n" + e.toString)
+        context.continuousMode = false
         // todo: find out what type of error assert is throwing and match it
         //       currently assert is used at least in pieceHandler to ensure occupied counts are
         //       not messed up
-        throw new IllegalStateException()
+        //throw new IllegalStateException()
 
     }
 
@@ -148,18 +137,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
       if (context.replayGame && context.ignoreSimulation)
         "\ninstrumented game - skipping results\n"
       else {
-        val resultsString = "\n" + context.specification.getSimulationResultsString(results, bestSimulation, context.showWorst) + "\n"
-        val heightBuffer = if (results.length < 6) (results.length until 6).map(i => i + 1).mkString(":\n") + "\n" else ""
-        resultsString + heightBuffer
-      }
-
-    }
-
-    def getImprovedSimulationResultsString(results: List[SimulationInfo], bestSimulation: Simulation): String = {
-      if (context.replayGame && context.ignoreSimulation)
-        "\ninstrumented game - skipping results\n"
-      else {
-        val resultsString = "\n" + context.specification.getImprovedSimulationResultsString(results, bestSimulation, context.showWorst) + "\n"
+        val resultsString = "\n" + context.specification.getSimulationResultsString(results, bestSimulation, context.showWorst, bullShit.iterator.next) + "\n"
         resultsString
       }
 
@@ -174,18 +152,17 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
     def placePieces(chosenList: List[PieceLocCleared]): String = {
       // zip the piece location cleared list it's index so we don't have to keep a
       // global track of placed pieces
-      val a: List[List[String]] = chosenList.zipWithIndex.map(
-        plc => pieceHandler(
-          plc._1.piece,
-          plc._1.loc,
-          plc._2 + 1
-        ).split("\n")
-      ).transpose
+      val a: List[List[String]] = chosenList.zipWithIndex.map {
+        case (plc, index) =>
+          pieceHandler(
+            plc.piece,
+            plc.loc,
+            index + 1
+          ).split("\n")
+      }.transpose
 
-
-
-      val boards = a.map(each => each.mkString("   ")).mkString("\n")
-      boards
+      val boards = a.map(each => each.mkString(StringFormats.VERTICAL_LINE + " ".repeat(3))).mkString("\n")
+      "\n".repeat(2) + boards + "\n"
 
     }
 
@@ -234,47 +211,31 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
     if (bestSimulation.pieceCount > 0) {
 
-      // no need to get a results string if we're not going to show it
-      //val simulationResultsString = getSimulationResultsString(results, bestSimulation)
-
-      val improvedSimulationResultsString = getImprovedSimulationResultsString(results, bestSimulation)
-      clearScreen()
-      print(improvedSimulationResultsString)
+      val simulationResultsString = getSimulationResultsString(results, bestSimulation)
 
       val chosenList: List[PieceLocCleared] = getChosenPlcList(replayPieces, bestSimulation)
 
       // as a side effect of placing, returns a string representing board states
       // is there a better way to do this?
-      // todo - put the board scores next to each board and spread across the screen
-      // fewer lines of output
+
       val placePiecesString = placePieces(chosenList)
-      print(placePiecesString)
 
       val endOfRoundResultsString = getRoundResultsString(multiGameStats.gameCount: Int)
-      print(endOfRoundResultsString)
 
       val unplacedPiecesString = getUnplacedPiecesString(bestSimulation)
 
       if (context.show) {
 
-        //moveCursorTopLeft
-        //clearScreen()
+        clearScreen()
 
         print(
-            //simulationResultsString +
-            //endOfRoundResultsString +
-            //placePiecesString +
+          simulationResultsString +
+            placePiecesString +
             unplacedPiecesString +
-             // improvedSimulationResultsString +
+
+            endOfRoundResultsString +
             "\n"
         )
-
-//Thread.sleep(250)
-        //Console.out.flush()
-
-        // todo, see if this actually matters with iTerm - which seems to be superior terminal manager
-        // resetTerminalBuffer
-
       }
     }
 
@@ -406,9 +367,9 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
       def updateBestAndWorst(simulation: Simulation): Unit = {
 
         def simulationIsBetterThanBest: Boolean = {
-         /* val oldWay = simulation < best.get */
+          /* val oldWay = simulation < best.get */
           val newWay = best.get.weightedSum < simulation.weightedSum
-         /* assert(oldWay==newWay)*/
+          /* assert(oldWay==newWay)*/
           newWay
 
         }
@@ -589,37 +550,6 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
   private def pieceHandler(piece: Piece, loc: Loc, index: Int): String = {
 
-    val boardBuffer = Board.BOARD_SIZE * 2 - 1
-    val pieceBuffer = boardBuffer - (piece.cols * 2 - 1)
-
-    def getLinesClearedString(result: ClearedLines): String = {
-
-      val clearedString = if (result.rows > 0 || result.cols > 0) {
-
-        def getLineClearedString(i: Int, s: String): String = {
-          val clearedString = if (i > 0) "cleared " + i + " " + s.plural(i) else ""
-          val spaces = " " * (boardBuffer - clearedString.length)
-          clearedString + spaces + "  \n"
-        }
-
-        val r = getLineClearedString(result.rows, "row")
-        val c = getLineClearedString(result.cols, "column")
-
-        r + c
-
-      } else
-        " " .repeat(boardBuffer) + "  \n" +
-          " ".repeat(boardBuffer) + "  \n"
-
-      clearedString
-    }
-
-    // todo - get rid of piece.cellShowFunction - it's got to work better than this
-
-    val placingString = "\nPlacing " + index.firstSecondThirdLabel + " at " + loc.show + " \n" +
-      piece.show(piece.cellShowFunction).split("\n").map(each => each + " " * pieceBuffer).mkString("\n") +
-      (piece.rows to GamePieces.tallestPiece).map(_ => "\n" + " " * (boardBuffer + 2)).mkString
-
     board.place(piece, loc, updateColor = true)
 
     // increment piece usage
@@ -641,39 +571,62 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
     }
 
-    // todo - get rid of board results
+    // this is a whole lot of string construction... should it be here? or should we split pieceHandler and boardResultsString into two separate operations
     val scoreLength = score.shortLabel.length
     val valuesLength = scoreLength.max(2)
 
+    val boardSpacer = " ".repeat(2)
+
     val newScore = Array(
-      "score".leftAlignedPadded(Specification.maxOptFactorLabelLength).addColon + score.boardScoreLabel,
-      "cleared rows".leftAlignedPadded(Specification.maxOptFactorLabelLength).addColon + linesClearedResult.rows.label(valuesLength),
-      "cleared cols".leftAlignedPadded(Specification.maxOptFactorLabelLength).addColon + linesClearedResult.cols.label(valuesLength))
+      "score".leftAlignedPadded(Specification.maxOptFactorLabelLength).addColon + score.boardScoreLabel + boardSpacer,
+      "cleared rows".leftAlignedPadded(Specification.maxOptFactorLabelLength).addColon + linesClearedResult.rows.label(valuesLength) + boardSpacer,
+      "cleared cols".leftAlignedPadded(Specification.maxOptFactorLabelLength).addColon + linesClearedResult.cols.label(valuesLength) + boardSpacer
+    )
 
     val newBoardResultsString = context.specification.spec.values.zip(board.scores)
-      .map{ case (optFactor,scoreComponent) =>
-        optFactor.label.leftAlignedPadded(Specification.maxOptFactorLabelLength).addColon + scoreComponent.intValue.abs.label(valuesLength)
+      .map {
+        case (optFactor, scoreComponent) =>
+          optFactor.label.leftAlignedPadded(Specification.maxOptFactorLabelLength).addColon + scoreComponent.intValue.abs.label(valuesLength) + boardSpacer
       }.toArray
 
-    val remainingLines = ((newScore.length + newBoardResultsString.length) until Board.BOARD_SIZE)
-      .map(_ => " ".repeat(Specification.maxOptFactorLabelLength + valuesLength + 2)).toArray
+    val remainingScoreLines = ((newScore.length + newBoardResultsString.length) until Board.BOARD_SIZE)
+      .map(_ => " ".repeat(Specification.maxOptFactorLabelLength + valuesLength + boardSpacer.length + 2)).toArray
 
-    val newResults = newScore ++ newBoardResultsString ++ remainingLines
-    assert(newResults.length==Board.BOARD_SIZE, "new results don't equal board size:" + newResults.length)
+    val newResults: Array[String] = newScore ++ newBoardResultsString ++ remainingScoreLines
 
-    val newBoard = boardBeforeClearing.split("\n").zip(newResults).map{ case (a,b) => a+b }.mkString("\n")
+    // leave this assert here in case you add a new optiization factor that causes the list of factors to exceed
+    // the length of the board - in which case you'll need to modify the code to allow for a buffer at the end of the
+    // board as well as the current situation which allows for a buffer at the end of the score and optimization factors
+    // aka remainingLines
+    assert(newResults.length == Board.BOARD_SIZE, "new results don't equal board size:" + newResults.length)
 
-    // todo - if the last board cleared a line, then show an extra board with the line cleared on it
+    val newBoard = boardBeforeClearing splice newResults
 
-    val s = placingString + "\n" + newBoard
+    val finalBoard = if (index == GamePieces.numPiecesInRound) newBoard splice getShowBoard.split("\n") else newBoard
 
-    s
+    // todo - get rid of piece.cellShowFunction - it's got to work better than this
+
+    val placingLabel: String = "Placing " + index.firstSecondThirdLabel + " ".repeat(2)
+    val placingBuffer = placingLabel.length
+    val pieceWidth = piece.cols * 2 - 1
+
+    val pieceArray: Array[String] = piece.show(piece.cellShowFunction).split("\n").map(each => each + " ".repeat(placingBuffer - pieceWidth - 2))
+
+    val placingHeader = Array(placingLabel) ++ pieceArray
+
+    val remainingPieceLines = (placingHeader.length to GamePieces.tallestPiece).map(_ => " ".repeat(placingBuffer)).toArray
+    val atLoc = Array(("at " + loc.show).leftAlignedPadded(placingBuffer))
+
+    val placingContent = placingHeader ++ remainingPieceLines ++ atLoc
+    val remainingPlacingLines = (placingContent.length until finalBoard.length).map(_ => " ".repeat(placingBuffer)).toArray
+
+    (placingContent ++ remainingPlacingLines).mkString("\n").splice(finalBoard.split("\n"))
+
   }
 
   private def getShowBoard = {
     board.show(board.cellShowFunction)
   }
-
 
   private def getRoundResultsString(gameCount: Int): String = {
 
@@ -716,7 +669,11 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
           "score".label + score.scoreLabel,
           "average score".label + averageScore.label,
           "session high score".label + (if (newSessionHighScore) sessionHighScore.scoreLabel else sessionHighScore.label),
-          "all time high score".label + (if (newMachineHighScore) machineHighScore.scoreLabel else machineHighScore.label)
+          "all time high score".label + (if (newMachineHighScore) machineHighScore.scoreLabel else machineHighScore.label),
+          " ",
+          "rows cleared".label + rowsCleared.label,
+          "cols cleared".label + colsCleared.label,
+          "lines cleared".label + (rowsCleared.value + colsCleared.value).label
         )
 
         a
@@ -763,8 +720,6 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
           // race condition info
           " ",
           "race cond. on best".label + gameStats.totalRaceConditionOnBest.label + " (" + lastRoundInfo.rcChangedCountBest.shortLabel + ")",
-          "",
-          bullShit.iterator.next,
           ""
 
         )
@@ -811,6 +766,8 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
 object Game {
 
+
+
   def showGameStart(specification: Specification): Unit = {
 
     val begin =
@@ -844,6 +801,29 @@ object Game {
       begin + "\n" + explanations + end
     )
 
+
+
+  }
+
+
+
+
+
+  sys.ShutdownHookThread {
+
+    println("\nGoodbye, I hope you enjoyed this episode of simulation.")
+
+/*    sys.allThreads().foreach{t =>
+      println("setting handlers")
+      t.setUncaughtExceptionHandler(MyUncaughtExceptionHandler)}*/
+
   }
 
 }
+
+/*
+object MyUncaughtExceptionHandler extends Thread.UncaughtExceptionHandler {
+  def uncaughtException(thread: Thread, throwable: Throwable) {
+    println("Something bad happened!")
+  }
+}*/

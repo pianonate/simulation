@@ -93,12 +93,8 @@ case class BoardScore(
     sum
   }
 
-  lazy val results: Array[Int] = getResultsArray // current mechanism
+  def resultsForLegacyCompare: Array[Int] = {
 
-  private def getResultsArray: Array[Int] = {
-
-    // import for the known names - but do we need that anymore?
-    // todo - replace with a map function...
     import Specification._
     def getNamedResult(name: String): Int = {
       name match {

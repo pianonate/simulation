@@ -20,6 +20,7 @@ case class PieceLocCleared(
   clearedLines: Boolean
 )
 
+
 /**
  * SimulationInfo is used to display results at the end of each round
  * @param pieces - the list of pieces that were placed this round
@@ -55,16 +56,11 @@ case class Simulation(plcList: List[PieceLocCleared], board: Board, specLength: 
   // if pieceCount is less than 3 then GameOver man!
   val pieceCount: Int = plcList.length
 
-  // results
-  lazy val results: Array[Int] = board.results
-
   // pieceCount to weighted sum so Best choice always considers a solution that includes all pieces
   // to be better than a solution with less pieces
   // this only works because the weighted sum is normalized to range from 0 to 1 so can never
   // cause a 2 piece solution to be better than a 3 piece solution
   val weightedSum: Double = pieceCount + board.boardScore.weightedSum
-
-  //todo see if you can quickly build a bitset and use it as a key or try scalacache and guava
 
   def compare(that: Simulation): Int = {
 
@@ -82,8 +78,8 @@ case class Simulation(plcList: List[PieceLocCleared], board: Board, specLength: 
 
       // any result to be maximized is negated so that it will work with default Int sort
 
-      val a = this.results
-      val b = that.results
+      val a = this.board.boardScore.resultsForLegacyCompare
+      val b = that.board.boardScore.resultsForLegacyCompare
 
       // tell Scalariform not to bother to change my awesome formatting
       // it would be nice if Scalariform did this by default...

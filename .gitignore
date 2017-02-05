@@ -1,4 +1,5 @@
 out/
 .idea
 target/
-project/
+project/project
+project/target

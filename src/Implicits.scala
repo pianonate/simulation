@@ -48,11 +48,13 @@ class DoubleFormats(val d:Double) {
 
 
   private def coloredWeightLabel(color:String):String = {
-    val s = d.weightLabel
+    val s = d.weightLabel.map(c => (if (c=='0')  BRIGHT_BLACK + '0' else color + c) + SANE).mkString
+    s
+ /*
     val replaced = s.replaceAll("([^0\\.])", color + "$1" + SANE)
-    replaced
+    val replaced2 = replaced.replaceAll("([0])", StringFormats.BRIGHT_BLACK + "$1" + SANE)
+    replaced2*/
   }
-  def greenColoredWeightLabel:String = coloredWeightLabel(GREEN)
   def yellowColoredWeightLabel:String = coloredWeightLabel(YELLOW)
 
 }
@@ -133,7 +135,7 @@ class PieceListFormats(val pieceList: List[Piece]) {
         val pieceBuffer = maxPieceWidth - (piece.cols * 2 - 1)
 
         piece.show(piece.cellShowFunction).split("\n").map(each => each + " ".repeat(pieceBuffer)).mkString("\n") +
-          (piece.rows to GamePieces.tallestPiece).map(_ => "\n" + " ".repeat(maxPieceWidth + 2)).mkString
+          (piece.rows until GamePieces.tallestPiece).map(_ => "\n" + " ".repeat(maxPieceWidth + 2)).mkString
 
       }
     ).spreadHorizontal()
@@ -177,6 +179,30 @@ class StringFormats(val s: String) {
   def rightAlignedPadded(length:Int): String = ("%" + length.toString + "s").format(s)
   def yellowDigits:String = coloredDigitsLabel(YELLOW)
 
+
+  def splice(splicee:Array[String]):String = {
+    s.split("\n").zip(splicee).map{ case (a,b) => a+b }.mkString("\n")
+  }
+
+  def wrap(width:Int, height:Int, color:String): String = {
+
+    //todo - you got some of this off the web
+    //       it's got to be inneficient to mk, split, mk again
+    //       you could probably speed this up although it's not happening very often
+    val first = s.split(" ").foldLeft(Array(""))((out, in) => {
+      if ((out.last + " " + in).trim.length > width) out :+ in
+      else out.updated(out.size - 1, out.last + " " + in)
+    }).mkString("\n").trim
+
+    val firstArray = first.split("\n")
+
+    // todo - this create padding lines thing is happening all the time - create a StringFormats def for it
+    val second = (firstArray.length until height).map(each => " ".repeat(width)).toArray
+
+    val wrapped = firstArray.map(each => color + each.leftAlignedPadded(width) + SANE) ++ second
+    wrapped.mkString("\n")
+
+  }
 }
 
 object StringFormats {

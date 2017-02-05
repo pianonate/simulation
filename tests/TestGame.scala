@@ -13,9 +13,6 @@ trait GameInfoFixture {
 
 class TestGame extends FlatSpec {
 
-  // todo - test that clearing a row and a column at the same time results in the correct score
-  //        9 row, 9 col then place a singleton should result in a score of (9 + 9 + 1 + 10 + 9 = 38)
-
   behavior of "A game"
 
   it must "result in the correct score after clearing a row and a column simultaneously" in {
@@ -124,7 +121,7 @@ class TestGame extends FlatSpec {
 
       context.randomSeed = new scala.util.Random().nextInt(1000000000)
       context.stopGameAtRound = 10
-      context.show = true
+      context.show = false
       context.parallel = true
 
       while (true) {

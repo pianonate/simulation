@@ -13,7 +13,6 @@
  *   results in the highest scores...
  */
 
-
 import Implicits._
 import Specification._
 import scala.collection.immutable.{Iterable, ListMap}
@@ -25,10 +24,6 @@ case class Specification(spec: ListMap[String, OptimizationFactor]) {
   //def apply(i: Int): OptimizationFactor = weightedSpec(i)
   def apply(s: String): OptimizationFactor = weightedSpec(s)
 
-  // todo - show and count the times when a best is chosen
-  //        where a lower precedence optimization factor is chosen over a higher precedence
-  //        because the lower precedence factor is better enough to make it the winner
-  //        the sort chose - from the best of the best...
   private val weightedSpec: ListMap[String, OptimizationFactor] = {
 
     // divide each by 100 and then the next one divides previous by 100
@@ -47,9 +42,8 @@ case class Specification(spec: ListMap[String, OptimizationFactor]) {
     // subtracting the sum of the first n from 1.  And here it is:
     val sumOfWeights = weights.sum
     val initialNormalized = weights.init.map(_ / sumOfWeights)
-    val last:Double = 1.0 - initialNormalized.sum
+    val last: Double = 1.0 - initialNormalized.sum
     val normalizedWeights = initialNormalized ++ Iterable(last)
-
 
     val weighted = spec.zip(normalizedWeights).map {
       case (specEntry, weight) =>
@@ -103,31 +97,31 @@ case class Specification(spec: ListMap[String, OptimizationFactor]) {
     resultString
   }
 
-  def getImprovedSimulationResultsString(simulationResults: List[SimulationInfo], chosen: Simulation, showWorst: Boolean): String = {
-//todo add in simulations, skipped simulations, rounds cleared, persecond information
-    // also add cleared to total
-    // allow for outputting worst
+  def getSimulationResultsString(simulationResults: List[SimulationInfo], chosen: Simulation, showWorst: Boolean, bullShit:String): String = {
+    // todo - add in simulations, skipped simulations, rounds cleared, persecond information
+    // todo - allow for outputting worst
     // todo - generate json for both brendan and lior
-    // todo - find out why first row turns white
-
-    // todo Add lines cleared. Plus count simulation of all combinations of 3x3 1x5 and 5x1
-      /*(
+    // todo - loc for each permutation piece placement
+    /*(
       simulationResults.map(_.best.weightedSum) ++ // best result
         (if (showWorst) simulationResults.map(_.worst.get.weightedSum) else List[Array[Double]]()) // worst results (or empty if not showing anything)
       ).transpose.map(_.max).toArray // sort out the best of all...*/
 
+    val wrappedBullShit = bullShit.wrap(piecePrefixLength, GamePieces.tallestPiece+1, StringFormats.BRIGHT_MAGENTA)
+
     val piecesString = simulationResults
       .zipWithIndex
       .map { case (result, index) => result.pieces.permutationPiecesHeader(index) }
-      .spreadHorizontal(startAt = piecePrefixLength, bracketWith = StringFormats.VERTICAL_LINE + " ", separator = (StringFormats.VERTICAL_LINE + " "))
+      .spreadHorizontal(startAt = /*piecePrefixLength*/0, bracketWith = StringFormats.VERTICAL_LINE + " ", separator = (StringFormats.VERTICAL_LINE + " "))
 
+    val newPiecesString = wrappedBullShit.splice(piecesString.split("\n"))
 
     // get the scores from the simulationInfo
     // transpose them to get all the same score values on the same row
     val scores: List[List[ScoreComponent]] = simulationResults.map(info => info.best.board.scores).transpose
 
-    val horizontal =StringFormats.HORIZONTAL_LINE.repeat(prefixPaddingLength) +
-      (StringFormats.CROSS_PIECE + StringFormats.HORIZONTAL_LINE.repeat(columnHeader.length-1)).repeat(simulationResults.length) +
+    val horizontal = StringFormats.HORIZONTAL_LINE.repeat(prefixPaddingLength) +
+      (StringFormats.CROSS_PIECE + StringFormats.HORIZONTAL_LINE.repeat(columnHeader.length - 1)).repeat(simulationResults.length) +
       StringFormats.VERTICAL_AND_LEFT + "\n"
 
     val header = "score factor".leftAlignedPadded(maxOptFactorLabelLength).addColon +
@@ -135,88 +129,25 @@ case class Specification(spec: ListMap[String, OptimizationFactor]) {
       columnHeader.repeat(simulationResults.length) + "\n"
 
     val scoreString = scores.map(optScores =>
-      optScores.head.label.leftAlignedPadded(maxOptFactorLabelLength).addColon +  optScores.head.weight.yellowColoredWeightLabel + StringFormats.VERTICAL_LINE +
-      optScores.map(score => " " + score.intValue.abs.optFactorLabel.rightAlignedPadded(columnPadding) + score.normalizedValue.label(2).rightAlignedPadded(columnPadding+4) + "  " + score.weightedValue.yellowColoredWeightLabel)
-        .mkString(StringFormats.VERTICAL_LINE)
-    ).mkString(StringFormats.VERTICAL_LINE + "\n") + StringFormats.VERTICAL_LINE
+      optScores.head.label.leftAlignedPadded(maxOptFactorLabelLength).addColon + optScores.head.weight.yellowColoredWeightLabel + StringFormats.VERTICAL_LINE +
+        optScores.map(score => " " + score.intValue.abs.optFactorLabel.rightAlignedPadded(columnPadding) + score.normalizedValue.label(2).rightAlignedPadded(columnPadding + 4) + "  " + score.weightedValue.yellowColoredWeightLabel)
+        .mkString(StringFormats.VERTICAL_LINE)).mkString(StringFormats.VERTICAL_LINE + "\n") + StringFormats.VERTICAL_LINE
 
     val winner = simulationResults.map(_.best.weightedSum).max
 
     val weightedSumString = "sum".leftAlignedPadded(maxOptFactorLabelLength).addColon +
-      scores.map(optScores=>optScores.head.weight).sum.yellowColoredWeightLabel + StringFormats.VERTICAL_LINE +
-    simulationResults.map{result =>
+      scores.map(optScores => optScores.head.weight).sum.yellowColoredWeightLabel + StringFormats.VERTICAL_LINE +
+      simulationResults.map { result =>
 
-      val winner = result.best==chosen
-      val sum = result.best.board.scores.map(scoreComponent => scoreComponent.weightedValue).sum.weightLabel
-      val sumWithLabel = (if (winner) "winner: " + sum else sum).rightAlignedPadded(22 + StringFormats.weightFormatLength)
-      if (winner) sumWithLabel.greenDigits else sumWithLabel.yellowDigits
+        val winner = result.best == chosen
+        val sum = result.best.board.scores.map(scoreComponent => scoreComponent.weightedValue).sum.weightLabel
+        val sumWithLabel = (if (winner) "winner: " + sum else sum).rightAlignedPadded(22 + StringFormats.weightFormatLength)
+        if (winner) sumWithLabel.greenDigits else sumWithLabel.yellowDigits
 
-    }.mkString(StringFormats.VERTICAL_LINE) +
-    StringFormats.VERTICAL_LINE
+      }.mkString(StringFormats.VERTICAL_LINE) +
+      StringFormats.VERTICAL_LINE
 
-    piecesString + "\n" + horizontal + header + horizontal + scoreString + "\n" + horizontal + weightedSumString
-  }
-
-  def getSimulationResultsString(simulationResults: List[SimulationInfo], chosen: Simulation, showWorst: Boolean): String = {
-    // the improvement comes from gathering all simulation results and then color coding for the best
-    // result out of all permutations rather than just comparing best and worst on a row by row basis
-    // this is FAR superior
-
-    // for outputting the results this is the best individual result at any position
-    // concatenate the results from the best and the worst, transpose it for finding min, then turn that into an array
-    // Boom! - best choices for each result
-    val bestOfAll = (
-      simulationResults.map(_.best.results) ++ // best result
-      (if (showWorst) simulationResults.map(_.worst.get.results) else List[Array[Int]]()) // worst results (or empty if not showing anything)
-    ).transpose.map(_.min).toArray // sort out the best of all...
-
-    def getResultString(simulationResult: SimulationInfo, simulationIndex: Int): String = {
-
-      def handleOptFactor(optFactor: OptimizationFactor, bestVal: Int, worstVal: Int, topValIndex: Int, showWorst: Boolean): String = {
-
-        val topVal = bestOfAll(topValIndex)
-
-        greenifyResult(Some(optFactor.label), bestVal == topVal, bestVal) +
-          (if (showWorst) greenifyResult(None, worstVal == topVal, worstVal) else "")
-      }
-
-      val best = simulationResult.best.results
-
-      val worst = if (showWorst)
-        simulationResult.worst.get.results
-      else
-        // todo - can we get empty results from the context rather than
-        // storing it redundantly on each simulation?
-        simulationResult.best.emptyResults
-
-      (simulationIndex).indexLabel  + simulationResult.pieces.label + " -" +
-        spec
-        .zip(best).zip(worst).zipWithIndex
-        .map(tup => (tup._1._1._1, tup._1._1._2, tup._1._2, tup._2))
-        .map(tup => handleOptFactor(tup._1._2, tup._2, tup._3, tup._4, showWorst))
-        .mkString(" -")
-
-    }
-
-    simulationResults.zipWithIndex.map { tup =>
-
-      val result = tup._1
-      val index = tup._2
-
-      val s = "weight: " + result.best.weightedSum.weightLabel + " - " + getResultString(result, index) + " - simulations: " + (result.simulatedCount + result.unsimulatedCount).label(9) + result.elapsedMs.msLabel(5)
-
-      // underline is for closers (Glengarry Glen Ross)
-      if (result.best == chosen) {
-        val parts = s.splitAt(s.indexOf(" ") + 1) // start underlining after the #:_ at the beginning of each line
-        parts._1 +
-          StringFormats.UNDERLINE + // thus begins the underlining
-          parts._2 // it seems to make it work in both terminal and in intellij IDE, have to do both sets of splits below
-          .split(" ").mkString(StringFormats.UNDERLINE + " ") // starting at all spaces
-          .split(StringFormats.ESCAPE) // split on escape characters // underlines starting at all color coding
-          .mkString(StringFormats.UNDERLINE + StringFormats.ESCAPE) + StringFormats.SANE
-      } else
-        s
-    }.mkString("\n")
+    newPiecesString + "\n" + horizontal + header + horizontal + scoreString + "\n" + horizontal + weightedSumString
   }
 
   def getBoardResultString(boardResult: Array[Int]): String = {
@@ -234,20 +165,17 @@ case class Specification(spec: ListMap[String, OptimizationFactor]) {
 }
 
 case class OptimizationFactor(
-                               enabled:             Boolean,
-                               name:           String,
-                               minimize:            Boolean,
-                               weight:              Double,
-                               initialWeightFactor: Double,
-                               maxVal:              Int,
-                               label:               String,
-                               explanation:         String
+  enabled:             Boolean,
+  name:                String,
+  minimize:            Boolean,
+  weight:              Double,
+  initialWeightFactor: Double,
+  maxVal:              Int,
+  label:               String,
+  explanation:         String
 )
 
 object Specification {
-
-
-
 
 
   // one of the optimizations is to ensure that the maximum number of
@@ -272,6 +200,9 @@ object Specification {
 
   private val totalPositions = math.pow(Board.BOARD_SIZE, 2).toInt
 
+  // todo - OptimizationFactor of all combinations of 3x3 1x5 and 5x1
+  // todo - run through all specification combinations of off and on and run 1000? games on each to see which specification is the best
+
   val fullSpecification = ListMap(
 
     // specification provides the ordering of the optimization as well as whether a particular optimization is maximized or minimized
@@ -279,7 +210,6 @@ object Specification {
     // other than that, you can rearrange rows in the specification, or turn entries off or on at will
     // much more flexible than it used to be
 
-    // todo - run through all specification combinations of off and on and run 1000? games on each to see which specification is the best
     maximizerCountName -> OptimizationFactor(enabled = true, maximizerCountName, maximize, 0.0, 1.0, math.pow(Board.BOARD_SIZE - maximizer.cols + 1, 2).toInt, "maximizer", "positions in which a 3x3 piece can fit"),
     occupiedCountName -> OptimizationFactor(enabled = true, occupiedCountName, minimize, 0.0, 100, totalPositions, "occupied", "occupied positions"),
     fourNeighborsName -> OptimizationFactor(enabled = true, fourNeighborsName, minimize, 0.0, 100, totalPositions / 2, "4 neighbors", "number of positions surrounded on all 4 sides"),
@@ -293,7 +223,6 @@ object Specification {
 
   )
 
-
   // following are used to construct results
   val maxOptFactorLabelLength: Int = fullSpecification.values.map(_.label.length).max
   private val piecePrefixLength = 0.indexLabel.length + maxOptFactorLabelLength + StringFormats.weightFormatLength + 2
@@ -303,9 +232,6 @@ object Specification {
     "normalized".rightAlignedPadded(columnPadding + 6) +
     "weighted".rightAlignedPadded(StringFormats.weightFormatLength + 2) +
     " " + StringFormats.VERTICAL_LINE
-
-
-
 
   // by default return the full specification
   def apply(): Specification = {

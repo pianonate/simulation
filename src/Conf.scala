@@ -31,17 +31,6 @@ class Conf(arguments: Seq[String]) extends ScallopConf(arguments) {
   val showWorst: ScallopOption[Boolean] = toggle(default = Some(false), descrYes = "show worst simulation choices each round", descrNo = "default:hide worst simulation choices each round - faster")
   val stopAtNewHighScore: ScallopOption[Boolean] = toggle(default = Some(true), short='n', descrYes = "default:stop a continuous play game if a new high score is reached", descrNo = "don't stop a continuous play game if a new high score is reached")
 
-  //todo - does this still happen on iterm? if not, then fuckit.  get rid of it
-  val eraseTerminalBufferAt: ScallopOption[Int] = opt[Int](
-    default = Some(ERASE_TERMINAL_BUFFER_EVERY_N_ROUNDS),
-    validate = (i) => i > 0 && i <= ERASE_TERMINAL_BUFFER_EVERY_N_ROUNDS,
-    descr = "default:" + ERASE_TERMINAL_BUFFER_EVERY_N_ROUNDS + " rounds.  " +
-      "Once terminal buffer lines are exceeded on mac os x it will eat lines at end of game.  " +
-      "use this value to specify the number of rounds after which it will clear the terminal buffer. " +
-      "this is a stupid workaround to an issue on mac os x terminal.  if you use all available memory, " +
-      "then terminal becomes unresponsive.  if you set it to use n lines (mine is 100,000), then you get the bug that this parameter is designed to avoid."
-  )
-
   footer(
     """
       |coded by Nathan McCoy under Creative Commons Attribution-ShareAlike 4.0 International license

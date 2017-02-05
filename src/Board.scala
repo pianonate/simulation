@@ -34,7 +34,6 @@ class Board(
 
   def boardScore:BoardScore = BoardScore(this, specification)
   def scores: List[ScoreComponent] = boardScore.scores
-  def results: Array[Int] = boardScore.results // this causes score to create a new BoardScore each time it is called
 
   // the board output shows unoccupied cells so just call .show on every cell
   // different than the Piece.show which will not output unoccupied Cell's in other pieces
@@ -72,11 +71,8 @@ class Board(
   def clearLines(clearColor:Boolean): ClearedLines = {
 
     //hmmm - so clearColor is only necessary on the real board, but not on simulations.  We don't use
-    //       colorGrid to determine occupancy anymore so...
-
-    // todo - can delegate to OccupancyGrid once we get rid of colorGrid.occupied
-    // maybe not because the color grid is updated as part of this.
-    // think about it a spell
+    //       colorGrid to determine occupancy anymore so...for now, clearColor is called explicitly
+    //       true for the real board, false for simulations.  no need to spend the time in a simulation
 
     def clearCol(col: Int): Unit = { /*{ for (i <- layout.indices) layout(i)(col) = new Cell(false, this.color, true) }*/
       grid.clearCol(col)
@@ -385,33 +381,9 @@ object Board {
     a
   }
 
-  //private def colorGridTemplate: Array[Array[String]] = new Array[Array[String]](BOARD_SIZE)
 
-  // todo - copy is only ever called by simulations so don't worry about copying the colorGrid - just keep the same one
   def copy(newName: String, boardToCopy: Board): Board = {
 
-    // mapping the .clone gives a new array
-    // it holds all of the same references but if you put a new cell in place the original board's layout doesn't change
-    // so this is the good - it will work
-    /*val layout = boardToCopy.layout.map(_.clone)*/
-
-    // using while loop rather than map as we went from
-    // Execution Time: 10%, 19,527/s
-    //
-    // To
-    // Execution Time:  3%, 69.491/s
-    //
-    // replaced Array.ofDim with a call to a template method
-    // to instantiate a new Array...
-    // Execution Time; 1.6%, 116,579/s ~500% improvement over start
-   /* val newColorGrid = colorGridTemplate
-
-    var i = 0
-    while (i < BOARD_SIZE) {
-      newColorGrid(i) = boardToCopy.colorGrid(i).clone
-      i += 1
-    }
-*/
     new Board(newName, BOARD_COLOR, boardToCopy.grid.copy, boardToCopy.colorGrid, boardToCopy.specification)
 
   }
