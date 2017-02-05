@@ -1,4 +1,4 @@
-#Simulation - learning scala the fun way
+#simulation - learning scala the fun way
 I'm using this game simulation to teach myself to code in scala.
 Check it out if you're new to scala and 
 you may find something interesting to you. 
@@ -31,8 +31,6 @@ It would be cool if you wrote your own simulation to see if you can beat my top 
 Enjoy
 
 ## get things going
-
-\
 
 install java 8 (you can go to oracle but for me it was simpler to just use brew)
 
