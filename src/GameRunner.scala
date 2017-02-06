@@ -9,6 +9,8 @@ import Game._
 import Implicits._
 import java.io.PrintWriter
 
+import scala.collection.immutable.Iterable
+
 
 object GameRunner {
 
@@ -36,7 +38,8 @@ object GameRunner {
       case ((key, optFactor), factorIndex) =>
 
         context.specification = Specification(optFactor)
-        val scores: Seq[Int] = for (gameIndex <- 0 until iterations) yield {
+
+        val gameScore: Seq[Int] = for (gameIndex <- 0 until iterations) yield {
           val t = new GameTimer
 
           // each factor will play the same game to see how each performs against the same set of pieces
@@ -56,7 +59,7 @@ object GameRunner {
           score
         }
 
-        (key, scores.toArray)
+        (key, gameScore.toArray)
     }
 
     println
@@ -97,6 +100,14 @@ object GameRunner {
 
     println(code)
 
+    // so kevin wants
+    // game (n), seed(n), then each factor's score
+
+    println
+
+    scores.foreach{case (key,gameScore) =>
+    gameScore.foreach(score => println(key + " " + score))
+    }
   }
 
   def play(context: Context, startGameCount:Int = 0): Array[Int] = {

@@ -207,6 +207,44 @@ case class OccupancyGrid(
     count
   }
 
+  def lineContiguousCount: Int = {
+    def getLineContiguousCount(line: Array[Long]): Int = {
+
+      var i = 0
+      var count = 0
+      while (i < line.length) {
+
+        var j = 0
+        var prevUnoccupied = false
+
+        while (j < Board.BOARD_SIZE) {
+          val unoccupied = getBitAt(line, i, j) == 0
+          if (unoccupied) {
+            if (!prevUnoccupied)
+              count += 1
+
+            prevUnoccupied = true
+          }
+          else
+            prevUnoccupied = false
+
+
+          j += 1
+
+        }
+
+        i += 1
+      }
+
+      count
+    }
+
+    val rows = getLineContiguousCount(rowGrid)
+    val cols = getLineContiguousCount(colGrid)
+
+    rows + cols
+  }
+
   def maxContiguousOpenLines: Int = {
 
     def getMaxContiguous(theGrid: Array[Long]): Int = {

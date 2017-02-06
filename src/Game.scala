@@ -589,7 +589,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
     val newBoardResultsString = context.specification.spec.values.zip(board.boardScore.scores)
       .map {
         case (optFactor, scoreComponent) =>
-          optFactor.label.leftAlignedPadded(labelWidth).addColon + scoreComponent.intValue.abs.label(valuesWidth) + boardSpacer
+          optFactor.label.leftAlignedPadded(labelWidth).addColon + scoreComponent.intValue.label(valuesWidth) + boardSpacer
       }.toArray
 
     val scoreInfoLength = newScore.length + newBoardResultsString.length
@@ -782,17 +782,7 @@ object Game {
 
     println("\nGoodbye, I hope you enjoyed this episode of simulation.")
 
-    /*    sys.allThreads().foreach{t =>
-      println("setting handlers")
-      t.setUncaughtExceptionHandler(MyUncaughtExceptionHandler)}*/
-
   }
 
 }
 
-/*
-object MyUncaughtExceptionHandler extends Thread.UncaughtExceptionHandler {
-  def uncaughtException(thread: Thread, throwable: Throwable) {
-    println("Something bad happened!")
-  }
-}*/

@@ -24,12 +24,15 @@ case class BoardScore(
     if (opt.enabled) {
 
       // todo - when we stop using the compare, we don't have to multiply these by -1 anymore
-      val intValue = if (opt.minimize) i else i * -1
+      val intValue = i
 
       // normalize the value to be from 0 to 1.  as currently all min vals are 0, there is no need to include a
       // min val in the normalization
       // if an optimization factor is supposed to a low number, then subtract it from it's max value before normalizing
       val normalizedValue: Double = if (opt.minimize) 1 - (i - opt.minVal) / (opt.maxVal - opt.minVal).toDouble else (i - opt.minVal) / (opt.maxVal - opt.minVal).toDouble
+      if (normalizedValue > 1.0) {
+        throw new IllegalArgumentException(opt.label + ".normalizedValue > 1.0 - here's the scoop: " + normalizedValue)
+      }
 
       // the weighted value is multiplied by the opt factor's weight - which in theory will guarantee goodness
       val weightedValue: Double = normalizedValue * opt.weight
@@ -46,33 +49,35 @@ case class BoardScore(
   // but this would introduce a lambda which, at runtime, has historically slowed things down significantly
   //  - test this theory and see if we can go direct as this would make the code much more maintainable
 
-  val avoidMiddleScore: ScoreComponent = getScore(specification.avoidMiddleOptFactor, board.avoidMiddleSum)
-  val occupiedScore: ScoreComponent = getScore(specification.occupiedOptFactor, board.grid.popCount)
-  val maximizerScore: ScoreComponent = getScore(specification.maximizerOptFactor, board.maximizerCount)
   // this is not how you would count it, you need to run a simulation at the end of the simulation
   // that would short circuit once it found the first working solution for each of the combinations of all maximizers
   // this would tell us that we have a winning
   ///val allMaximizersScore: ScoreComponent = getScore(specification.allMaximizersOptFactor, ???)
+  val avoidMiddleScore: ScoreComponent = getScore(specification.avoidMiddleOptFactor, board.avoidMiddleSum)
   val fourNeighborsScore: ScoreComponent = getScore(specification.fourNeighborsOptFactor, neighbors(4))
+  val lineContiguousScore: ScoreComponent = getScore(specification.lineContiguousOptFactor, board.grid.lineContiguousCount)
+  val maxContiguousLinesScore: ScoreComponent = getScore(specification.maxContiguousLinesOptFactor, board.grid.maxContiguousOpenLines)
+  val maximizerScore: ScoreComponent = getScore(specification.maximizerOptFactor, board.maximizerCount)
+  val occupiedScore: ScoreComponent = getScore(specification.occupiedOptFactor, board.grid.popCount)
+  val openLinesScore: ScoreComponent = getScore(specification.openLinesOptFactor, board.grid.openLineCount)
   val threeNeighborsScore: ScoreComponent = getScore(specification.threeNeighborOptFactor, neighbors(3))
   val twoNeighborsScore: ScoreComponent = getScore(specification.twoNeighborsOptFactor, neighbors(2))
-  val maxContiguousLinesScore: ScoreComponent = getScore(specification.maxContiguousLinesOptFactor, board.grid.maxContiguousOpenLines)
-  val openLinesScore: ScoreComponent = getScore(specification.openLinesOptFactor, board.grid.openLineCount)
 
   lazy val scores: Array[ScoreComponent] = {
 
     specification.spec.map {
       case (name, _) =>
         name match {
-          case Specification.occupiedKey  => occupiedScore
-          case Specification.maximizerKey => maximizerScore
           // case Specification.allMaximizersCountName => allMaximizersScore
           case Specification.avoidMiddleKey => avoidMiddleScore
-          case Specification.`fourNeighborsKey`  => fourNeighborsScore
+          case Specification.fourNeighborsKey  => fourNeighborsScore
+          case Specification.`lineContiguousUnoccupiedKey` => lineContiguousScore
+          case Specification.occupiedKey  => occupiedScore
+          case Specification.maxContiguousKey  => maxContiguousLinesScore
+          case Specification.maximizerKey => maximizerScore
+          case Specification.openLinesKey      => openLinesScore
           case Specification.threeNeighborsKey => threeNeighborsScore
           case Specification.twoNeighborsKey   => twoNeighborsScore
-          case Specification.maxContiguousKey  => maxContiguousLinesScore
-          case Specification.openLinesKey      => openLinesScore
           case _ =>
             throw new IllegalArgumentException("This optimization factor was requested but hasn't been added to the scores List: " + name)
         }
