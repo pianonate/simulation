@@ -47,7 +47,7 @@ case class SimulationInfo(
  * @param plcList - PieceLocCleared list
  * @param board - the resultant Board after placing all pieces in PieceLocCleared.
  */
-case class Simulation(plcList: List[PieceLocCleared], board: Board, specLength: Int, id:Int, emptyResults:Array[Int]) extends Ordered[Simulation] {
+case class Simulation(plcList: List[PieceLocCleared], board: Board, id:Int) {
 
   import Implicits._
   override def toString: String = this.plcList.map(plc => plc.piece).label // visible in debugger
@@ -62,41 +62,5 @@ case class Simulation(plcList: List[PieceLocCleared], board: Board, specLength: 
   // cause a 2 piece solution to be better than a 3 piece solution
   val weightedSum: Double = pieceCount + board.boardScore.weightedSum
 
-  def compare(that: Simulation): Int = {
-
-     // if the PieceLocCleared length is less than the comparison
-    // then this instance is _worse_ than the other - indicate
-    // that by returning a 1 and bailing
-    if (this.pieceCount < that.pieceCount)
-      1 // if this length is less, then we definitely want this one to be considered inferior
-    else if (this.pieceCount > that.pieceCount)
-      -1 // if this one has a greater length, no need to compare results, it's superior by definition
-    else {
-
-      // the following provides tuple ordering to ordered to make the tuple comparison work
-      import scala.math.Ordered.orderingToOrdered
-
-      // any result to be maximized is negated so that it will work with default Int sort
-
-      val a = this.board.boardScore.resultsForLegacyCompare
-      val b = that.board.boardScore.resultsForLegacyCompare
-
-      // tell Scalariform not to bother to change my awesome formatting
-      // it would be nice if Scalariform did this by default...
-      // format: OFF
-      specLength match {
-        case 5 => (a(0), a(1), a(2), a(3), a(4))             compare (b(0), b(1), b(2), b(3), b(4))
-        case 6 => (a(0), a(1), a(2), a(3), a(4), a(5))       compare (b(0), b(1), b(2), b(3), b(4), b(5))
-        case 7 => (a(0), a(1), a(2), a(3), a(4), a(5), a(6)) compare (b(0), b(1), b(2), b(3), b(4), b(5), a(6))
-      }
-      // format: ON
-    }
-  }
 }
 
-/*
-object Simulation {
-
-  val aSim = new Array[Simulation](1000000)
-
-}*/

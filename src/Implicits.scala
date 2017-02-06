@@ -50,10 +50,6 @@ class DoubleFormats(val d:Double) {
   private def coloredWeightLabel(color:String):String = {
     val s = d.weightLabel.map(c => (if (c=='0')  BRIGHT_BLACK + '0' else color + c) + SANE).mkString
     s
- /*
-    val replaced = s.replaceAll("([^0\\.])", color + "$1" + SANE)
-    val replaced2 = replaced.replaceAll("([0])", StringFormats.BRIGHT_BLACK + "$1" + SANE)
-    replaced2*/
   }
   def yellowColoredWeightLabel:String = coloredWeightLabel(YELLOW)
 
@@ -159,15 +155,16 @@ class StringFormats(val s: String) {
     "\n" + color + pad1 + " " + s + " " + pad2 + SANE
   }
 
-  private def coloredDigitsLabel(color:String):String = {
+/*  private def coloredDigitsLabel(color:String):String = {
     val replaced = s.replaceAll("([^0\\.])", color + "$1" + SANE)
     replaced
-  }
+  }*/
 
   def addColon:String = s + ": "
   def elapsedLabel: String = elapsedFormat.format(s)
+  def green:String = GREEN + s + SANE
   def greenHeader: String = getHeaderString(GREEN)
-  def greenDigits:String = coloredDigitsLabel(GREEN)
+  // def greenDigits:String = coloredDigitsLabel(GREEN)
   def header: String = getHeaderString(CYAN)
   def label: String = labelFormat.format(s)
   def optFactorLabel: String = optFactorLabelFormat.format(s)
@@ -177,7 +174,9 @@ class StringFormats(val s: String) {
   def redHeader: String = getHeaderString(RED)
   def repeat(length:Int): String = s * length
   def rightAlignedPadded(length:Int): String = ("%" + length.toString + "s").format(s)
-  def yellowDigits:String = coloredDigitsLabel(YELLOW)
+ // def yellowDigits:String = coloredDigitsLabel(YELLOW)
+  def underline:String = UNDERLINE + s + SANE
+  def yellow:String = YELLOW + s + SANE
 
 
   def splice(splicee:Array[String]):String = {
@@ -213,7 +212,7 @@ object StringFormats {
 
   val labelFormat: String = "%-" + labelFormatLength.toString + "s: "
   val optFactorLabelFormat = " %s: "
-  val optFactorResultFormat = "%,2d"
+  val optFactorResultFormat = "%,3d"
 
   val numberFormat: String = "%," + numberFormatLength.toString + "d"
   val floatFormat: String = "%" + (numberFormatLength + 2).toString + ".1f"

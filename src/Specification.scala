@@ -22,61 +22,32 @@ case class Specification(spec: ListMap[String, OptimizationFactor]) {
   val length: Int = spec.size
 
   //def apply(i: Int): OptimizationFactor = weightedSpec(i)
-  def apply(s: String): OptimizationFactor = weightedSpec(s)
-
-  private val weightedSpec: ListMap[String, OptimizationFactor] = {
-
-    // divide each by 100 and then the next one divides previous by 100
-    // val weights = Array.tabulate(length)(n => 1 / (math.pow(10, n) * math.pow(10, n)))
-    val weights = spec.values.map(each => each.initialWeightFactor).scanLeft(1.0)((a, b) => a / b).tail
-
-    // the idea to normalize weights this way is that when you multiply weights times the
-    // the normalized values derived from creating the scores, we will get a distribution from 0 to 1
-    // Brendan's idea and I like it.  Makes it easy to grok the scores
-    // however, just calculating it by mapping each weight over the sum caused a bug
-    // when the board clears, the scores are perfect - all normalize to 1.0
-    // but when multiplying by normalized weights, we ended up with this number:
-    // 1.0000000000000002
-    // which is larger than one - and unnacceptable :)
-    // so the answer is to take the first n normalized weights and to calculate the last one by
-    // subtracting the sum of the first n from 1.  And here it is:
-    val sumOfWeights = weights.sum
-    val initialNormalized = weights.init.map(_ / sumOfWeights)
-    val last: Double = 1.0 - initialNormalized.sum
-    val normalizedWeights = initialNormalized ++ Iterable(last)
-
-    val weighted = spec.zip(normalizedWeights).map {
-      case (specEntry, weight) =>
-        specEntry match {
-          case (key, opt) => (key, OptimizationFactor(opt.enabled, opt.name, opt.minimize, weight, opt.initialWeightFactor, opt.maxVal, opt.label, opt.explanation))
-        }
-    }
-
-    weighted
-  }
+  def apply(s: String): OptimizationFactor = spec(s)
 
   // provided so that the getNamedResult function in boardScore can iterate over a while loop
   // as using named keys into the ListMap along with apply() access is VERY SLOW
-  val optimizationFactors: Array[OptimizationFactor] = weightedSpec.values.toArray
+  val optimizationFactors: Array[OptimizationFactor] = spec.values.toArray
 
   // initialize named optimization factors
   private def getOptimizationFactor(name: String): OptimizationFactor = {
     // a filtered spec is passed in - non non-enabled specifications are allowed
     // because of this, the direct values we provide on this Specification instance
     // need to provide a default for non-enabled values
-    if (weightedSpec.contains(name))
-      weightedSpec(name)
+    if (spec.contains(name))
+      spec(name)
     else
-      OptimizationFactor(enabled = false, name, minimize = false, 0.0, 0.0, 0, "", "")
+      OptimizationFactor(enabled = false, name, minimize = false, 0.0, 0.0, 0, 0, "", "")
   }
 
-  val occupiedOptFactor: OptimizationFactor = getOptimizationFactor(Specification.occupiedCountName)
-  val maximizerOptFactor: OptimizationFactor = getOptimizationFactor(Specification.maximizerCountName)
-  val fourNeighborsOptFactor: OptimizationFactor = getOptimizationFactor(Specification.fourNeighborsName)
-  val threeNeighborOptFactor: OptimizationFactor = getOptimizationFactor(Specification.threeNeighborsName)
-  val twoNeighborsOptFactor: OptimizationFactor = getOptimizationFactor(Specification.twoNeighborsName)
-  val maxContiguousLinesOptFactor: OptimizationFactor = getOptimizationFactor(Specification.maxContiguousName)
-  val openLinesOptFactor: OptimizationFactor = getOptimizationFactor(Specification.openLinesName)
+  val avoidMiddleOptFactor: OptimizationFactor = getOptimizationFactor(Specification.avoidMiddleKey)
+  val occupiedOptFactor: OptimizationFactor = getOptimizationFactor(Specification.occupiedKey)
+  val maximizerOptFactor: OptimizationFactor = getOptimizationFactor(Specification.maximizerKey)
+  val allMaximizersOptFactor: OptimizationFactor = getOptimizationFactor(Specification.allMaximizersKey)
+  val fourNeighborsOptFactor: OptimizationFactor = getOptimizationFactor(Specification.fourNeighborsKey)
+  val threeNeighborOptFactor: OptimizationFactor = getOptimizationFactor(Specification.threeNeighborsKey)
+  val twoNeighborsOptFactor: OptimizationFactor = getOptimizationFactor(Specification.twoNeighborsKey)
+  val maxContiguousLinesOptFactor: OptimizationFactor = getOptimizationFactor(Specification.maxContiguousKey)
+  val openLinesOptFactor: OptimizationFactor = getOptimizationFactor(Specification.openLinesKey)
 
   def getOptimizationFactorExplanations: String = {
     // used by showGameStart
@@ -97,9 +68,10 @@ case class Specification(spec: ListMap[String, OptimizationFactor]) {
     resultString
   }
 
-  def getSimulationResultsString(simulationResults: List[SimulationInfo], chosen: Simulation, showWorst: Boolean, bullShit:String): String = {
+  def getSimulationResultsString(simulationResults: List[SimulationInfo], chosen: Simulation, showWorst: Boolean, bullShit: String): String = {
     // todo - add in simulations, skipped simulations, rounds cleared, persecond information
     // todo - allow for outputting worst
+    // todo - sort specification by strongest weighted
     // todo - generate json for both brendan and lior
     // todo - loc for each permutation piece placement
     /*(
@@ -107,18 +79,19 @@ case class Specification(spec: ListMap[String, OptimizationFactor]) {
         (if (showWorst) simulationResults.map(_.worst.get.weightedSum) else List[Array[Double]]()) // worst results (or empty if not showing anything)
       ).transpose.map(_.max).toArray // sort out the best of all...*/
 
-    val wrappedBullShit = bullShit.wrap(piecePrefixLength, GamePieces.tallestPiece+1, StringFormats.BRIGHT_MAGENTA)
+
+    val wrappedBullShit = bullShit.wrap(piecePrefixLength, GamePieces.tallestPiece + 1, StringFormats.BRIGHT_MAGENTA)
 
     val piecesString = simulationResults
       .zipWithIndex
       .map { case (result, index) => result.pieces.permutationPiecesHeader(index) }
-      .spreadHorizontal(startAt = /*piecePrefixLength*/0, bracketWith = StringFormats.VERTICAL_LINE + " ", separator = (StringFormats.VERTICAL_LINE + " "))
+      .spreadHorizontal(startAt = 0, bracketWith = StringFormats.VERTICAL_LINE + " ", separator = (StringFormats.VERTICAL_LINE + " "))
 
     val newPiecesString = wrappedBullShit.splice(piecesString.split("\n"))
 
     // get the scores from the simulationInfo
     // transpose them to get all the same score values on the same row
-    val scores: List[List[ScoreComponent]] = simulationResults.map(info => info.best.board.scores).transpose
+    val scores: List[List[ScoreComponent]] = simulationResults.map(info => info.best.board.boardScore.scores).transpose
 
     val horizontal = StringFormats.HORIZONTAL_LINE.repeat(prefixPaddingLength) +
       (StringFormats.CROSS_PIECE + StringFormats.HORIZONTAL_LINE.repeat(columnHeader.length - 1)).repeat(simulationResults.length) +
@@ -129,20 +102,23 @@ case class Specification(spec: ListMap[String, OptimizationFactor]) {
       columnHeader.repeat(simulationResults.length) + "\n"
 
     val scoreString = scores.map(optScores =>
-      optScores.head.label.leftAlignedPadded(maxOptFactorLabelLength).addColon + optScores.head.weight.yellowColoredWeightLabel + StringFormats.VERTICAL_LINE +
-        optScores.map(score => " " + score.intValue.abs.optFactorLabel.rightAlignedPadded(columnPadding) + score.normalizedValue.label(2).rightAlignedPadded(columnPadding + 4) + "  " + score.weightedValue.yellowColoredWeightLabel)
+      optScores.head.label.leftAlignedPadded(maxOptFactorLabelLength).addColon + optScores.head.weight.weightLabel + StringFormats.VERTICAL_LINE +
+        optScores.map(score => " " + score.intValue.abs.optFactorLabel.rightAlignedPadded(columnPadding) +
+          score.normalizedValue.label(2).rightAlignedPadded(columnPadding + 4)
+          + "  " + score.weightedValue.weightLabel)
         .mkString(StringFormats.VERTICAL_LINE)).mkString(StringFormats.VERTICAL_LINE + "\n") + StringFormats.VERTICAL_LINE
 
-    val winner = simulationResults.map(_.best.weightedSum).max
+    // val winner = simulationResults.map(_.best.weightedSum).max
 
     val weightedSumString = "sum".leftAlignedPadded(maxOptFactorLabelLength).addColon +
       scores.map(optScores => optScores.head.weight).sum.yellowColoredWeightLabel + StringFormats.VERTICAL_LINE +
       simulationResults.map { result =>
 
         val winner = result.best == chosen
-        val sum = result.best.board.scores.map(scoreComponent => scoreComponent.weightedValue).sum.weightLabel
+
+        val sum = result.best.board.boardScore.scores.map(scoreComponent => scoreComponent.weightedValue).sum.weightLabel
         val sumWithLabel = (if (winner) "winner: " + sum else sum).rightAlignedPadded(22 + StringFormats.weightFormatLength)
-        if (winner) sumWithLabel.greenDigits else sumWithLabel.yellowDigits
+        if (winner) sumWithLabel.green else sumWithLabel.yellow
 
       }.mkString(StringFormats.VERTICAL_LINE) +
       StringFormats.VERTICAL_LINE
@@ -166,10 +142,11 @@ case class Specification(spec: ListMap[String, OptimizationFactor]) {
 
 case class OptimizationFactor(
   enabled:             Boolean,
-  name:                String,
+  key:                 String,
   minimize:            Boolean,
   weight:              Double,
   initialWeightFactor: Double,
+  minVal:              Int,
   maxVal:              Int,
   label:               String,
   explanation:         String
@@ -177,54 +154,175 @@ case class OptimizationFactor(
 
 object Specification {
 
-
   // one of the optimizations is to ensure that the maximum number of
   // maximum pieces can fit on a board from all the boards simulated in the permutation of a set of pieces
   // apparently it's important that this be declared after Game.CYAN is declared above :)
   // this is not private because we show the maximizer piece at game start
-  val maximizer: Box = GamePieces.bigBox
+  val maximizer3x3: Piece = GamePieces.bigBox
+  val maximizer5x1: Piece = GamePieces.h5Line
+  val maximizer1x5: Piece = GamePieces.v5Line
+
+  val maximizerArray: Array[Array[Piece]] = Array(
+    maximizer3x3,
+    maximizer3x3,
+    maximizer3x3,
+    maximizer5x1,
+    maximizer5x1,
+    maximizer5x1,
+    maximizer1x5,
+    maximizer1x5,
+    maximizer1x5
+
+  ).combinations(3).toArray
+
+  val avoidMiddleArray: Array[Array[Int]] = {
+    // createes an array of board size
+    // where int values in the array as you get closer to the middle
+    // get much larger
+    // then we add up all board positions where a value is on
+
+    val size = Board.BOARD_SIZE
+    val smallestValue = 3
+    Array.tabulate(size, size) { (_, _) => 0 }
+    Array.tabulate(size, size) { (row, col) =>
+      val pos: Int = {
+        val rowVal = math.pow(smallestValue, if (row < size / 2) row + 1 else size - row).toInt
+        val colVal = math.pow(smallestValue, if (col < size / 2) col + 1 else size - col).toInt
+        rowVal.min(colVal)
+      }
+      pos
+    }
+  }
+
+  private val avoidMiddleArraySum: Int = avoidMiddleArray.map(row => row.sum).sum
+
+  // println(avoidMiddleArraySum)
 
   // for readability
   private val minimize = true
   private val maximize = false
 
-  val occupiedCountName = "occupiedCount"
-  val maximizerCountName = "maximizerCount"
-  val fourNeighborsName = "fourNeighbors"
-  val threeNeighborsName = "threeNeighbors"
-  val twoNeighborsName = "twoNeighbors"
-  val maxContiguousName = "openContiguous"
-  val openLinesName = "openLines"
-
-  private val MINIMUM_SPEC_LENGTH: Int = 5
+  val allMaximizersKey = "allMaximizersKey"
+  val avoidMiddleKey = "avoidMiddleKey"
+  val fourNeighborsKey = "fourNeighborsKey"
+  val maxContiguousKey = "maxContiguousKey"
+  val maximizerKey = "maximizerKey"
+  val occupiedKey = "occupiedKey"
+  val openLinesKey = "openLinesKey"
+  val threeNeighborsKey = "threeNeighborsKey"
+  val twoNeighborsKey = "twoNeighborsKey"
 
   private val totalPositions = math.pow(Board.BOARD_SIZE, 2).toInt
 
   // todo - OptimizationFactor of all combinations of 3x3 1x5 and 5x1
-  // todo - run through all specification combinations of off and on and run 1000? games on each to see which specification is the best
 
-  val fullSpecification = ListMap(
+  // the following code can be paste in by running weightGenerator command line option
+  // make sure that if you change any of the key names above, that you change them here as well
+  private val weightMap = Map(
 
-    // specification provides the ordering of the optimization as well as whether a particular optimization is maximized or minimized
-    // you'll need to update board.results, Simulation.compare, class Specification, and MINIMUM_SPEC_LENGTH if you change the length of the fullSpecification Array
-    // other than that, you can rearrange rows in the specification, or turn entries off or on at will
-    // much more flexible than it used to be
-
-    maximizerCountName -> OptimizationFactor(enabled = true, maximizerCountName, maximize, 0.0, 1.0, math.pow(Board.BOARD_SIZE - maximizer.cols + 1, 2).toInt, "maximizer", "positions in which a 3x3 piece can fit"),
-    occupiedCountName -> OptimizationFactor(enabled = true, occupiedCountName, minimize, 0.0, 100, totalPositions, "occupied", "occupied positions"),
-    fourNeighborsName -> OptimizationFactor(enabled = true, fourNeighborsName, minimize, 0.0, 100, totalPositions / 2, "4 neighbors", "number of positions surrounded on all 4 sides"),
-    threeNeighborsName -> OptimizationFactor(enabled = true, threeNeighborsName, minimize, 0.0, 100, totalPositions / 2, "3 neighbors", "number of positions surrounded on 3 of 4 sides"),
-    maxContiguousName -> OptimizationFactor(enabled = true, maxContiguousName, maximize, 0.0, 100, Board.BOARD_SIZE, "connected open", "number of lines (either horizontal or vertical) that are open and contiguous"),
-
-    // i'm really not sure that 60 is the maximum number of two neighbors that can be created on a board
-    // but i couldn't find another solution that was better
-    twoNeighborsName -> OptimizationFactor(enabled = true, twoNeighborsName, minimize, 0.0, 100, (totalPositions * .6).toInt, "2 neighbors", "number of positions surrounded on 2 of 4 sides"),
-    openLinesName -> OptimizationFactor(enabled = false, openLinesName, maximize, 0.0, 100, Board.BOARD_SIZE + Board.BOARD_SIZE - 1, "open rows + cols", "count of open rows plus open columns")
+    "maximizerKey" -> 0.7401303608255182,
+    "occupiedKey" -> 0.07420932998148455,
+    "maxContiguousKey" -> 0.06730141048606825,
+    "fourNeighborsKey" -> 0.028772711535277204,
+    "threeNeighborsKey" -> 0.028765184928723035,
+    //                0.02353720401619719
+    "openLinesKey" -> 0.023537204016197258,
+    "avoidMiddleKey" -> 0.022948623383661243,
+    "twoNeighborsKey" -> 0.0143351748430702
 
   )
 
+  private val allOptimizationFactors = ListMap(
+
+    // specification provides the ordering of the optimization as well as whether a particular optimization is maximized or minimized
+    // you'll need to update class Specification named optFactors above, plus the calls from BoardScore.scores
+
+    // other than that, you can rearrange rows in the specification, or turn entries off or on at will
+    // much more flexible than it used to be
+
+    maximizerKey -> OptimizationFactor(enabled = true, maximizerKey, maximize, weightMap(maximizerKey), 1.0, 0, math.pow(Board.BOARD_SIZE - maximizer3x3.cols + 1, 2).toInt, "maximizer", "positions in which a 3x3 piece can fit"),
+    avoidMiddleKey -> OptimizationFactor(enabled = true, avoidMiddleKey, minimize, weightMap(avoidMiddleKey), 1.0, 0, avoidMiddleArraySum, "avoid middle", "unoccupied positions in the middle are bad so score them with a high score"),
+    // this one needs to run a subsequent simulation - not yet easy to do
+    //allMaximizersCountName -> OptimizationFactor(enabled = true, allMaximizersCountName, maximize, 0.0, 100, maximizerArray.length, "all maximizers", "count of boards that can fit all combinations (with repeats) of 3x3, 5x1 and 1x5 pieces  - if each piece was placed on the board"),
+
+    occupiedKey -> OptimizationFactor(enabled = true, occupiedKey, minimize, weightMap(occupiedKey), 100, 0, totalPositions, "occupied", "occupied positions"),
+    fourNeighborsKey -> OptimizationFactor(enabled = true, fourNeighborsKey, minimize, weightMap(fourNeighborsKey), 100, 0, totalPositions / 2, "4 neighbors", "number of positions surrounded on all 4 sides"),
+    threeNeighborsKey -> OptimizationFactor(enabled = true, threeNeighborsKey, minimize, weightMap(threeNeighborsKey), 100, 0, totalPositions / 2, "3 neighbors", "number of positions surrounded on 3 of 4 sides"),
+    maxContiguousKey -> OptimizationFactor(enabled = true, maxContiguousKey, maximize, weightMap(maxContiguousKey), 100, 0, Board.BOARD_SIZE, "connected open", "number of lines (either horizontal or vertical) that are open and contiguous"),
+
+    // i'm really not sure that 60 is the maximum number of two neighbors that can be created on a board
+    // but i couldn't find another solution that was better
+    twoNeighborsKey -> OptimizationFactor(enabled = true, twoNeighborsKey, minimize, weightMap(twoNeighborsKey), 100, 4, (totalPositions * .6).toInt, "2 neighbors", "number of positions surrounded on 2 of 4 sides"),
+    openLinesKey -> OptimizationFactor(enabled = true, openLinesKey, maximize, weightMap(openLinesKey), 100, 0, Board.BOARD_SIZE + Board.BOARD_SIZE , "open rows + cols", "count of open rows plus open columns")
+
+  )
+
+  private def normalizeOptimizationFactorWeights(optFactors: ListMap[String, OptimizationFactor]): ListMap[String, OptimizationFactor] = {
+
+    // divide each current weight into the previous weight
+    // initially current weights were set to 100 (to divide by 100) to mimic the comparison mechanism
+    // originally used in this program
+    // first pass
+    // val weights = Array.tabulate(length)(n => 1 / (math.pow(10, n) * math.pow(10, n)))
+    // now using weights from initialWeightFactor
+    // val weights = optFactors.values.map(each => each.initialWeightFactor).scanLeft(1.0)((a, b) => a / b).tail
+    val weights = optFactors.values.map(each => each.weight)
+
+    // the idea to normalize weights this way is that when you multiply weights times the
+    // the normalized values derived from creating the scores, we will get a distribution from 0 to 1
+    // Brendan's idea and I like it.  Makes it easy to grok the scores
+    // however, just calculating it by mapping each weight over the sum caused a bug
+    // when the board clears, the scores are perfect - all normalize to 1.0
+    // but when multiplying by normalized weights, we ended up with this number:
+    // 1.0000000000000002
+    // which is larger than one - and unnacceptable :)
+    // so the answer is to take the first n normalized weights and to calculate the last one by
+    // subtracting the sum of the first n from 1.  And here it is:
+    val sumOfWeights = weights.sum
+    val initialNormalized = weights.init.map(_ / sumOfWeights)
+    val last: Double = 1.0 - initialNormalized.sum
+    val normalizedWeights = initialNormalized ++ Iterable(last)
+
+    val weighted = optFactors.zip(normalizedWeights).map {
+      case (specEntry, weight) =>
+        specEntry match {
+          case (key, opt) => (key, OptimizationFactor(opt.enabled, opt.key, opt.minimize, weight, opt.initialWeightFactor, opt.minVal, opt.maxVal, opt.label, opt.explanation))
+        }
+    }
+
+    weighted
+
+  }
+
+  def apply(filtered: Boolean, optFactors: ListMap[String, OptimizationFactor]): Specification = {
+    // create a specification with only the filtered parameters
+    val weightedFactors = if (filtered)
+      normalizeOptimizationFactorWeights(optFactors.filter(opt => opt._2.enabled))
+    else
+      normalizeOptimizationFactorWeights(optFactors)
+
+    val filteredWeightedSpec: Specification = Specification(weightedFactors)
+
+    filteredWeightedSpec
+  }
+
+  def apply(filtered: Boolean): Specification = {
+    apply(filtered, allOptimizationFactors)
+  }
+
+  // by default return the filtered and weighted specification
+  def apply(): Specification = {
+    apply(filtered = true)
+  }
+
+  def apply(optFactor: OptimizationFactor): Specification = {
+    // get a specification just for this optimization factor
+    val optFactors = ListMap(optFactor.key -> optFactor)
+    apply(false, optFactors)
+  }
+
   // following are used to construct results
-  val maxOptFactorLabelLength: Int = fullSpecification.values.map(_.label.length).max
+  val maxOptFactorLabelLength: Int = allOptimizationFactors.values.map(_.label.length).max
   private val piecePrefixLength = 0.indexLabel.length + maxOptFactorLabelLength + StringFormats.weightFormatLength + 2
   private val prefixPaddingLength = maxOptFactorLabelLength + 2 + StringFormats.weightFormatLength + 3
   private val columnPadding = GamePieces.numPiecesInRound * 2
@@ -233,14 +331,6 @@ object Specification {
     "weighted".rightAlignedPadded(StringFormats.weightFormatLength + 2) +
     " " + StringFormats.VERTICAL_LINE
 
-  // by default return the full specification
-  def apply(): Specification = {
-    val filteredSpec: Specification = Specification(fullSpecification.filter(opt => opt._2.enabled))
-    // simplify specifications by getting rid of case match/tuple sorting, etc.
-    require(filteredSpec.length >= MINIMUM_SPEC_LENGTH, "because of the old comparison by sorting model, specifications have a case match to different tuple sizes and the minimum size is: " + MINIMUM_SPEC_LENGTH)
-    filteredSpec
-  }
-
   /**
    * used for testing purposes (for now) and eventually for an exhaustive run
    * through of all possible permutations and combinations of specifications
@@ -248,9 +338,9 @@ object Specification {
    */
   def getAllSpecifications: Array[Array[Array[OptimizationFactor]]] = {
 
-    val r = (1 to fullSpecification.size /*length*/ ).toArray
+    val r = (1 to allOptimizationFactors.size /*length*/ ).toArray
 
-    val combinations = for { i <- r } yield fullSpecification.values.toArray.combinations(i).toArray
+    val combinations = for { i <- r } yield allOptimizationFactors.values.toArray.combinations(i).toArray
 
     val result = for {
       comboArray <- combinations

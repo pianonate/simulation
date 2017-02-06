@@ -7,7 +7,7 @@ import org.scalatest.FlatSpec
 trait GameInfoFixture {
   val multiGameStats = MultiGameStats(0, 0, 0, 1, new GameTimer)
   val context = new Context(new Conf(Seq()))
-  context.continuousMode = false
+  context.gamesToPlay = 1
   context.show = false
 }
 
@@ -52,7 +52,11 @@ class TestGame extends FlatSpec {
       context.ignoreSimulation = false
       context.show = false
       private val game = new Game(context, multiGameStats)
+
+      // there is an assertion that will run if any normalized score is larger than 1
       private val results: GameResults = game.run
+
+      // a score of 20 ensures that a line was cleared
       assert(results.score===20)
     }
   }
@@ -111,7 +115,7 @@ class TestGame extends FlatSpec {
     }
   }
 
-  // this test currently CAN'T work.  this is because in a multi-threaded, two different game runs
+  /*// this test currently CAN'T work.  this is because in a multi-threaded, two different game runs
   // may find a best score for a set of pieces that are equivalent but the pieces are in a
   // different position on the board.  A way to deal with this would be to put in a tie-breaker that
   // favors any result that is closer to 0,0.  this tie-breaker - I think - would cause
@@ -138,5 +142,6 @@ class TestGame extends FlatSpec {
         Thread.sleep(2000)
       }
     }
-  }
+  } */
+
 }

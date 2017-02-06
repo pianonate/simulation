@@ -9,10 +9,12 @@ object simulate {
 
   def main(args: Array[String]): Unit = {
 
-    GameRunner.play(
-      new Context(new Conf(args))
+    val context =       new Context(new Conf(args))
 
-    )
+    if (context.generateWeightsGamesToPlay>0)
+      GameRunner.generateWeights(context)
+    else
+      GameRunner.play(context)
 
   }
 

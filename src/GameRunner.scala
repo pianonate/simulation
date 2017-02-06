@@ -9,21 +9,107 @@ import Game._
 import Implicits._
 import java.io.PrintWriter
 
+
 object GameRunner {
 
   val toolKit: Toolkit = java.awt.Toolkit.getDefaultToolkit
 
-  def play(context: Context): Unit = {
+  def generateWeights(context: Context): Unit = {
+
+    val timer = new GameTimer
+
+    def gamesPerMinute(games: Int) = math.floor(games / timer.elapsedMinutes).toInt
+
+    context.gamesToPlay = 1
+
+    val specification = Specification(filtered = false)
+    val iterations = context.generateWeightsGamesToPlay
+    val iterationLength = iterations.toString.length
+    val totalGames = iterations * specification.length
+    val longestKeyLength = specification.spec.keys.map(_.length).max
+
+
+    // play the same g
+    val seeds = Array.fill[Int](iterations)(scala.util.Random.nextInt)
+
+    val scores = specification.spec.zipWithIndex.map {
+      case ((key, optFactor), factorIndex) =>
+
+        context.specification = Specification(optFactor)
+        val scores: Seq[Int] = for (gameIndex <- 0 until iterations) yield {
+          val t = new GameTimer
+
+          // each factor will play the same game to see how each performs against the same set of pieces
+          context.randomSeed = seeds(gameIndex)
+
+          print(optFactor.key.rightAlignedPadded(longestKeyLength) + " game - " + (gameIndex + 1).label(iterationLength))
+
+          val score = play(context, gameIndex)(0)
+
+          val completed = (factorIndex * iterations) + (gameIndex + 1)
+
+          println(" - score: " + score.label(6) +
+            " - done in " + t.elapsedLabel.trim.leftAlignedPadded(6) +
+            "- game: " + completed + " out of " + totalGames +
+            " (" + ((completed.toDouble / totalGames) * 100).label(1).trim + "%)" )
+
+          score
+        }
+
+        (key, scores.toArray)
+    }
+
+    println
+
+    val sumOfAllGames = scores.values.map(game => game.sum).sum
+
+    println("factors".label + specification.length.shortLabel)
+    println("games per factor".label + iterations.shortLabel)
+    println("games played".label + totalGames.shortLabel + " in " + timer.elapsedLabel.trim)
+    val endGamesPerMinute = gamesPerMinute(totalGames)
+
+    println("games/minute".label + endGamesPerMinute)
+    println("set iterations to: " + (endGamesPerMinute * 10 / specification.length) + " for 10 minutes of calculating")
+    println("set iterations to: " + (endGamesPerMinute * 60 / specification.length) + " for 1 hour of calculating")
+
+    println
+    scores.toSeq.sortBy(a => a._2.sum * -1).foreach {
+      case (key, scores) =>
+
+        val scoreSum = scores.sum.toDouble
+        println(key.leftAlignedPadded(Specification.maxOptFactorLabelLength + 1).addColon + "average".addColon + scores.avg.toInt.label(6) + " - weight".addColon + (scoreSum / sumOfAllGames))
+
+    }
+
+    println
+    println
+    println("paste this code into object Specification")
+    println
+
+    val code = "private val weightMap = Map(\n\n" +
+      scores.toSeq.sortBy(a => a._2.sum * -1).map({
+      case (key, scores) =>
+        val scoreSum = scores.sum.toDouble
+
+        ("\t\"" + key + "\" -> " + (scoreSum / sumOfAllGames))
+
+    }).mkString(",\n").dropRight(2) + "\n\n" + ")"
+
+    println(code)
+
+  }
+
+  def play(context: Context, startGameCount:Int = 0): Array[Int] = {
 
     import scala.collection.mutable.ListBuffer
 
     val scores = new ListBuffer[Int]
     val rounds = new ListBuffer[Int]
     val simulationsPerSecond = new ListBuffer[Int]
-    val gameCount = Counter()
+    val gameCount = Counter(startGameCount)
     val totalTime = new GameTimer
 
-    Game.showGameStart(context.specification)
+    var continue = true
 
     // run the game, my friend
     do {
@@ -66,18 +152,21 @@ object GameRunner {
           print("\n" + "new high score!!!!".greenHeader + "\n")
 
         if (context.stopAtNewHighScore)
-          context.continuousMode = false
+          context.gamesToPlay = gameCount.value
 
       }
 
-      countDown(context)
+      continue = context.gamesToPlay == 0 || gameCount.value < context.gamesToPlay
 
-    } while (context.continuousMode)
+      countDown(continue, context)
 
+    } while (continue)
+
+    scores.toArray
   }
 
-  private def countDown(context: Context) = {
-    if (context.continuousMode && context.show) {
+  private def countDown(continue: Boolean, context: Context) = {
+    if (continue && context.show) {
 
       print("\nstarting new game in ")
       Console.out.flush()

@@ -15,14 +15,18 @@ class Context(conf: Conf) {
 
   // vars so you can change test specifications - consider other mechanisms if you wish
   val beep: Boolean = conf.beep()
-  var continuousMode: Boolean = conf.continuous()
+  var gamesToPlay: Int = conf.gamesToPlay()
+  val generateWeightsGamesToPlay:Int = conf.weightGenerator()
   //noinspection VarCouldBeVal
   var maxSimulations: Int = conf.maxSimulations()
   var stopGameAtRound: Int = conf.endGameAtRound()
   var parallel: Boolean = conf.parallel()
   var show: Boolean = conf.show()
+  var showRoundResultsOnly:Boolean = conf.showRoundResultsOnly()
+
   //noinspection VarCouldBeVal
   var showWorst: Boolean = conf.showWorst()
+
   val stopAtNewHighScore:Boolean = conf.stopAtNewHighScore()
   var randomSeed: Int = conf.randomSeed()
 

@@ -14,10 +14,10 @@
 case class ClearedLines(rows: Int, cols: Int)
 
 class Board(
-  final val name:      String,
-  final val color:     String,
-  final val grid:      OccupancyGrid,
-  final val colorGrid: Array[Array[String]],
+  final val name:          String,
+  final val color:         String,
+  final val grid:          OccupancyGrid,
+  final val colorGrid:     Array[Array[String]],
   final val specification: Specification
 ) extends Piece {
 
@@ -32,8 +32,8 @@ class Board(
     )
   }
 
-  def boardScore:BoardScore = BoardScore(this, specification)
-  def scores: List[ScoreComponent] = boardScore.scores
+  def boardScore: BoardScore = BoardScore(this, specification)
+  //def scores: Array[ScoreComponent] = boardScore.scores
 
   // the board output shows unoccupied cells so just call .show on every cell
   // different than the Piece.show which will not output unoccupied Cell's in other pieces
@@ -48,7 +48,25 @@ class Board(
       Board.UNOCCUPIED_BOX_CHAR
   }
 
-  def maximizerCount: Int = legalPlacements(Specification.maximizer).length
+  def maximizerCount: Int = legalPlacements(Specification.maximizer3x3).length
+
+  def avoidMiddleSum:Int = {
+    var i = 0
+    var j = 0
+    var sum = 0
+    val a = Specification.avoidMiddleArray
+    while (i < a.length) {
+      while (j < a.length) {
+        if (cachedOccupancyGrid(i)(j))
+          sum += a(i)(j)
+        j+=1
+      }
+      j = 0
+      i += 1
+    }
+    sum
+  }
+
 
 
   // changed to not use a rotated copy of the board
@@ -68,7 +86,7 @@ class Board(
   //
   // much further down the road - sped this up by 180% by removing lambdas,
   // optimizing the sentinel creation in calls to grid.fullRows, grid.fulLCols
-  def clearLines(clearColor:Boolean): ClearedLines = {
+  def clearLines(clearColor: Boolean): ClearedLines = {
 
     //hmmm - so clearColor is only necessary on the real board, but not on simulations.  We don't use
     //       colorGrid to determine occupancy anymore so...for now, clearColor is called explicitly
@@ -143,7 +161,7 @@ class Board(
   //
   // eliminate for comprehension version / replace with tail recur
   // Execution Time: 2%, 108,793/s - 1900% speedup
-  def place(piece: Piece, loc: Loc, updateColor:Boolean): Unit = {
+  def place(piece: Piece, loc: Loc, updateColor: Boolean): Unit = {
 
     val locRow = loc.row
     val locCol = loc.col
@@ -152,7 +170,6 @@ class Board(
     val pieceCols = piece.cols
     val pieceGrid = piece.cachedOccupancyGrid
     val replaceColor = piece.color
-
 
     def checkCell(row: Int, col: Int): Unit = {
       if (pieceGrid(row)(col)) {
@@ -211,6 +228,7 @@ class Board(
     // made this thing scream - 10x faster
     var i = 0
     var n = 0
+
     val locs = Board.allLocations
     val buf = new Array[Loc](locs.length)
 
@@ -218,6 +236,7 @@ class Board(
       val loc = locs(i)
       if (legalPlacement(piece, loc)) {
         buf(n) = loc
+
         n += 1
       }
       i += 1
@@ -229,8 +248,8 @@ class Board(
     // 45% faster!
     val resultBuf = new Array[Loc](n)
     Array.copy(buf, 0, resultBuf, 0, n)
-
     resultBuf
+
   }
 
   private[this] def legalPlacement(piece: Piece, loc: Loc): Boolean = {
@@ -279,7 +298,7 @@ class Board(
     val counts = Array(0, 0, 0, 0, 0)
     val locLength = locs.length
 
-        // walk through all directions
+    // walk through all directions
     def countLocationNeighbor(loc: Loc, locNeighbors: Array[Loc]): Unit = {
 
       val length = locNeighbors.length
@@ -381,7 +400,6 @@ object Board {
     a
   }
 
-
   def copy(newName: String, boardToCopy: Board): Board = {
 
     new Board(newName, BOARD_COLOR, boardToCopy.grid.copy, boardToCopy.colorGrid, boardToCopy.specification)
@@ -389,7 +407,7 @@ object Board {
   }
 
   private def getBoardColorGrid: Array[Array[String]] = {
-    Array.tabulate(BOARD_SIZE, BOARD_SIZE) { (_, _) => "" /*new Cell(BOARD_COLOR)*/ }
+    Array.tabulate(BOARD_SIZE, BOARD_SIZE) { (_, _) => ""}
   }
 
 }

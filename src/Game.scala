@@ -1,6 +1,12 @@
 /**
  * Created by nathan on 12/10/16.
  * Game will hold a reference to the current board and will also invoke simulations
+ * todo - hook thi sup to ifttt maker channel http://www.makeuseof.com/tag/ifttt-connect-anything-maker-channel/
+ * TODO!!! - kevin suggestion - determine actual weights by running each opt factor one thousand times and printing out the average score
+ * Todo!!! - change maximizer to short circuit maxmizer that counts how many 3x3's can fit on the board - which maxes out at 3 as you can't get more than 3!!!!
+ * Todo!!! - kevin says avoid middle is really important to try
+ * Todo for Richard Kim - check to see if it's windows and output cls rather than clear
+ *
  */
 
 //import java.util.concurrent.ThreadPoolExecutor.DiscardPolicy
@@ -10,8 +16,6 @@ import scala.collection.GenSeq
 import scala.sys.process._
 import scala.language.postfixOps
 import Implicits._
-
-import scala.collection.parallel.ForkJoinTaskSupport
 
 object GameOver extends Exception
 
@@ -32,7 +36,6 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
   private[this] val gameStats: GameStats = new GameStats
   private[this] val gamePieces: GamePieces = new GamePieces(context.randomSeed)
-  private[this] val emptyResults = BoardScore.getResultArray(context.specification.length)
 
   private[this] val score = Counter()
   private[this] val rowsCleared = Counter()
@@ -45,7 +48,14 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
   def run: GameResults = {
 
+/*    def resetTerminalBuffer: Unit = {
+      // reset terminal every 1000 rounds
+      // if (rounds.value % context.eraseTerminalBufferAfterRound == 0)
+      "printf '\u001B[3J'" !
+    }*/
+
     try {
+
 
       /* def loop = {
         var b = 0*/
@@ -71,12 +81,8 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
       case GameOver =>
       case e: Throwable =>
         println("abnormal run termination:\n" + e.toString)
-        context.continuousMode = false
-        // todo: find out what type of error assert is throwing and match it
-        //       currently assert is used at least in pieceHandler to ensure occupied counts are
-        //       not messed up
-        //throw new IllegalStateException()
-
+        context.gamesToPlay = 0
+        throw new IllegalArgumentException
     }
 
     showGameOver()
@@ -116,7 +122,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
     def getTheChosenOne(results: List[SimulationInfo], replayPieces: List[PieceLocCleared]): Simulation = {
       if (context.replayGame && context.ignoreSimulation)
-        Simulation(replayPieces, this.board, context.specification.length, 0, this.emptyResults)
+        Simulation(replayPieces, this.board, 0)
       else {
         // take the best result form each simulation, sort it and select the top
         // in some rounds, you will get an infeasible solution so be sure to ensure the
@@ -125,7 +131,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
         if (filtered.isEmpty)
           gameOver
         else
-          filtered.sorted.head
+          filtered.sortBy(-_.weightedSum).head
       }
     }
 
@@ -162,7 +168,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
       }.transpose
 
       val boards = a.map(each => each.mkString(StringFormats.VERTICAL_LINE + " ".repeat(3))).mkString("\n")
-      "\n".repeat(2) + boards + "\n"
+      "\n".repeat(2) + boards
 
     }
 
@@ -177,12 +183,6 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
       s
     }
-
-    /*def resetTerminalBuffer: Unit = {
-      // reset terminal every 1000 rounds
-      if (rounds.value % context.eraseTerminalBufferAfterRound == 0)
-        "printf '\u001B[3J'" !
-    }*/
 
     def clearScreen(): Unit = {
       "clear".!
@@ -211,31 +211,28 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
     if (bestSimulation.pieceCount > 0) {
 
-      val simulationResultsString = getSimulationResultsString(results, bestSimulation)
-
       val chosenList: List[PieceLocCleared] = getChosenPlcList(replayPieces, bestSimulation)
 
       // as a side effect of placing, returns a string representing board states
       // is there a better way to do this?
-
       val placePiecesString = placePieces(chosenList)
 
-      val endOfRoundResultsString = getRoundResultsString(multiGameStats.gameCount: Int)
-
-      val unplacedPiecesString = getUnplacedPiecesString(bestSimulation)
-
       if (context.show) {
-
         clearScreen()
 
-        print(
-          simulationResultsString +
-            placePiecesString +
-            unplacedPiecesString +
+        val endOfRoundResultsString = getRoundResultsString(multiGameStats.gameCount: Int)
 
-            endOfRoundResultsString +
-            "\n"
-        )
+        if (!context.showRoundResultsOnly) {
+          val simulationResultsString = getSimulationResultsString(results, bestSimulation)
+          val unplacedPiecesString = getUnplacedPiecesString(bestSimulation)
+          print(
+            simulationResultsString +
+              placePiecesString +
+              unplacedPiecesString
+          )
+        }
+
+        print(endOfRoundResultsString)
       }
     }
 
@@ -458,7 +455,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
       def updateSimulation(plcList: List[PieceLocCleared], board: Board): Unit = {
         if (simulationCount.value < context.maxSimulations) {
           val id = simulationCount.inc()
-          val simulation = Simulation(plcList /*.reverse*/ , board, context.specification.length, id, this.emptyResults)
+          val simulation = Simulation(plcList /*.reverse*/ , board, id)
           updateBestAndWorst(simulation)
         }
       }
@@ -526,7 +523,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
     createSimulations(board, pieces, linesCleared = false, List())
 
-    def emptySimulation: Simulation = Simulation(List(), this.board, context.specification.length, 0, this.emptyResults)
+    def emptySimulation: Simulation = Simulation(List(), this.board, 0)
 
     // now we know how long this one took - don't need to include the time to show or return it
     val elapsedMs = simulationDuration.elapsedMillisecondsFloor.toInt
@@ -547,6 +544,8 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
     result
 
   }
+
+  // todo take the returned information from pieceHandler to construct the information string separately
 
   private def pieceHandler(piece: Piece, loc: Loc, index: Int): String = {
 
@@ -573,24 +572,32 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
     // this is a whole lot of string construction... should it be here? or should we split pieceHandler and boardResultsString into two separate operations
     val scoreLength = score.shortLabel.length
-    val valuesLength = scoreLength.max(2)
+    val valuesWidth = scoreLength.max(3)
 
     val boardSpacer = " ".repeat(2)
+    val labelWidth = Specification.maxOptFactorLabelLength
 
     val newScore = Array(
-      "score".leftAlignedPadded(Specification.maxOptFactorLabelLength).addColon + score.boardScoreLabel + boardSpacer,
-      "cleared rows".leftAlignedPadded(Specification.maxOptFactorLabelLength).addColon + linesClearedResult.rows.label(valuesLength) + boardSpacer,
-      "cleared cols".leftAlignedPadded(Specification.maxOptFactorLabelLength).addColon + linesClearedResult.cols.label(valuesLength) + boardSpacer
+      "score".leftAlignedPadded(labelWidth).addColon + score.boardScoreLabel + boardSpacer,
+      "cleared rows".leftAlignedPadded(labelWidth).addColon + linesClearedResult.rows.label(valuesWidth) + boardSpacer,
+      "cleared cols".leftAlignedPadded(labelWidth).addColon + linesClearedResult.cols.label(valuesWidth) + boardSpacer,
+      " ".leftAlignedPadded(labelWidth) + " ".repeat("".addColon.length) + " ".repeat(valuesWidth) + boardSpacer,
+      ("opt factors".leftAlignedPadded(labelWidth) + " ".repeat("".addColon.length) + " ".repeat(valuesWidth)).underline + boardSpacer
+
     )
 
-    val newBoardResultsString = context.specification.spec.values.zip(board.scores)
+    val newBoardResultsString = context.specification.spec.values.zip(board.boardScore.scores)
       .map {
         case (optFactor, scoreComponent) =>
-          optFactor.label.leftAlignedPadded(Specification.maxOptFactorLabelLength).addColon + scoreComponent.intValue.abs.label(valuesLength) + boardSpacer
+          optFactor.label.leftAlignedPadded(labelWidth).addColon + scoreComponent.intValue.abs.label(valuesWidth) + boardSpacer
       }.toArray
 
-    val remainingScoreLines = ((newScore.length + newBoardResultsString.length) until Board.BOARD_SIZE)
-      .map(_ => " ".repeat(Specification.maxOptFactorLabelLength + valuesLength + boardSpacer.length + 2)).toArray
+    val scoreInfoLength = newScore.length + newBoardResultsString.length
+    // whichever is longer scoreinfo or board length
+    val totalHeight = scoreInfoLength.max(Board.BOARD_SIZE)
+
+    val remainingScoreLines = (scoreInfoLength until totalHeight)
+      .map(_ => " ".repeat(labelWidth + valuesWidth + boardSpacer.length + 2)).toArray
 
     val newResults: Array[String] = newScore ++ newBoardResultsString ++ remainingScoreLines
 
@@ -598,11 +605,14 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
     // the length of the board - in which case you'll need to modify the code to allow for a buffer at the end of the
     // board as well as the current situation which allows for a buffer at the end of the score and optimization factors
     // aka remainingLines
-    assert(newResults.length == Board.BOARD_SIZE, "new results don't equal board size:" + newResults.length)
+    // assert(newResults.length == Board.BOARD_SIZE, "new results don't equal board size:" + newResults.length)
 
-    val newBoard = boardBeforeClearing splice newResults
+    val appendToBoard = "\n" + (Board.BOARD_SIZE until totalHeight)
+      .map(_ => " ".repeat(Board.BOARD_SIZE * 2 - 1 + boardSpacer.length) +"\n").mkString
 
-    val finalBoard = if (index == GamePieces.numPiecesInRound) newBoard splice getShowBoard.split("\n") else newBoard
+    val newBoard = (boardBeforeClearing + appendToBoard) splice newResults
+
+    val finalBoard = if (index == GamePieces.numPiecesInRound) newBoard splice (getShowBoard + appendToBoard).split("\n") else newBoard
 
     // todo - get rid of piece.cellShowFunction - it's got to work better than this
 
@@ -768,52 +778,11 @@ object Game {
 
 
 
-  def showGameStart(specification: Specification): Unit = {
-
-    val begin =
-      """GAME START
-        |
-        |This game works by first selecting 3 pieces from the set of all possible pieces.
-        |Then it will try all possible orderings (permutations) of placements of those 3 pieces
-        |(up to six permutations will be selected depending on whether there are any duplicates).
-        |If no lines are cleared then only the first permutation will be evaluated as piece order
-        |won't matter so no reason in simulating any other orderings.
-        |
-        |Then for each permutation, it will try each of the 3 pieces in order on all possible
-        |locations on the board, checking to see whether any lines are cleared between each piece placement.
-        |Each placement of three pieces along with the board state after placing the third piece is
-        |called a Simulation.
-        |
-        |Each of the following will be evaluated on the final board state:""".stripMargin
-
-    val end = """
-        |
-        |Taking all of these factors into account, in the order listed above, the best simulation will be chosen.  The
-        |ordering of the factors will indicate the optimization strategy.  The factors
-        |are output at the end of each simulation run for a permutation - in the order in which they
-        |are considered.
-        |
-        |The best simulation is then used to place pieces and continue onto the next round.""".stripMargin
-
-    val explanations = specification.getOptimizationFactorExplanations
-
-    println(
-      begin + "\n" + explanations + end
-    )
-
-
-
-  }
-
-
-
-
-
   sys.ShutdownHookThread {
 
     println("\nGoodbye, I hope you enjoyed this episode of simulation.")
 
-/*    sys.allThreads().foreach{t =>
+    /*    sys.allThreads().foreach{t =>
       println("setting handlers")
       t.setUncaughtExceptionHandler(MyUncaughtExceptionHandler)}*/
 
