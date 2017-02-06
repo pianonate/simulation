@@ -70,14 +70,14 @@ case class BoardScore(
         name match {
           // case Specification.allMaximizersCountName => allMaximizersScore
           case Specification.avoidMiddleKey => avoidMiddleScore
-          case Specification.fourNeighborsKey  => fourNeighborsScore
+          case Specification.`neighborsFourKey`  => fourNeighborsScore
           case Specification.`lineContiguousUnoccupiedKey` => lineContiguousScore
           case Specification.occupiedKey  => occupiedScore
           case Specification.maxContiguousKey  => maxContiguousLinesScore
           case Specification.maximizerKey => maximizerScore
           case Specification.openLinesKey      => openLinesScore
-          case Specification.threeNeighborsKey => threeNeighborsScore
-          case Specification.twoNeighborsKey   => twoNeighborsScore
+          case Specification.`neighborsThreeKey` => threeNeighborsScore
+          case Specification.`neighborsTwoKey`   => twoNeighborsScore
           case _ =>
             throw new IllegalArgumentException("This optimization factor was requested but hasn't been added to the scores List: " + name)
         }

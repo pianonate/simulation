@@ -31,8 +31,14 @@ object GameRunner {
     val longestKeyLength = specification.spec.keys.map(_.length).max
 
 
-    // play the same g
-    val seeds = Array.fill[Int](iterations)(scala.util.Random.nextInt)
+    // play the same game for each
+    val randomizer = new scala.util.Random(1)
+
+    // todo write randomizer output to a file as it won't change except when you change the algorithm of
+    // a particular factor - you should load already calculated
+    // weights from the file and then pick up wherever it left off and add more if a larger value was specified
+
+    val seeds = Array.fill[Int](iterations)(randomizer.nextInt)
 
     val scores = specification.spec.zipWithIndex.map {
       case ((key, optFactor), factorIndex) =>
@@ -54,7 +60,7 @@ object GameRunner {
           println(" - score: " + score.label(6) +
             " - done in " + t.elapsedLabel.trim.leftAlignedPadded(6) +
             "- game: " + completed + " out of " + totalGames +
-            " (" + ((completed.toDouble / totalGames) * 100).label(1).trim + "%)" )
+            " (" + ((completed.toDouble / totalGames) * 100).label(2).trim + "%)" )
 
           score
         }
@@ -80,9 +86,25 @@ object GameRunner {
       case (key, scores) =>
 
         val scoreSum = scores.sum.toDouble
-        println(key.leftAlignedPadded(Specification.maxOptFactorLabelLength + 1).addColon + "average".addColon + scores.avg.toInt.label(6) + " - weight".addColon + (scoreSum / sumOfAllGames))
+        println(key.leftAlignedPadded(Specification.maxOptFactorKeyLength + 1).addColon + "average".addColon + scores.avg.toInt.label(6) + " - weight".addColon + (scoreSum / sumOfAllGames))
 
     }
+
+    // so kevin wants
+    // game (n), seed(n), then each factor's score
+
+    println
+
+    // todo - right now this is a bug waiting to happen (the 4 in repeat and label) - it needs to be based on the total number of games and whnat will be output because of that
+    val header = "game" +  scores.keys.toArray.map(key => " ".repeat(4) + key.rightAlignedPadded(Specification.maxOptFactorKeyLength)).mkString(" ") + "\n"
+
+    val s = scores.values.transpose.zipWithIndex.map(game=>
+      (game._2 + 1).label(4).toString + " " + game._1.map(each =>
+       " ".repeat(Specification.maxOptFactorKeyLength - each.toString.length) + " ".repeat(3) +  each )
+        .mkString("  "))
+      .mkString("\n")
+
+    println(header + s)
 
     println
     println
@@ -91,23 +113,15 @@ object GameRunner {
 
     val code = "private val weightMap = Map(\n\n" +
       scores.toSeq.sortBy(a => a._2.sum * -1).map({
-      case (key, scores) =>
-        val scoreSum = scores.sum.toDouble
+        case (key, scores) =>
+          val scoreSum = scores.sum.toDouble
 
-        ("\t\"" + key + "\" -> " + (scoreSum / sumOfAllGames))
+          ("\t\"" + key + "\" -> " + (scoreSum / sumOfAllGames))
 
-    }).mkString(",\n").dropRight(2) + "\n\n" + ")"
+      }).mkString(",\n").dropRight(2) + "\n\n" + ")"
 
     println(code)
 
-    // so kevin wants
-    // game (n), seed(n), then each factor's score
-
-    println
-
-    scores.foreach{case (key,gameScore) =>
-    gameScore.foreach(score => println(key + " " + score))
-    }
   }
 
   def play(context: Context, startGameCount:Int = 0): Array[Int] = {

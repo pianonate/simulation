@@ -41,14 +41,14 @@ case class Specification(spec: ListMap[String, OptimizationFactor]) {
 
   val allMaximizersOptFactor: OptimizationFactor = getOptimizationFactor(Specification.allMaximizersKey)
   val avoidMiddleOptFactor: OptimizationFactor = getOptimizationFactor(Specification.avoidMiddleKey)
-  val fourNeighborsOptFactor: OptimizationFactor = getOptimizationFactor(Specification.fourNeighborsKey)
+  val fourNeighborsOptFactor: OptimizationFactor = getOptimizationFactor(Specification.neighborsFourKey)
   val lineContiguousOptFactor: OptimizationFactor = getOptimizationFactor(Specification.lineContiguousUnoccupiedKey)
   val maxContiguousLinesOptFactor: OptimizationFactor = getOptimizationFactor(Specification.maxContiguousKey)
   val maximizerOptFactor: OptimizationFactor = getOptimizationFactor(Specification.maximizerKey)
   val occupiedOptFactor: OptimizationFactor = getOptimizationFactor(Specification.occupiedKey)
   val openLinesOptFactor: OptimizationFactor = getOptimizationFactor(Specification.openLinesKey)
-  val threeNeighborOptFactor: OptimizationFactor = getOptimizationFactor(Specification.threeNeighborsKey)
-  val twoNeighborsOptFactor: OptimizationFactor = getOptimizationFactor(Specification.twoNeighborsKey)
+  val threeNeighborOptFactor: OptimizationFactor = getOptimizationFactor(Specification.neighborsThreeKey)
+  val twoNeighborsOptFactor: OptimizationFactor = getOptimizationFactor(Specification.neighborsTwoKey)
 
   def getOptimizationFactorExplanations: String = {
     // used by showGameStart
@@ -203,14 +203,14 @@ object Specification {
 
   val allMaximizersKey = "allMaximizersKey"
   val avoidMiddleKey = "avoidMiddleKey"
-  val fourNeighborsKey = "fourNeighborsKey"
   val lineContiguousUnoccupiedKey = "lineContiguousUnoccupiedKey"
   val maxContiguousKey = "maxContiguousKey"
   val maximizerKey = "maximizerKey"
+  val neighborsFourKey = "neighborsFourKey"
+  val neighborsThreeKey = "neighborsThreeKey"
   val occupiedKey = "occupiedKey"
   val openLinesKey = "openLinesKey"
-  val threeNeighborsKey = "threeNeighborsKey"
-  val twoNeighborsKey = "twoNeighborsKey"
+  val neighborsTwoKey = "neighborsTwoKey"
 
   private val totalPositions = math.pow(Board.BOARD_SIZE, 2).toInt
 
@@ -226,9 +226,9 @@ object Specification {
     "openLinesKey" -> 0.05588289517348181,
     "maxContiguousKey" -> 0.051686884701891526,
     "lineContiguousUnoccupiedKey" -> 0.04175362265403193,
-    "threeNeighborsKey" -> 0.03181298624681981,
-    "fourNeighborsKey" -> 0.020589211312267246,
-    "twoNeighborsKey" -> 0.0101766159064931
+    "neighborsThreeKey" -> 0.03181298624681981,
+    "neighborsFourKey" -> 0.020589211312267246,
+    "neighborsTwoKey" -> 0.0101766159064931
 
   )
 
@@ -239,16 +239,16 @@ object Specification {
     // this one needs to run a subsequent simulation - not yet easy to do
     //allMaximizersCountName -> OptimizationFactor(enabled = true, allMaximizersKey, maximize, weightMap(allMaximizersKey), 0.0, maximizerArray.length, "all maximizers", "count of boards that can fit all combinations (with repeats) of 3x3, 5x1 and 1x5 pieces  - if each piece was placed on the board"),
     avoidMiddleKey -> OptimizationFactor(enabled = true, avoidMiddleKey, minimize, weightMap(avoidMiddleKey), 0, avoidMiddleArraySum, "avoid middle", "unoccupied positions in the middle are bad so score them with a high score"),
-    fourNeighborsKey -> OptimizationFactor(enabled = true, fourNeighborsKey, minimize, weightMap(fourNeighborsKey), 0, totalPositions / 2, "4 neighbors", "number of positions surrounded on all 4 sides"),
     lineContiguousUnoccupiedKey -> OptimizationFactor(enabled = true, lineContiguousUnoccupiedKey, minimize, weightMap(lineContiguousUnoccupiedKey), 20, totalPositions / 2, "spaces on a line", "number of separate spaces on a given line - indicator of how many pieces needed to clear"),
     maxContiguousKey -> OptimizationFactor(enabled = true, maxContiguousKey, maximize, weightMap(maxContiguousKey), 0, Board.BOARD_SIZE, "connected open", "number of lines (either horizontal or vertical) that are open and contiguous"),
     maximizerKey -> OptimizationFactor(enabled = true, maximizerKey, maximize, weightMap(maximizerKey), 0, math.pow(Board.BOARD_SIZE - maximizer3x3.cols + 1, 2).toInt, "maximizer", "positions in which a 3x3 piece can fit"),
-    occupiedKey -> OptimizationFactor(enabled = true, occupiedKey, minimize, weightMap(occupiedKey), 0, totalPositions, "occupied", "occupied positions"),
-    openLinesKey -> OptimizationFactor(enabled = true, openLinesKey, maximize, weightMap(openLinesKey), 0, Board.BOARD_SIZE + Board.BOARD_SIZE, "open rows + cols", "count of open rows plus open columns"),
-    threeNeighborsKey -> OptimizationFactor(enabled = true, threeNeighborsKey, minimize, weightMap(threeNeighborsKey), 0, totalPositions / 2, "3 neighbors", "number of positions surrounded on 3 of 4 sides"),
+    neighborsFourKey -> OptimizationFactor(enabled = true, neighborsFourKey, minimize, weightMap(neighborsFourKey), 0, totalPositions / 2, "4 neighbors", "number of positions surrounded on all 4 sides"),
+    neighborsThreeKey -> OptimizationFactor(enabled = true, neighborsThreeKey, minimize, weightMap(neighborsThreeKey), 0, totalPositions / 2, "3 neighbors", "number of positions surrounded on 3 of 4 sides"),
     // i'm really not sure that 60 is the maximum number of two neighbors that can be created on a board
     // but i couldn't find another solution that was better
-    twoNeighborsKey -> OptimizationFactor(enabled = true, twoNeighborsKey, minimize, weightMap(twoNeighborsKey), 0, (totalPositions * .6).toInt, "2 neighbors", "number of positions surrounded on 2 of 4 sides")
+    neighborsTwoKey -> OptimizationFactor(enabled = true, neighborsTwoKey, minimize, weightMap(neighborsTwoKey), 0, (totalPositions * .6).toInt, "2 neighbors", "number of positions surrounded on 2 of 4 sides"),
+    occupiedKey -> OptimizationFactor(enabled = true, occupiedKey, minimize, weightMap(occupiedKey), 0, totalPositions, "occupied", "occupied positions"),
+    openLinesKey -> OptimizationFactor(enabled = true, openLinesKey, maximize, weightMap(openLinesKey), 0, Board.BOARD_SIZE + Board.BOARD_SIZE, "open rows + cols", "count of open rows plus open columns")
 
   )
 
@@ -318,6 +318,8 @@ object Specification {
 
   // following are used to construct results
   val maxOptFactorLabelLength: Int = allOptimizationFactors.values.map(_.label.length).max
+  val maxOptFactorKeyLength: Int = allOptimizationFactors.values.map(_.key.length).max
+
   private val piecePrefixLength = 0.indexLabel.length + maxOptFactorLabelLength + StringFormats.weightFormatLength + 2
   private val prefixPaddingLength = maxOptFactorLabelLength + 2 + StringFormats.weightFormatLength + 3
   private val columnPadding = GamePieces.numPiecesInRound * 2
