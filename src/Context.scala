@@ -28,6 +28,8 @@ class Context(conf: Conf) {
   var showWorst: Boolean = conf.showWorst()
 
   val stopAtNewHighScore:Boolean = conf.stopAtNewHighScore()
+
+  // TODO - always set a random seed and then log it with the game score so you can replay that game with a new algo if you wish
   var randomSeed: Int = conf.randomSeed()
 
   //noinspection VarCouldBeVal

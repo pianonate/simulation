@@ -570,15 +570,18 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
     }
 
+    val minScoreLength = 5 // to allow for 4 digits and a comma
     // this is a whole lot of string construction... should it be here? or should we split pieceHandler and boardResultsString into two separate operations
-    val scoreLength = score.shortLabel.length
-    val valuesWidth = scoreLength.max(3)
+    val scoreLength = score.shortLabel.length.max(minScoreLength)
+    val valuesWidth = scoreLength.max(minScoreLength)
 
     val boardSpacer = " ".repeat(2)
     val labelWidth = Specification.maxOptFactorLabelLength
 
+    val scoreLabel = "score".leftAlignedPadded(labelWidth).addColon + score.label(valuesWidth).green + boardSpacer
+
     val newScore = Array(
-      "score".leftAlignedPadded(labelWidth).addColon + score.boardScoreLabel + boardSpacer,
+      scoreLabel,
       "cleared rows".leftAlignedPadded(labelWidth).addColon + linesClearedResult.rows.label(valuesWidth) + boardSpacer,
       "cleared cols".leftAlignedPadded(labelWidth).addColon + linesClearedResult.cols.label(valuesWidth) + boardSpacer,
       " ".leftAlignedPadded(labelWidth) + " ".repeat("".addColon.length) + " ".repeat(valuesWidth) + boardSpacer,

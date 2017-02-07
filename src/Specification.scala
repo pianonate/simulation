@@ -13,6 +13,8 @@
  *   results in the highest scores...
  */
 
+import scala.collection.JavaConverters._
+
 import Implicits._
 import Specification._
 import scala.collection.immutable.{Iterable, ListMap}
@@ -70,15 +72,12 @@ case class Specification(spec: ListMap[String, OptimizationFactor]) {
   }
 
   def getSimulationResultsString(simulationResults: List[SimulationInfo], chosen: Simulation, showWorst: Boolean, bullShit: String): String = {
-    // todo - add in simulations, skipped simulations, rounds cleared, persecond information
+    // todo - add in simulations, skipped simulations, persecond information
     // todo - allow for outputting worst
-    // todo - sort specification by strongest weighted
     // todo - generate json for both brendan and lior
-    // todo - loc for each permutation piece placement
-    /*(
-      simulationResults.map(_.best.weightedSum) ++ // best result
-        (if (showWorst) simulationResults.map(_.worst.get.weightedSum) else List[Array[Double]]()) // worst results (or empty if not showing anything)
-      ).transpose.map(_.max).toArray // sort out the best of all...*/
+
+    def getPrefixString(name: String, value: String) = name.leftAlignedPadded(maxOptFactorLabelLength + 1).addColon +
+      value.rightAlignedPadded(prefixWeightFormatLength) + spaceAndVertical
 
     val wrappedBullShit = bullShit.wrap(piecePrefixLength, GamePieces.tallestPiece + 1, StringFormats.BRIGHT_MAGENTA)
 
@@ -87,43 +86,43 @@ case class Specification(spec: ListMap[String, OptimizationFactor]) {
       .map { case (result, index) => result.pieces.permutationPiecesHeader(index) }
       .spreadHorizontal(startAt = 0, bracketWith = StringFormats.VERTICAL_LINE + " ", separator = (StringFormats.VERTICAL_LINE + " "))
 
-    val newPiecesString = wrappedBullShit.splice(piecesString.split("\n"))
+    val piecesHeader = wrappedBullShit.splice(piecesString.split("\n")) + "\n"
 
     // get the scores from the simulationInfo
     // transpose them to get all the same score values on the same row
     val scores: List[List[ScoreComponent]] = simulationResults.map(info => info.best.board.boardScore.scores).transpose
 
-    val horizontal = StringFormats.HORIZONTAL_LINE.repeat(prefixPaddingLength) +
+    val horizontal = StringFormats.HORIZONTAL_LINE.repeat(piecePrefixLength) +
       (StringFormats.CROSS_PIECE + StringFormats.HORIZONTAL_LINE.repeat(columnHeader.length - 1)).repeat(simulationResults.length) +
       StringFormats.VERTICAL_AND_LEFT + "\n"
 
-    val header = "score factor".leftAlignedPadded(maxOptFactorLabelLength).addColon +
-      "weight".rightAlignedPadded(StringFormats.weightFormatLength + 2) + " " + StringFormats.VERTICAL_LINE +
-      columnHeader.repeat(simulationResults.length) + "\n"
+    val scoreHeader = getPrefixString("score factor", "weight") + columnHeader.repeat(simulationResults.length) + "\n"
 
     val scoreString = scores.map(optScores =>
-      optScores.head.label.leftAlignedPadded(maxOptFactorLabelLength).addColon + optScores.head.weight.weightLabel + StringFormats.VERTICAL_LINE +
-        optScores.map(score => " " + score.intValue.optFactorLabel.rightAlignedPadded(columnPadding) +
-          score.normalizedValue.label(2).rightAlignedPadded(columnPadding + 4)
-          + "  " + score.weightedValue.weightLabel)
-        .mkString(StringFormats.VERTICAL_LINE)).mkString(StringFormats.VERTICAL_LINE + "\n") + StringFormats.VERTICAL_LINE
+      getPrefixString(optScores.head.label, optScores.head.weight.weightLabel) +
+
+        optScores.map(score =>
+          " " + score.intValue.optFactorLabel.rightAlignedPadded(columnPadding) +
+          score.normalizedValue.label(2).rightAlignedPadded(columnPadding + 3)
+          + weightBuffer + score.weightedValue.weightLabel)
+
+        .mkString(" " + StringFormats.VERTICAL_LINE)).mkString(" " + StringFormats.VERTICAL_LINE + "\n") + spaceAndVertical + "\n"
 
     // val winner = simulationResults.map(_.best.weightedSum).max
 
-    val weightedSumString = "sum".leftAlignedPadded(maxOptFactorLabelLength).addColon +
-      scores.map(optScores => optScores.head.weight).sum.yellowColoredWeightLabel + StringFormats.VERTICAL_LINE +
+    val weightedSumString = "sum".leftAlignedPadded(maxOptFactorLabelLength + 1).addColon +
+      scores.map(optScores => optScores.head.weight).sum.weightLabel.rightAlignedPadded(prefixWeightFormatLength) + spaceAndVertical +
       simulationResults.map { result =>
 
         val winner = result.best == chosen
 
         val sum = result.best.board.boardScore.scores.map(scoreComponent => scoreComponent.weightedValue).sum.weightLabel
-        val sumWithLabel = (if (winner) "winner: " + sum else sum).rightAlignedPadded(22 + StringFormats.weightFormatLength)
+        val sumWithLabel = (if (winner) "winner: " + sum else sum).rightAlignedPadded(permutationColumnWidth)
         if (winner) sumWithLabel.green else sumWithLabel.yellow
 
-      }.mkString(StringFormats.VERTICAL_LINE) +
-      StringFormats.VERTICAL_LINE
+      }.mkString(spaceAndVertical) + spaceAndVertical
 
-    newPiecesString + "\n" + horizontal + header + horizontal + scoreString + "\n" + horizontal + weightedSumString
+    piecesHeader  + horizontal + scoreHeader + horizontal + scoreString  + horizontal + weightedSumString
   }
 
   def getBoardResultString(boardResult: Array[Int]): String = {
@@ -218,7 +217,7 @@ object Specification {
 
   // the following code can be paste in by running weightGenerator command line option
   // make sure that if you change any of the key names above, that you change them here as well
-  private val weightMap = Map(
+/*  private val weightMap = Map(
 
     "maximizerKey" -> 0.5611371262121603,
     "avoidMiddleKey" -> 0.14843110504774898,
@@ -229,6 +228,21 @@ object Specification {
     "neighborsThreeKey" -> 0.03181298624681981,
     "neighborsFourKey" -> 0.020589211312267246,
     "neighborsTwoKey" -> 0.0101766159064931
+
+  )*/
+
+  // from a 390 run
+  private val weightMap = Map(
+
+    "maximizerKey" -> 0.5272891017383388,
+    "avoidMiddleKey" -> 0.199174613082093,
+    "occupiedKey" -> 0.06484840894775809,
+    "openLinesKey" -> 0.06024112321467259,
+    "maxContiguousKey" -> 0.051175395306053494,
+    "lineContiguousUnoccupiedKey" -> 0.041165707917707094,
+    "neighborsThreeKey" -> 0.02362527320075932,
+    "neighborsFourKey" -> 0.02297247114126007,
+    "neighborsTwoKey" -> 0.0095079054513576
 
   )
 
@@ -278,15 +292,16 @@ object Specification {
     val last: Double = 1.0 - initialNormalized.sum
     val normalizedWeights = initialNormalized ++ Iterable(last)
 
-    val weighted = optFactors.zip(normalizedWeights).map {
-      case (specEntry, weight) =>
-        specEntry match {
-          case (key, opt) => (key, OptimizationFactor(opt.enabled, opt.key, opt.minimize, weight, opt.minVal, opt.maxVal, opt.label, opt.explanation))
-        }
-    }
+    val weighted = optFactors.zip(normalizedWeights)
+      .map {
+        case (specEntry, weight) =>
+          specEntry match {
+            case (key, opt) => (key, OptimizationFactor(opt.enabled, opt.key, opt.minimize, weight, opt.minVal, opt.maxVal, opt.label, opt.explanation))
+          }
+      }
 
-    weighted
-
+    val sortedWeights = ListMap(weighted.toSeq.sortBy(-_._2.weight): _*)
+    sortedWeights
   }
 
   def apply(filtered: Boolean, optFactors: ListMap[String, OptimizationFactor]): Specification = {
@@ -320,13 +335,21 @@ object Specification {
   val maxOptFactorLabelLength: Int = allOptimizationFactors.values.map(_.label.length).max
   val maxOptFactorKeyLength: Int = allOptimizationFactors.values.map(_.key.length).max
 
-  private val piecePrefixLength = 0.indexLabel.length + maxOptFactorLabelLength + StringFormats.weightFormatLength + 2
-  private val prefixPaddingLength = maxOptFactorLabelLength + 2 + StringFormats.weightFormatLength + 3
+  private val weightBufferLength = 13 - StringFormats.weightFormatLength
+  private val weightBuffer = " ".repeat(weightBufferLength + 3)
+
+  private val prefixWeightFormatLength = StringFormats.weightFormatLength + 3
+
+  private val piecePrefixLength = maxOptFactorLabelLength + prefixWeightFormatLength + 4
+
   private val columnPadding = GamePieces.numPiecesInRound * 2
-  private val columnHeader = "score".rightAlignedPadded(columnPadding + 1) +
-    "normalized".rightAlignedPadded(columnPadding + 6) +
-    "weighted".rightAlignedPadded(StringFormats.weightFormatLength + 2) +
-    " " + StringFormats.VERTICAL_LINE
+
+  private val spaceAndVertical = " " + StringFormats.VERTICAL_LINE
+  private val permutationColumnWidth = ((GamePieces.widestPiece * 2 - 1) * 3) + 7
+  private val scoreColumnString = "score".rightAlignedPadded(columnPadding + 1)
+  private val normalizedColumnString = "normalized".rightAlignedPadded(columnPadding + 6)
+  private val weightedColumnString = "weighted".rightAlignedPadded(permutationColumnWidth - (scoreColumnString.length + normalizedColumnString.length))
+  private val columnHeader = scoreColumnString + normalizedColumnString + weightedColumnString + spaceAndVertical
 
   /**
    * used for testing purposes (for now) and eventually for an exhaustive run

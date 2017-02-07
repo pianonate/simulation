@@ -35,14 +35,17 @@ object Implicits {
 }
 
 class CounterFormats(val counter: Counter) {
-  def label: String = counter.value.label
-  def shortLabel: String = counter.value.shortLabel
-  def boardScoreLabel: String = counter.value.greenLabel
-  def scoreLabel: String = counter.value.scoreLabel
+  private val current:Int = counter.value
+
+  def label: String = current.label
+  def label(length:Int): String = current.label(length)
+  def shortLabel: String = current.shortLabel
+  def boardScoreLabel: String = current.greenLabel
+  def scoreLabel: String = current.scoreLabel
 }
 
 class DoubleFormats(val d:Double) {
-  def label(length:Int):String = ("%1." + length + "f ").format(d)
+  def label(length:Int):String = ("%1." + length + "f").format(d)
   def weightLabel:String = label(StringFormats.weightFormatLength)
   def rightAlignedPadded(length:Int):String = d.toString.rightAlignedPadded(length)
 
@@ -217,7 +220,7 @@ object StringFormats {
   val numberFormat: String = "%," + numberFormatLength.toString + "d"
   val floatFormat: String = "%" + (numberFormatLength + 2).toString + ".1f"
 
-  val weightFormatLength = 13
+  val weightFormatLength = 4
 
   val numberFormatShort = "%,d"
   val elapsedFormat: String = "%" + (numberFormatLength + 2).toString + "s"
