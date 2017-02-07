@@ -55,11 +55,11 @@ object GameRunner {
 
           val score = play(context, gameIndex)(0)
 
-          val completed = (factorIndex * iterations) + (gameIndex + 1)
+          val completed:Int  = (factorIndex * iterations) + (gameIndex + 1)
 
           println(" - score: " + score.label(6) +
             " - done in " + t.elapsedLabel.trim.leftAlignedPadded(6) +
-            "- game: " + completed + " out of " + totalGames +
+            "- game: " + completed.label(4) + " out of " + totalGames +
             " (" + ((completed.toDouble / totalGames) * 100).label(2).trim + "%)" )
 
           score
