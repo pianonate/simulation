@@ -3,18 +3,15 @@
  * let Main be Main
  * GameRunner owns the responsibility of running Games and managing high score persistence
  */
-import java.awt.Toolkit
 
-import Game._
 import Implicits._
+import java.awt.Toolkit
 import java.io.PrintWriter
-
-import scala.collection.immutable.Iterable
-
+import com.typesafe.scalalogging.Logger
 
 object GameRunner {
 
-  val toolKit: Toolkit = java.awt.Toolkit.getDefaultToolkit
+  val logger = Logger("game_runner_logger")
 
   def generateWeights(context: Context): Unit = {
 
@@ -83,15 +80,12 @@ object GameRunner {
 
     println
     scores.toSeq.sortBy(a => a._2.sum * -1).foreach {
-      case (key, scores) =>
+      case (key, sortedScores) =>
 
-        val scoreSum = scores.sum.toDouble
-        println(key.leftAlignedPadded(Specification.maxOptFactorKeyLength + 1).addColon + "average".addColon + scores.avg.toInt.label(6) + " - weight".addColon + (scoreSum / sumOfAllGames))
+        val scoreSum = sortedScores.sum.toDouble
+        println(key.leftAlignedPadded(Specification.maxOptFactorKeyLength + 1).addColon + "average".addColon + sortedScores.avg.toInt.label(6) + " - weight".addColon + (scoreSum / sumOfAllGames))
 
     }
-
-    // so kevin wants
-    // game (n), seed(n), then each factor's score
 
     println
 
@@ -167,6 +161,8 @@ object GameRunner {
         "most simulations/s".label + bestPerSecond.label + "\n" +
         "total elapsed time".label + totalTime.elapsedLabel + "\n\n"
 
+      logger.info("game over", "score: " + results.score)
+
       if (context.show)
         print(endGameString)
 
@@ -234,6 +230,9 @@ object GameRunner {
     0
 
   }
+
+  // used to beep at the end of the game
+  val toolKit: Toolkit = java.awt.Toolkit.getDefaultToolkit
 
   def beep(context: Context): Unit = if (context.beep) toolKit.beep()
 

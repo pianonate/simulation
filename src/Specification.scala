@@ -1,5 +1,5 @@
 /**
- * Created by nathan mccoy on 1/15/2017.
+ * Created by nathan mccoy on  1/15/2017.
  *
  * introducing the Specification in order to configure it on the context
  *
@@ -328,7 +328,7 @@ object Specification {
   def apply(optFactor: OptimizationFactor): Specification = {
     // get a specification just for this optimization factor
     val optFactors = ListMap(optFactor.key -> optFactor)
-    apply(false, optFactors)
+    apply(filtered = false, optFactors)
   }
 
   // following are used to construct results
