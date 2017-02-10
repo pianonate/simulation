@@ -7,11 +7,8 @@
 import Implicits._
 import java.awt.Toolkit
 import java.io.PrintWriter
-import com.typesafe.scalalogging.Logger
 
 object GameRunner {
-
-  val logger = Logger("game_runner_logger")
 
   def generateWeights(context: Context): Unit = {
 
@@ -142,7 +139,11 @@ object GameRunner {
       val gameInfo = MultiGameStats(average, sessionHighScore, machineHighScore, gameCount.value, totalTime)
 
       val game = new Game(context, gameInfo)
+
+      context.logger.info("starting new game")
       val results = game.run
+      context.logger.info("game over - score: " + results.score)
+
 
       scores.append(results.score)
       rounds.append(results.rounds)
@@ -161,7 +162,6 @@ object GameRunner {
         "most simulations/s".label + bestPerSecond.label + "\n" +
         "total elapsed time".label + totalTime.elapsedLabel + "\n\n"
 
-      logger.info("game over", "score: " + results.score)
 
       if (context.show)
         print(endGameString)

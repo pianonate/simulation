@@ -65,8 +65,6 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
         roundHandler()
 
-        /* b = RawConsoleInput.read(false)
-          println("char in loop: " + b)*/
 
       } while (true) /*while (b == -2)
         println("char after loop: " + b)
@@ -774,18 +772,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
       print(s)
     }
   }
-
 }
 
-object Game {
 
-
-
-  sys.ShutdownHookThread {
-
-    println("\nGoodbye, I hope you enjoyed this episode of simulation.")
-
-  }
-
-}
 

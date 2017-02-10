@@ -3,15 +3,13 @@
  * parses command line and sets defaults
  */
 
-case class MultiGameStats(
-  averageScore:     Int,
-  sessionHighScore: Int,
-  machineHighScore: Int,
-  gameCount:        Int,
-  totalTime:        GameTimer
-)
+import com.typesafe.scalalogging.Logger
 
 class Context(conf: Conf) {
+
+  val logger = Logger("simulation_logger")
+  logger.info("starting simulation")
+
 
   // vars so you can change test specifications - consider other mechanisms if you wish
   val beep: Boolean = conf.beep()
