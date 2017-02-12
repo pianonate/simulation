@@ -4,7 +4,7 @@
  * renamed object to simulate so when sbt/packInstall is run
  * you can run this from ~/local/bin/simulate
  *
- * i haven't resolved the issue that i have a class name taht i like called simulation
+ * i haven't resolved the issue that i have a class name that i like called simulation
  * so while the whole project is called simulation, you have to run it with
  *
  * $ simulate
@@ -13,40 +13,22 @@
  * todo - think about a new name for simulation class
  */
 
-import org.slf4j.LoggerFactory
-import ch.qos.logback.classic.LoggerContext
-
 //noinspection ScalaFileName
 
 object simulate {
 
-
   def main(args: Array[String]): Unit = {
 
-    val context = new Context(new Conf(args))
+    val conf = new Conf(args)
+    val context = new Context(conf)
 
-    sys.addShutdownHook(
-      {
-
-      context.logger.info("stopping simulation")
-      val loggerContext: LoggerContext  = LoggerFactory.getILoggerFactory().asInstanceOf[LoggerContext]
-      loggerContext.stop()
-      println("goodbye - i hoped you enjoyed this simulation")
+    conf match {
+      case c if c.weightGenerator() > 0 => GameRunner.generateWeights(context)
+      case c if c.printPieces()         => (new GamePieces).printPossiblePieces
+      case _                            => GameRunner.play(context)
     }
-    )
-
-    if (context.generateWeightsGamesToPlay > 0)
-      GameRunner.generateWeights(context)
-    else
-      GameRunner.play(context)
-
-
-
 
   }
-
-
-
 
 }
 

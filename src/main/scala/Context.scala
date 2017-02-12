@@ -3,12 +3,24 @@
  * parses command line and sets defaults
  */
 
+import org.slf4j.LoggerFactory
 import com.typesafe.scalalogging.Logger
+import ch.qos.logback.classic.LoggerContext
 
 class Context(conf: Conf) {
 
   val logger = Logger("simulation_logger")
   logger.info("starting simulation")
+
+  sys.addShutdownHook(
+    {
+
+      logger.info("stopping simulation")
+      val loggerContext: LoggerContext = LoggerFactory.getILoggerFactory().asInstanceOf[LoggerContext]
+      loggerContext.stop()
+      println("goodbye - i hoped you enjoyed this simulation")
+    }
+  )
 
 
   // vars so you can change test specifications - consider other mechanisms if you wish

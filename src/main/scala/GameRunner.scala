@@ -86,7 +86,7 @@ object GameRunner {
 
     println
 
-    // todo - right now this is a bug waiting to happen (the 4 in repeat and label) - it needs to be based on the total number of games and whnat will be output because of that
+    // todo - right now this is a bug waiting to happen (the 4 in repeat and label) - it needs to be based on the total number of games and what will be output because of that
     val header = "game" +  scores.keys.toArray.map(key => " ".repeat(4) + key.rightAlignedPadded(Specification.maxOptFactorKeyLength)).mkString(" ") + "\n"
 
     val s = scores.values.transpose.zipWithIndex.map(game=>

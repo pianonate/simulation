@@ -41,7 +41,7 @@ case class Specification(spec: ListMap[String, OptimizationFactor]) {
       OptimizationFactor(enabled = false, name, minimize = false, 0.0, 0, 0, "", "")
   }
 
-  val allMaximizersOptFactor: OptimizationFactor = getOptimizationFactor(Specification.allMaximizersKey)
+  // val allMaximizersOptFactor: OptimizationFactor = getOptimizationFactor(Specification.allMaximizersKey)
   val avoidMiddleOptFactor: OptimizationFactor = getOptimizationFactor(Specification.avoidMiddleKey)
   val fourNeighborsOptFactor: OptimizationFactor = getOptimizationFactor(Specification.neighborsFourKey)
   val lineContiguousOptFactor: OptimizationFactor = getOptimizationFactor(Specification.lineContiguousUnoccupiedKey)
@@ -84,7 +84,7 @@ case class Specification(spec: ListMap[String, OptimizationFactor]) {
     val piecesString = simulationResults
       .zipWithIndex
       .map { case (result, index) => result.pieces.permutationPiecesHeader(index) }
-      .spreadHorizontal(startAt = 0, bracketWith = StringFormats.VERTICAL_LINE + " ", separator = (StringFormats.VERTICAL_LINE + " "))
+      .spreadHorizontal(bracketWith = StringFormats.VERTICAL_LINE + " ", separator = (StringFormats.VERTICAL_LINE + " "))
 
     val piecesHeader = wrappedBullShit.splice(piecesString.split("\n")) + "\n"
 
@@ -200,7 +200,7 @@ object Specification {
   private val minimize = true
   private val maximize = false
 
-  val allMaximizersKey = "allMaximizersKey"
+  //val allMaximizersKey = "allMaximizersKey"
   val avoidMiddleKey = "avoidMiddleKey"
   val lineContiguousUnoccupiedKey = "lineContiguousUnoccupiedKey"
   val maxContiguousKey = "maxContiguousKey"

@@ -49,10 +49,11 @@ case class BoardScore(
   // but this would introduce a lambda which, at runtime, has historically slowed things down significantly
   //  - test this theory and see if we can go direct as this would make the code much more maintainable
 
-  // this is not how you would count it, you need to run a simulation at the end of the simulation
+  // this is not how you would count allMaximizers, you need to run a simulation at the end of the simulation
   // that would short circuit once it found the first working solution for each of the combinations of all maximizers
   // this would tell us that we have a winning
   ///val allMaximizersScore: ScoreComponent = getScore(specification.allMaximizersOptFactor, ???)
+
   val avoidMiddleScore: ScoreComponent = getScore(specification.avoidMiddleOptFactor, board.avoidMiddleSum)
   val fourNeighborsScore: ScoreComponent = getScore(specification.fourNeighborsOptFactor, neighbors(4))
   val lineContiguousScore: ScoreComponent = getScore(specification.lineContiguousOptFactor, board.grid.lineContiguousCount)
@@ -63,25 +64,39 @@ case class BoardScore(
   val threeNeighborsScore: ScoreComponent = getScore(specification.threeNeighborOptFactor, neighbors(3))
   val twoNeighborsScore: ScoreComponent = getScore(specification.twoNeighborsOptFactor, neighbors(2))
 
-  lazy val scores: Array[ScoreComponent] = {
+  val scores: Array[ScoreComponent] = {
 
-    specification.spec.map {
-      case (name, _) =>
-        name match {
-          // case Specification.allMaximizersCountName => allMaximizersScore
-          case Specification.avoidMiddleKey => avoidMiddleScore
-          case Specification.`neighborsFourKey`  => fourNeighborsScore
-          case Specification.`lineContiguousUnoccupiedKey` => lineContiguousScore
-          case Specification.occupiedKey  => occupiedScore
-          case Specification.maxContiguousKey  => maxContiguousLinesScore
-          case Specification.maximizerKey => maximizerScore
-          case Specification.openLinesKey      => openLinesScore
-          case Specification.`neighborsThreeKey` => threeNeighborsScore
-          case Specification.`neighborsTwoKey`   => twoNeighborsScore
-          case _ =>
-            throw new IllegalArgumentException("This optimization factor was requested but hasn't been added to the scores List: " + name)
-        }
-    }.toArray
+
+    def getNamedScore(name:String):ScoreComponent = {
+
+      name match {
+        // case Specification.allMaximizersCountName => allMaximizersScore
+        case Specification.avoidMiddleKey => avoidMiddleScore
+        case Specification.neighborsFourKey => fourNeighborsScore
+        case Specification.lineContiguousUnoccupiedKey => lineContiguousScore
+        case Specification.occupiedKey => occupiedScore
+        case Specification.maxContiguousKey => maxContiguousLinesScore
+        case Specification.maximizerKey => maximizerScore
+        case Specification.openLinesKey => openLinesScore
+        case Specification.neighborsThreeKey => threeNeighborsScore
+        case Specification.neighborsTwoKey => twoNeighborsScore
+        case _ =>
+          throw new IllegalArgumentException("This optimization factor was requested but hasn't been added to the scores List: " + name)
+      }
+    }
+
+    val factors = specification.optimizationFactors
+    val scoreArray = new Array[ScoreComponent](factors.length)
+
+    var i = 0
+    while (i < factors.length) {
+      val factor = factors(i)
+      scoreArray(i) = getNamedScore(factor.key)
+      i += 1
+
+    }
+
+    scoreArray
 
   }
 
@@ -110,3 +125,4 @@ case class BoardScore(
     sum
   }
 }
+

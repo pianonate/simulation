@@ -53,10 +53,31 @@ case class OccupancyGrid(
     count
   }
 
-  // see if you can use this to not have to generate a new simulation, but
-  // rather just copy an existing
-  import scala.collection.immutable.BitSet
-  def bitSet: BitSet = BitSet.fromBitMaskNoCopy(rowGrid)
+  // byte array makes good keys for ehcache - so this will be a good board key
+  def toByteArray: Array[Byte] = {
+
+    var big = math.BigInt(0)
+
+    var row = 0
+    while (row < Board.BOARD_SIZE) {
+      val rowVal = rowGrid(row)
+
+      if (rowVal > 0) {
+        val shift = (row * Board.BOARD_SIZE)
+        val shifted = math.BigInt(rowVal) << shift
+        big = big + shifted
+      }
+
+      row += 1
+    }
+
+    // todo - get rid of the assert as we don't need to calculate popCount on every key
+    //
+    assert(big.bitCount == this.popCount, big.bitCount + " " + this.popCount)
+
+    big.toByteArray
+
+  }
 
   def copy: OccupancyGrid = {
 
@@ -224,10 +245,8 @@ case class OccupancyGrid(
               count += 1
 
             prevUnoccupied = true
-          }
-          else
+          } else
             prevUnoccupied = false
-
 
           j += 1
 
@@ -324,6 +343,27 @@ case class OccupancyGrid(
 }
 
 object OccupancyGrid {
+
+  /*  def toByteArray(bits:BitSet):Array[Byte] = {
+
+    val bitsLength = bits.size
+    val bytes = new Array[Byte]((bitsLength + 7) / 8)
+
+    var i = 0
+
+    while (i < bitsLength) {
+      if (bits.contains(i)) {
+        val byteIndex = bytes.length - i/8-1
+        val nextVal: Byte = (1 << ( i % 8 )).toByte
+        val current: Byte = bytes(byteIndex)
+        bytes(byteIndex) = current | nextVal
+      }
+
+      i+=1
+    }
+
+    bytes
+  }*/
 
   private val fillerup = (size: Int) => math.pow(2, size).toLong - 1
   private val zero = 0

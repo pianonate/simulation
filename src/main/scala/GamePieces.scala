@@ -127,11 +127,12 @@ class GamePieces(seed:Int = 0) {
   }
 
   def printPossiblePieces(): Unit = {
-    for (piece <- pieceList) {
+
+    for (piece <- pieceList.sortBy(_.pointValue)) {
       println(piece.name.addColon + piece.pointValue)
       println(piece.show(piece.cellShowFunction))
+      println
     }
-    println
   }
 
 }
