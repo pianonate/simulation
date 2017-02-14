@@ -232,7 +232,7 @@ object Specification {
   )*/
 
   // from a 390 run
-  private val weightMap = Map(
+/*  private val weightMap = Map(
 
     "maximizerKey" -> 0.5272891017383388,
     "avoidMiddleKey" -> 0.199174613082093,
@@ -243,6 +243,21 @@ object Specification {
     "neighborsThreeKey" -> 0.02362527320075932,
     "neighborsFourKey" -> 0.02297247114126007,
     "neighborsTwoKey" -> 0.0095079054513576
+
+  )*/
+
+  // from the 300 run post bug fix 2/14/2017
+  private val weightMap = Map(
+
+    "maximizerKey" -> 0.5550520731085657,
+    "avoidMiddleKey" -> 0.2087456921937354,
+    "occupiedKey" -> 0.052000315094685126,
+    "openLinesKey" -> 0.049271694104100025,
+    "maxContiguousKey" -> 0.04629870976150137,
+    "lineContiguousUnoccupiedKey" -> 0.03894821889017383,
+    "neighborsThreeKey" -> 0.021272603094526756,
+    "neighborsFourKey" -> 0.01955009923008016,
+    "neighborsTwoKey" -> 0.0088605945226315
 
   )
 
