@@ -142,7 +142,6 @@ object GameRunner {
 
       context.logger.info("starting new game")
       val results = game.run
-      context.logger.info("game over - score: " + results.score)
 
 
       scores.append(results.score)
@@ -161,6 +160,8 @@ object GameRunner {
         "most rounds".label + mostRounds.label + "\n" +
         "most simulations/s".label + bestPerSecond.label + "\n" +
         "total elapsed time".label + totalTime.elapsedLabel + "\n\n"
+
+      context.logger.info("game over - score: " + results.score.scoreLabel + " average: " + scores.avg.toInt.scoreLabel)
 
 
       if (context.show)
