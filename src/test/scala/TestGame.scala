@@ -39,6 +39,22 @@ class TestGame extends FlatSpec {
     }
   }
 
+//  it must "show how many simulations there are for an empty board with three small pieces" in {
+//    new GameInfoFixture {
+//      private val plcList = List(
+//        PieceLocCleared(GamePieces.singleton, Loc(0, 0), clearedLines = false),
+//        PieceLocCleared(GamePieces.h2Line, Loc(0, 5), clearedLines = false),
+//        PieceLocCleared(GamePieces.v2Line, Loc(5, 9), clearedLines = false)
+//      )
+//      context.setReplayList(plcList)
+//      context.ignoreSimulation = false
+//      context.show = true
+//      private val game = new Game(context, multiGameStats)
+//      game.run
+//
+//    }
+//  }
+
   it must "not get a weighted score larger than 1 when the board is cleared" in {
     new GameInfoFixture {
       // set up a game that will have a row and a column that will clear at the same time
@@ -63,7 +79,7 @@ class TestGame extends FlatSpec {
 
   // weighting scheme doesn't guarantee a particular choice - we're looking to ensure that a second round can be played
 
-  it must "place three big boxes on a particular board that invoked a comparison bug" ignore {
+  it must "place three big boxes on a particular board that invoked a comparison bug" in {
     new GameInfoFixture {
 
       // this board was an end of game scenario where sometimes

@@ -400,6 +400,15 @@ object Board {
     a
   }
 
+  // use these values to provide numbers that when added together will be unique for any combination of the three numbers
+  // this was verified in the REPL
+  // take the result of the 3 added together numbers and mod them against the total number of permutations
+  // this is useful because each permutation will generate most of the same locations and we only need to calculate one of them
+  // so we mod by the total permutation count and see if it matches this permutation index and that is the one that is responsible
+  val allLocationHashes:Array[Long] = {
+    (0 to (BOARD_SIZE * BOARD_SIZE - 1)).map(x =>( (math.sin(x).abs) * math.pow(10,11) ).toLong ).toArray
+  }
+
   def copy(newName: String, boardToCopy: Board): Board = {
 
     new Board(newName, BOARD_COLOR, boardToCopy.grid.copy, boardToCopy.colorGrid, boardToCopy.specification)

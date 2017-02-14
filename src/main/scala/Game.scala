@@ -186,11 +186,11 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
       "clear".!
     }
 
-    def moveCursorTopLeft: Unit = {
+ /*   def moveCursorTopLeft: Unit = {
       //"clear" !
       "tput cup 10 4" !
       // "printf \u001B[2J" !
-    }
+    }*/
 
     val replayPieces = getReplayPieces
 
@@ -235,7 +235,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
       }
     }
 
-    if (bestSimulation.pieceCount < 3 || (rounds.value == context.stopGameAtRound)) {
+    if (bestSimulation.pieceCount < GamePieces.numPiecesInRound || (rounds.value == context.stopGameAtRound)) {
       gameOver
     }
 
@@ -344,16 +344,18 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
     }
 
-    def createSimulations(board: Board, pieces: List[Piece], linesCleared: Boolean, plcAccumulator: List[PieceLocCleared]): Unit = {
+    def createSimulations(board: Board, pieces: List[Piece], linesCleared: Boolean, plcAccumulator: List[PieceLocCleared], updatableAccumulator:Long): Unit = {
 
-      def isUpdatable(loc: Loc): Boolean = {
+        def isUpdatable(locHash:Long): Boolean = {
 
-        // mode the index with totalPermutations and see if it's equal to this permutations index
-        // if it is, you must calculate
+        /* locHash is the sum of all locHashes (accumulated on updatableAccumulator
+           this permutation is only responsible for it's proportion of these locHashes
+           which will always be repeated on each permutation from any given starting board
+           other that this, always score if a line is cleared as this is not guaranteed to happen
+           on all permutations
+           */
         def mustUpdateForThisPermutation: Boolean = {
-          // find where this location is a flattened index list
-          val index = loc.row * Board.BOARD_SIZE + loc.col
-          (index % totalPermutations) == permutationIndex
+           (locHash % totalPermutations) == permutationIndex
         }
 
         // we have to count this one if it clears lines as this can happen on any permutation
@@ -481,21 +483,27 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
           val boardCopy = result.board
           val plc = result.plc
 
+
+          // each location has a unique value and the value are distributed such that when added together
+          // the values are unique.  this allows us to view a combination of locations as unique
+          // and given these combinations will be repeated in each simulation, a simulation is only
+          // responsible to be created for it's proportion of the total number of simulations
+          // we mod the total to make this work
+          val locHash = Board.allLocationHashes(loc.row * Board.BOARD_SIZE + loc.col) + updatableAccumulator
+          val plcList = plc :: plcAccumulator
+
           if (pieces.tail.nonEmpty) {
 
             // recurse
             // if we have already cleared lines then propagate that so we don't pay the freight
             // in "isUpdatable" where it's an expensive calculation
             val cleared = if (linesCleared) linesCleared else plc.clearedLines
-            createSimulations(boardCopy, pieces.tail, cleared, plc :: plcAccumulator)
+            createSimulations(boardCopy, pieces.tail, cleared,plcList, locHash)
 
           } else {
-            // right now we never get to the third simulation if it can't fit
-            // so it would be good to return a 2 piece simulation or 1 piece simulation if they can be returned
-            val plcList = plc :: plcAccumulator
 
             // only add simulation when we've reached the last legal location on this path
-            if (isUpdatable(loc)) {
+            if (isUpdatable(locHash)) {
               updateSimulation(plcList, boardCopy)
             } else {
               unsimulatedCount.inc()
@@ -520,7 +528,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
     }
 
-    createSimulations(board, pieces, linesCleared = false, List())
+    createSimulations(board, pieces, linesCleared = false, List(), 0)
 
     def emptySimulation: Simulation = Simulation(List(), this.board, 0)
 
@@ -774,6 +782,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
     }
   }
 }
+
 
 
 
