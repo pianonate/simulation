@@ -11,6 +11,8 @@ trait GameInfoFixture {
   context.show = false
 }
 
+// todo - do a test to prove that 100*99*98 is true as it is a fundamental truth of the gaem
+
 class TestGame extends FlatSpec {
 
   behavior of "A game"
@@ -76,6 +78,8 @@ class TestGame extends FlatSpec {
       assert(results.score===20)
     }
   }
+
+
 
   // weighting scheme doesn't guarantee a particular choice - we're looking to ensure that a second round can be played
 
