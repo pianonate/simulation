@@ -1,14 +1,32 @@
 <!--suppress XmlUnboundNsPrefix -->
 <configuration scan="true" scanPeriod="30 seconds">
 
+    <!-- todo - when running tests, can you log to a different file? -->
     <appender name="FILE" class="ch.qos.logback.core.FileAppender">
         <file>simulation.log</file>
 
         <encoder>
-            <pattern>%date %level [%thread] %logger{10} [%-20file:%3line{40}] %msg%n</pattern>
+            <pattern>%date %level <!--[%thread]--> <!--%logger{10}--> [%-20file:%3line{40}] %msg%n</pattern>
         </encoder>
     </appender>
 
+    <!-- todo need new file per game - emit it in the file name / put one directory under current -->
+    <appender name="JSON" class="ch.qos.logback.core.FileAppender">
+        <file>simulation_json.log</file>
+        <encoder>
+            <pattern>%msg%n</pattern>
+        </encoder>
+    </appender>
+
+
+    <appender name="ASYNC" class="ch.qos.logback.classic.AsyncAppender">
+        <discardingThreshold>0</discardingThreshold>
+        <appender-ref ref="JSON" />
+    </appender>
+
+    <logger name="json" additivity="false">
+        <appender-ref ref="ASYNC" />
+    </logger>
 
     <root level="debug">
         <appender-ref ref="FILE" />

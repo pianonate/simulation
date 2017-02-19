@@ -58,14 +58,10 @@ case class Specification(spec: ListMap[String, OptimizationFactor]) {
   }
 
   private[this] def greenifyResult(optLabel: Option[String], isGreen: Boolean, value: Int): String = {
-    // maximized results are negated to work with Simulation.compare so
-    // as not to have to jump through hoops in that method
-    // use math.abs to show them to the user in a way that makes sense
 
-    val result = value.abs
     val resultString = optLabel match {
-      case s: Some[String] => s.get.optFactorLabel + (if (isGreen) result.greenLabel else result.redLabel)
-      case _               => (if (isGreen) result.greenLabel else result.redLabel).parens
+      case s: Some[String] => s.get.optFactorLabel + (if (isGreen) value.greenLabel else value.redLabel)
+      case _               => (if (isGreen) value.greenLabel else value.redLabel).parens
     }
 
     resultString

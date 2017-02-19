@@ -9,7 +9,7 @@ class TestSpecification extends FlatSpec {
   behavior of "A Specification"
 
   // todo fix the fact that you have more results than will fit on the board display
-  it must "for a spec with all optimization factors on, drive a working Game" ignore {
+  it must "for a spec with all optimization factors on, drive a working Game" in {
 
     new GameInfoFixture {
 

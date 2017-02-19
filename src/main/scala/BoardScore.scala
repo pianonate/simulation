@@ -19,17 +19,18 @@ case class BoardScore(
 
   // sum the weighted results and use this as an alternative comparison to current mechanism
 
-  private def getScore(opt: OptimizationFactor, i: Int): ScoreComponent = {
+  private def getScore(opt: OptimizationFactor, intValue: Int): ScoreComponent = {
 
     if (opt.enabled) {
 
-      // todo - when we stop using the compare, we don't have to multiply these by -1 anymore
-      val intValue = i
 
-      // normalize the value to be from 0 to 1.  as currently all min vals are 0, there is no need to include a
-      // min val in the normalization
+      // normalize the value to range from 0 to 1.
       // if an optimization factor is supposed to a low number, then subtract it from it's max value before normalizing
-      val normalizedValue: Double = if (opt.minimize) 1 - (i - opt.minVal) / (opt.maxVal - opt.minVal).toDouble else (i - opt.minVal) / (opt.maxVal - opt.minVal).toDouble
+      val normalizedValue: Double = if (opt.minimize)
+        1 - (intValue - opt.minVal) / (opt.maxVal - opt.minVal).toDouble
+      else
+        (intValue - opt.minVal) / (opt.maxVal - opt.minVal).toDouble
+
       if (normalizedValue > 1.0) {
         throw new IllegalArgumentException(opt.label + ".normalizedValue > 1.0 - here's the scoop: " + normalizedValue)
       }
