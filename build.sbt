@@ -17,7 +17,6 @@ libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.1.7"
 // cache
 libraryDependencies += "com.github.cb372" %% "scalacache-ehcache" % "0.9.3"
 
-//libraryDependencies += "com.github.cb372" %% "scalacache-ehcache" % "0.9.3"
 // fork in run := true
 //connectInput in run := true
 cancelable in Global := true

@@ -1,0 +1,98 @@
+{
+  "round": 1,                                 // round number n - each round places 3 pieces
+  "board": 1109813850272549034121298314112,   // bigint bitmask - first 100 positions 1 means cell is occupied, 0 means not occupied
+  "score": 15,                                // score at end of the round
+  "pieces": [
+    {
+      "pieceName": BigBox,                    // 1st piece for round + location
+      "row": 0,
+      "col": 7
+    },
+    {
+      "pieceName": VLine4,                    // 2nd piece for round + location
+      "row": 6,
+      "col": 9
+    },
+    {
+      "pieceName": HLine2,                    // 3rd piece for round + location
+      "row": 9,
+      "col": 7
+    }
+  ],
+  "features": [
+    {
+      "featureName": maximizer,               // feature label
+      "intValue": 49,                         // integer value
+      "normalizedValue": 0.765625,            // integer value normalized from 0 to 1
+      "weightedValue": 0.42496174347374566,   // weighted value (multiply normalized value by the weight)
+      "weight": 0.5550520731085657            // the weight for this feature
+    },
+    {
+      "featureName": avoid
+      middle,
+      "intValue": 87,
+      "normalizedValue": 0.9694092827004219,
+      "weightedValue": 0.20236001173633208,
+      "weight": 0.2087456921937354
+    },
+    {
+      "featureName": occupied,
+      "intValue": 15,
+      "normalizedValue": 0.85,
+      "weightedValue": 0.04420026783048236,
+      "weight": 0.052000315094685126
+    },
+    {
+      "featureName": open
+      rows
+      +
+      cols,
+      "intValue": 10,
+      "normalizedValue": 0.5,
+      "weightedValue": 0.02463584705205002,
+      "weight": 0.04927169410410004
+    },
+    {
+      "featureName": connected
+      open,
+      "intValue": 7,
+      "normalizedValue": 0.7,
+      "weightedValue": 0.03240909683305096,
+      "weight": 0.04629870976150137
+    },
+    {
+      "featureName": spaces
+      on
+      a
+      line,
+      "intValue": 20,
+      "normalizedValue": 1.0,
+      "weightedValue": 0.03894821889017383,
+      "weight": 0.03894821889017383
+    },
+    {
+      "featureName": 3
+      neighbors,
+      "intValue": 0,
+      "normalizedValue": 1.0,
+      "weightedValue": 0.021272603094526756,
+      "weight": 0.021272603094526756
+    },
+    {
+      "featureName": 4
+      neighbors,
+      "intValue": 0,
+      "normalizedValue": 1.0,
+      "weightedValue": 0.01955009923008016,
+      "weight": 0.01955009923008016
+    },
+    {
+      "featureName": 2
+      neighbors,
+      "intValue": 7,
+      "normalizedValue": 0.8833333333333333,
+      "weightedValue": 0.007826858494991158,
+      "weight": 0.0088605945226315
+    }
+  ]
+}

@@ -53,9 +53,9 @@ case class OccupancyGrid(
     count
   }
 
-  // byte array makes good keys for ehcache - so this will be a good board key
-  def toByteArray: Array[Byte] = {
+  def asBigInt: math.BigInt = {
 
+    // used in logging
     var big = math.BigInt(0)
 
     var row = 0
@@ -75,7 +75,7 @@ case class OccupancyGrid(
     //
     assert(big.bitCount == this.popCount, big.bitCount + " " + this.popCount)
 
-    big.toByteArray
+    big
 
   }
 

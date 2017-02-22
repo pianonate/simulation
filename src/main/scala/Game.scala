@@ -48,14 +48,13 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
   def run: GameResults = {
 
-/*    def resetTerminalBuffer: Unit = {
+    /*    def resetTerminalBuffer: Unit = {
       // reset terminal every 1000 rounds
       // if (rounds.value % context.eraseTerminalBufferAfterRound == 0)
       "printf '\u001B[3J'" !
     }*/
 
     try {
-
 
       /* def loop = {
         var b = 0*/
@@ -64,7 +63,6 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
         // todo figure out how to capture a pause character without having to hit return
 
         roundHandler()
-
 
       } while (true) /*while (b == -2)
         println("char after loop: " + b)
@@ -186,7 +184,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
       "clear".!
     }
 
- /*   def moveCursorTopLeft: Unit = {
+    /*   def moveCursorTopLeft: Unit = {
       //"clear" !
       "tput cup 10 4" !
       // "printf \u001B[2J" !
@@ -230,9 +228,10 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
           )
         }
 
-
         print(endOfRoundResultsString)
       }
+
+      logRound(bestSimulation)
     }
 
     if (bestSimulation.pieceCount < GamePieces.numPiecesInRound || (rounds.value == context.stopGameAtRound)) {
@@ -344,9 +343,9 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
     }
 
-    def createSimulations(board: Board, pieces: List[Piece], linesCleared: Boolean, plcAccumulator: List[PieceLocCleared], updatableAccumulator:Long): Unit = {
+    def createSimulations(board: Board, pieces: List[Piece], linesCleared: Boolean, plcAccumulator: List[PieceLocCleared], updatableAccumulator: Long): Unit = {
 
-        def isUpdatable(locHash:Long): Boolean = {
+      def isUpdatable(locHash: Long): Boolean = {
 
         /* locHash is the sum of all locHashes (accumulated on updatableAccumulator
            this permutation is only responsible for it's proportion of these locHashes
@@ -355,7 +354,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
            on all permutations
            */
         def mustUpdateForThisPermutation: Boolean = {
-           (locHash % totalPermutations) == permutationIndex
+          (locHash % totalPermutations) == permutationIndex
         }
 
         // we have to count this one if it clears lines as this can happen on any permutation
@@ -483,7 +482,6 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
           val boardCopy = result.board
           val plc = result.plc
 
-
           // each location has a unique value and the value are distributed such that when added together
           // the values are unique.  this allows us to view a combination of locations as unique
           // and given these combinations will be repeated in each simulation, a simulation is only
@@ -498,7 +496,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
             // if we have already cleared lines then propagate that so we don't pay the freight
             // in "isUpdatable" where it's an expensive calculation
             val cleared = if (linesCleared) linesCleared else plc.clearedLines
-            createSimulations(boardCopy, pieces.tail, cleared,plcList, locHash)
+            createSimulations(boardCopy, pieces.tail, cleared, plcList, locHash)
 
           } else {
 
@@ -552,9 +550,8 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
   }
 
-  // todo take the returned information from pieceHandler to construct the information string separately
-
   private def pieceHandler(piece: Piece, loc: Loc, index: Int): String = {
+    // todo take the returned information from pieceHandler to construct the information string separately
 
     board.place(piece, loc, updateColor = true)
 
@@ -618,7 +615,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
     // assert(newResults.length == Board.BOARD_SIZE, "new results don't equal board size:" + newResults.length)
 
     val appendToBoard = "\n" + (Board.BOARD_SIZE until totalHeight)
-      .map(_ => " ".repeat(Board.BOARD_SIZE * 2 - 1 + boardSpacer.length) +"\n").mkString
+      .map(_ => " ".repeat(Board.BOARD_SIZE * 2 - 1 + boardSpacer.length) + "\n").mkString
 
     val newBoard = (boardBeforeClearing + appendToBoard) splice newResults
 
@@ -781,8 +778,65 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
       print(s)
     }
   }
+
+  private def logRound(best: Simulation): Unit = {
+
+    // todo - add colorGridAtRoundBegin and serialize color values 4 bits at a time
+    // todo - rename board to boardStartAtRoundEnd
+    // todo - add sessiongGameNumber
+    // todo - add gamePieceSeed for future use
+    // todo - generate sampleJSON with a command line parameter
+    //
+
+    /*   log pieces in the following json format
+
+    { "round" : 1,     // round # - Integer
+      "board" : 432,   // bigint representing board state - needs to be unpacked 10 bits at a time to show it
+      "score":  n,     // game score
+      "pieces": [
+         {"pieceName" : "name1", "row": n, "col" : n },
+         {"pieceName" : "name2", "row": n, "col" : n },
+         {"pieceName" : "name3", "row": n, "col" : n }
+      ],
+      "features": [
+          {"featureName": "featurename1", "intValue" : n, "normalizedValue": n, "weightedValue": n, "weight": n},
+          {"featureName": "featurename1", "intValue" : n, "normalizedValue": n, "weightedValue": n, "weight": n},
+          {"featureName": "featurename1", "intValue" : n, "normalizedValue": n, "weightedValue": n, "weight": n}
+      ]}
+      
+     */
+
+    // only if asked to
+
+    if (context.logJSON) {
+
+      val delimiter = ","
+
+      def getNameVal(name: String, value: Any): String = {
+        "\"" + name + "\" : " + value.toString + delimiter
+      }
+
+      val pieces = best.plcList.reverse.map { plc =>
+        "{" + getNameVal("pieceName", plc.piece.name) + getNameVal("row", plc.loc.row) + getNameVal("col", plc.loc.col).dropRight(delimiter.length) + "}"
+      }.mkString(delimiter)
+
+      val features = this.board.boardScore.scores.map { scoreComponent =>
+        "{" + getNameVal("featureName", scoreComponent.label) + getNameVal("intValue", scoreComponent.intValue) +
+          getNameVal("normalizedValue", scoreComponent.normalizedValue) + getNameVal("weightedValue", scoreComponent.weightedValue) +
+          getNameVal("weight", scoreComponent.weight).dropRight(delimiter.length) + "}"
+      }.mkString(delimiter)
+
+      val s = "{" +
+        getNameVal("round", rounds.value) +
+        getNameVal("board", this.board.grid.asBigInt) +
+        getNameVal("score", score.value) +
+        getNameVal("pieces", "[" + pieces + "]") +
+        getNameVal("features", "[" + features + "]").dropRight(delimiter.length) + "}"
+
+      context.jsonLogger.info(s)
+    }
+
+  }
+
 }
-
-
-
 

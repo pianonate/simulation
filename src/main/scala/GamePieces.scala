@@ -71,7 +71,7 @@ import scala.util.Random
 
  */
 
-class GamePieces(seed:Int = 0) {
+class GamePieces(seed: Int = 0) {
 
   val randomizer: Random = if (seed > 0) new scala.util.Random(seed) else new scala.util.Random()
 
@@ -108,18 +108,12 @@ class GamePieces(seed:Int = 0) {
   private val pieceDistribution = pieceList.flatMap(piece => List.fill(piece.weight)(piece.name))
 
   def getRandomPiece: Piece = {
-
     // add a random piece to the board and print it out
     val pieceIndex = randomizer.nextInt(pieceDistribution.size)
     pieceMap(pieceDistribution(pieceIndex))
   }
 
-  def getNamedPieces(names: String*): List[Piece] = {
-    names.map(name => pieceMap(name)).toList
-  }
-
   def usageString: String = {
-
     pieceList
       .sortBy(piece => (piece.usage.value, piece.name))
       .map(piece => piece.name.label + piece.usage.label)
@@ -127,7 +121,6 @@ class GamePieces(seed:Int = 0) {
   }
 
   def printPossiblePieces(): Unit = {
-
     for (piece <- pieceList.sortBy(_.pointValue)) {
       println(piece.name.addColon + piece.pointValue)
       println(piece.show(piece.cellShowFunction))
@@ -135,11 +128,16 @@ class GamePieces(seed:Int = 0) {
     }
   }
 
+  // used to find the color index for a particular location in the board colorGrid
+  // the color used on the board will have derived from one of these pieces.
+  // provide an integer index that we then pack into a BigInt representing the colored state of a given board
+  val colorIndexMap = pieceList.zipWithIndex.map(tup => (tup._1.color, tup._2 + 1)).toMap
+
 }
 
 object GamePieces {
 
-  val numPiecesInRound:Int = 3
+  val numPiecesInRound: Int = 3
 
   val singletonName = "Singleton"
   val h2LineName = "HLine2"
@@ -190,8 +188,8 @@ object GamePieces {
 
   private val gamePieces = new GamePieces
   // used for outputting a set of three pieces
-  val tallestPiece:Int = gamePieces.pieceList.map(_.rows).max
-  val widestPiece:Int = gamePieces.pieceList.map(_.cols).max
-  val longestNameLength:Int = gamePieces.pieceList.map(_.name.length).max
+  val tallestPiece: Int = gamePieces.pieceList.map(_.rows).max
+  val widestPiece: Int = gamePieces.pieceList.map(_.cols).max
+  val longestNameLength: Int = gamePieces.pieceList.map(_.name.length).max
 
 }

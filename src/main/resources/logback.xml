@@ -1,7 +1,6 @@
 <!--suppress XmlUnboundNsPrefix -->
 <configuration scan="true" scanPeriod="30 seconds">
 
-    <!-- todo - when running tests, can you log to a different file? -->
     <appender name="FILE" class="ch.qos.logback.core.FileAppender">
         <file>simulation.log</file>
 
@@ -10,7 +9,16 @@
         </encoder>
     </appender>
 
-    <!-- todo need new file per game - emit it in the file name / put one directory under current -->
+    <!-- todo need new file per game - emit it in the file name / put one directory under current
+         probably can use MDC with a replacement parameter in the file name
+         https://logback.qos.ch/manual/mdc.html
+
+         To separate/sift log messages to different files depending on a runtime attribute, you might want to use ch.qos.logback.classic.sift.SiftingAppender.
+
+          In a nutshell, this allows you to set up a FileAppender (or any other appender)
+          with <file>${userid}.log</file> where ${userId} is substituted based on the MDC
+          (Mapped Diagnostic Context) (e.g., MDC.put("userid", "Alice");). See the first link for the complete example.
+         -->
     <appender name="JSON" class="ch.qos.logback.core.FileAppender">
         <file>simulation_json.log</file>
         <encoder>

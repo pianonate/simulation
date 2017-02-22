@@ -3,28 +3,29 @@
  * parses command line and sets defaults
  */
 
+import scala.util.Random
+
 import org.slf4j.LoggerFactory
+
 import com.typesafe.scalalogging.Logger
+
 import ch.qos.logback.classic.LoggerContext
 
 class Context(conf: Conf) {
 
-  val logger = Logger("simulation_logger")
+  private val loggerContext: LoggerContext = LoggerFactory.getILoggerFactory().asInstanceOf[LoggerContext]
+
+  val logger = Logger("simulation_logger") // gets root logger - could also get it from loggerContext via loggerContext.getLogger("ROOT")
   logger.info("starting simulation")
+
+  val jsonLogger = loggerContext.getLogger("json")
 
   sys.addShutdownHook(
     {
-      // todo - when online, look up how scalatest causes an error in shutdownhook:
-      //  Exception in thread "shutdownHook3" java.util.ConcurrentModificationException
-      try {
-        logger.info("stopping simulation")
-        val loggerContext: LoggerContext = LoggerFactory.getILoggerFactory().asInstanceOf[LoggerContext]
-        loggerContext.stop()
-      } catch {
-        case e: Throwable => // for now, eat the error which seems to only happen in scalatest
-      } finally {
-        if (this.show) println("goodbye - i hoped you enjoyed this simulation")
-      }
+      logger.info("stopping simulation")
+      // val loggerContext: LoggerContext = LoggerFactory.getILoggerFactory().asInstanceOf[LoggerContext]
+      loggerContext.stop()
+      if (this.show) println("goodbye - i hoped you enjoyed this simulation") //}
     }
   )
 
@@ -36,6 +37,7 @@ class Context(conf: Conf) {
   var maxSimulations: Int = conf.maxSimulations()
   var stopGameAtRound: Int = conf.endGameAtRound()
   var parallel: Boolean = conf.parallel()
+  val logJSON: Boolean = conf.logJSON()
   var show: Boolean = conf.show()
   var showRoundResultsOnly: Boolean = conf.showRoundResultsOnly()
 
@@ -44,8 +46,16 @@ class Context(conf: Conf) {
 
   val stopAtNewHighScore: Boolean = conf.stopAtNewHighScore()
 
-  // TODO - always set a random seed and then log it with the game score so you can replay that game with a new algo if you wish
+  // TODO - always set a random seed and then log it with the game score
+  //        so you can replay that game with a new algo if you wish
+  //        the thing to do is to use conf.randomSeed() or generate one
+  //        as a def to create a set of new seeds for each game that's played
+  //
   var randomSeed: Int = conf.randomSeed()
+  /* def gameSeed:Int = {
+    val randomizer: Random = if (seed > 0) new scala.util.Random(seed) else new scala.util.Random()
+
+  }*/
 
   //noinspection VarCouldBeVal
   var specification: Specification = Specification()

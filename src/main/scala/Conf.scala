@@ -8,11 +8,10 @@ import org.rogach.scallop._
 
 class Conf(arguments: Seq[String]) extends ScallopConf(arguments) {
 
-    // max simulations if you had 3 singletons chosen on an empty board:
+  // max simulations if you had 3 singletons chosen on an empty board:
   private val BOARD_UNOCCUPIED = Board.BOARD_SIZE * Board.BOARD_SIZE
   private val MAX_SIMULATION_ITERATIONS: Int = BOARD_UNOCCUPIED * (BOARD_UNOCCUPIED - 1) * (BOARD_UNOCCUPIED - 2)
   private val ERASE_TERMINAL_BUFFER_EVERY_N_ROUNDS = 1000
-
 
   private val header = {
 
@@ -50,8 +49,7 @@ class Conf(arguments: Seq[String]) extends ScallopConf(arguments) {
       |
       |You can use or omit any of the following arguments as they all have proper defaults
       |
-    """.stripMargin
-  )
+    """.stripMargin)
 
   footer(
     """
@@ -69,6 +67,7 @@ class Conf(arguments: Seq[String]) extends ScallopConf(arguments) {
   val endGameAtRound: ScallopOption[Int] = opt[Int](default = Some(0), validate = (i) => i >= 0, descr = "end the game at this round number")
   val stopAtNewHighScore: ScallopOption[Boolean] = toggle(default = Some(true), short = 'n', descrYes = "default:stop a continuous play game if a new high score is reached", descrNo = "don't stop a continuous play game if a new high score is reached")
 
+  val logJSON: ScallopOption[Boolean] = toggle(default = Some(false), short = 'j', descrYes = "logs game json to json folder", descrNo = "default:does not log json")
 
   val gamesToPlay: ScallopOption[Int] = opt[Int](default = Some(0), validate = (i) => i >= 0, descr = "anything greater than 0 will invoke for this number of games.  0 means play continuously")
 
@@ -80,13 +79,10 @@ class Conf(arguments: Seq[String]) extends ScallopConf(arguments) {
 
   val randomSeed: ScallopOption[Int] = opt[Int](default = Some(0), descr = "provide a seed to cause game to play with same pieces")
 
-
   // the following are non-game arguments that will result in a no game being played
-  val printPieces: ScallopOption[Boolean] = toggle(default = Some(false), descrYes="print out the game pieces", descrNo="default: don't print out the game pieces")
-  val weightGenerator: ScallopOption[Int] = opt[Int](default = Some(0),validate = (i) => i >= 0, descr = "default(0): generate the weights for each optimization factor based on how well they play - the integer value is how many games to play for each optFactor.  If the value is 0, it skips this")
+  val printPieces: ScallopOption[Boolean] = toggle(default = Some(false), descrYes = "print out the game pieces", descrNo = "default: don't print out the game pieces")
+  val weightGenerator: ScallopOption[Int] = opt[Int](default = Some(0), validate = (i) => i >= 0, descr = "default(0): generate the weights for each optimization factor based on how well they play - the integer value is how many games to play for each optFactor.  If the value is 0, it skips this")
 
   verify()
-
-
 
 }

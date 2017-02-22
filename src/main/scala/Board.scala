@@ -32,8 +32,8 @@ class Board(
     )
   }
 
+  // def so a new one is created everytime boardScore is called
   def boardScore: BoardScore = BoardScore(this, specification)
-  //def scores: Array[ScoreComponent] = boardScore.scores
 
   // the board output shows unoccupied cells so just call .show on every cell
   // different than the Piece.show which will not output unoccupied Cell's in other pieces
@@ -50,7 +50,7 @@ class Board(
 
   def maximizerCount: Int = legalPlacements(Specification.maximizer3x3).length
 
-  def avoidMiddleSum:Int = {
+  def avoidMiddleSum: Int = {
     var i = 0
     var j = 0
     var sum = 0
@@ -59,15 +59,13 @@ class Board(
       while (j < a.length) {
         if (cachedOccupancyGrid(i)(j))
           sum += a(i)(j)
-        j+=1
+        j += 1
       }
       j = 0
       i += 1
     }
     sum
   }
-
-
 
   // changed to not use a rotated copy of the board
   // slight increase in LOC but definite decrease in % of code execution time
@@ -405,8 +403,8 @@ object Board {
   // take the result of the 3 added together numbers and mod them against the total number of permutations
   // this is useful because each permutation will generate most of the same locations and we only need to calculate one of them
   // so we mod by the total permutation count and see if it matches this permutation index and that is the one that is responsible
-  val allLocationHashes:Array[Long] = {
-    (0 to (BOARD_SIZE * BOARD_SIZE - 1)).map(x =>( (math.sin(x).abs) * math.pow(10,11) ).toLong ).toArray
+  val allLocationHashes: Array[Long] = {
+    (0 to (BOARD_SIZE * BOARD_SIZE - 1)).map(x => ((math.sin(x).abs) * math.pow(10, 11)).toLong).toArray
   }
 
   def copy(newName: String, boardToCopy: Board): Board = {
@@ -416,7 +414,7 @@ object Board {
   }
 
   private def getBoardColorGrid: Array[Array[String]] = {
-    Array.tabulate(BOARD_SIZE, BOARD_SIZE) { (_, _) => ""}
+    Array.tabulate(BOARD_SIZE, BOARD_SIZE) { (_, _) => "" }
   }
 
 }
