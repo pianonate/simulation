@@ -71,9 +71,10 @@ import scala.util.Random
 
  */
 
-class GamePieces(seed: Int = 0) {
+class GamePieces(seed: Int) {
 
-  val randomizer: Random = if (seed > 0) new scala.util.Random(seed) else new scala.util.Random()
+  // set the piece generator to be seeded by the passed in seed
+  private[this] val randomizer: Random = new scala.util.Random(seed)
 
   import GamePieces._
 
@@ -131,7 +132,8 @@ class GamePieces(seed: Int = 0) {
   // used to find the color index for a particular location in the board colorGrid
   // the color used on the board will have derived from one of these pieces.
   // provide an integer index that we then pack into a BigInt representing the colored state of a given board
-  val colorIndexMap = pieceList.zipWithIndex.map(tup => (tup._1.color, tup._2 + 1)).toMap
+  // val colorIndexMap = pieceList.zipWithIndex.map(tup => (tup._1.color, tup._2 + 1)).toMap
+  val colorIndexMap = pieceList.map(_.color).toSet.zipWithIndex.map(tup => (tup._1, tup._2 + 1)).toMap
 
 }
 
@@ -186,7 +188,7 @@ object GamePieces {
   def bigUpperRightEl: Piece = Piece.rotate90(GamePieces.bigUpperRightElName, bigUpperLeftEl)
   def bigLowerRightEl: Piece = Piece.rotate90(GamePieces.bigLowerRightElName, bigUpperRightEl)
 
-  private val gamePieces = new GamePieces
+  private val gamePieces = new GamePieces(seed=0)
   // used for outputting a set of three pieces
   val tallestPiece: Int = gamePieces.pieceList.map(_.rows).max
   val widestPiece: Int = gamePieces.pieceList.map(_.cols).max

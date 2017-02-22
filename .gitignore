@@ -1,6 +1,9 @@
+.DS_Store
+.idea
+json/
+project/project
 simulation.log
 simulation_json.log
-.idea
 target/
-project/project
-project/target
+
+

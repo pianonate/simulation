@@ -24,7 +24,6 @@ object GameRunner {
     val totalGames = iterations * specification.length
     val longestKeyLength = specification.spec.keys.map(_.length).max
 
-
     // play the same game for each
     val randomizer = new scala.util.Random(1)
 
@@ -43,18 +42,20 @@ object GameRunner {
           val t = new GameTimer
 
           // each factor will play the same game to see how each performs against the same set of pieces
-          context.randomSeed = seeds(gameIndex)
+          context.setGameSeed(seeds(gameIndex))
 
           print(optFactor.key.rightAlignedPadded(longestKeyLength) + " game - " + (gameIndex + 1).label(iterationLength))
 
+          // play a game and get its score back - this seems a little obscure in terms of how to get the score...
+          // could you be more clear?
           val score = play(context, gameIndex)(0)
 
-          val completed:Int  = (factorIndex * iterations) + (gameIndex + 1)
+          val completed: Int = (factorIndex * iterations) + (gameIndex + 1)
 
           println(" - score: " + score.label(6) +
             " - done in " + t.elapsedLabel.trim.leftAlignedPadded(6) +
             "- game: " + completed.label(4) + " out of " + totalGames +
-            " (" + ((completed.toDouble / totalGames) * 100).label(2).trim + "%)" )
+            " (" + ((completed.toDouble / totalGames) * 100).label(2).trim + "%)")
 
           score
         }
@@ -87,11 +88,11 @@ object GameRunner {
     println
 
     // todo - right now this is a bug waiting to happen (the 4 in repeat and label) - it needs to be based on the total number of games and what will be output because of that
-    val header = "game" +  scores.keys.toArray.map(key => " ".repeat(4) + key.rightAlignedPadded(Specification.maxOptFactorKeyLength)).mkString(" ") + "\n"
+    val header = "game" + scores.keys.toArray.map(key => " ".repeat(4) + key.rightAlignedPadded(Specification.maxOptFactorKeyLength)).mkString(" ") + "\n"
 
-    val s = scores.values.transpose.zipWithIndex.map(game=>
+    val s = scores.values.transpose.zipWithIndex.map(game =>
       (game._2 + 1).label(4).toString + " " + game._1.map(each =>
-       " ".repeat(Specification.maxOptFactorKeyLength - each.toString.length) + " ".repeat(3) +  each )
+        " ".repeat(Specification.maxOptFactorKeyLength - each.toString.length) + " ".repeat(3) + each)
         .mkString("  "))
       .mkString("\n")
 
@@ -115,7 +116,7 @@ object GameRunner {
 
   }
 
-  def play(context: Context, startGameCount:Int = 0): Array[Int] = {
+  def play(context: Context, startGameCount: Int = 0): Array[Int] = {
 
     import scala.collection.mutable.ListBuffer
 
@@ -142,7 +143,6 @@ object GameRunner {
 
       val results = game.run
 
-
       scores.append(results.score)
       rounds.append(results.rounds)
       simulationsPerSecond.append(results.bestPerSecond)
@@ -161,7 +161,6 @@ object GameRunner {
         "total elapsed time".label + totalTime.elapsedLabel + "\n\n"
 
       context.logger.info("game " + gameCount.shortLabel + " over - score: " + results.score.scoreLabel + " average: " + scores.avg.toInt.scoreLabel + " high score: " + scores.max.scoreLabel)
-
 
       if (context.show)
         print(endGameString)
@@ -186,18 +185,29 @@ object GameRunner {
     scores.toArray
   }
 
+
+
+  // used to beep at the end of the game
+  private val toolKit: Toolkit = java.awt.Toolkit.getDefaultToolkit
+
+
   private def countDown(continue: Boolean, context: Context) = {
     if (continue && context.show) {
 
-      print("\nstarting new game in ")
-      Console.out.flush()
+      print("\nstarting new game")
 
-      // countdown timer
-      (1 to 10).reverse.foreach { i =>
-        print(i + "...")
-        Console.out.flush()
-        beep(context)
-        Thread.sleep(500)
+      if (context.beep) {
+        print(" in ")
+        // countdown timer
+        (1 to 10).reverse.foreach { i =>
+          print(i + "...")
+          Console.out.flush()
+          toolKit.beep()
+          Thread.sleep(500)
+        }
+      }
+      else {
+        print(" immediately")
       }
 
       print("\nGo!\n")
@@ -230,10 +240,5 @@ object GameRunner {
     0
 
   }
-
-  // used to beep at the end of the game
-  val toolKit: Toolkit = java.awt.Toolkit.getDefaultToolkit
-
-  def beep(context: Context): Unit = if (context.beep) toolKit.beep()
 
 }

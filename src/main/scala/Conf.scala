@@ -61,27 +61,34 @@ class Conf(arguments: Seq[String]) extends ScallopConf(arguments) {
     """.stripMargin
   )
 
-  val beep: ScallopOption[Boolean] = toggle(default = Some(true), descrYes = "default: beep when game finishes", descrNo = "don't beep at game end")
   val maxSimulations: ScallopOption[Int] = opt[Int](default = Some(MAX_SIMULATION_ITERATIONS), validate = (i) => i > 0 && i <= MAX_SIMULATION_ITERATIONS, descr = "integer limit for number of allowed simulations for each piece")
 
-  val endGameAtRound: ScallopOption[Int] = opt[Int](default = Some(0), validate = (i) => i >= 0, descr = "end the game at this round number")
-  val stopAtNewHighScore: ScallopOption[Boolean] = toggle(default = Some(true), short = 'n', descrYes = "default:stop a continuous play game if a new high score is reached", descrNo = "don't stop a continuous play game if a new high score is reached")
+  val continueAtNewHighScore: ScallopOption[Boolean] = opt[Boolean](descr="continue playing if new high score is reached - default is to stop", name="continue")
 
-  val logJSON: ScallopOption[Boolean] = toggle(default = Some(false), short = 'j', descrYes = "logs game json to json folder", descrNo = "default:does not log json")
+  val logJSON: ScallopOption[Boolean] = opt[Boolean](descr="logs game json to json folder", name="logjson", short='j')
 
-  val gamesToPlay: ScallopOption[Int] = opt[Int](default = Some(0), validate = (i) => i >= 0, descr = "anything greater than 0 will invoke for this number of games.  0 means play continuously")
+  val gamesToPlay: ScallopOption[Int] = opt[Int](default = Some(0), validate = (i) => i >= 0, name="games", descr = "number of games to play - 0 is continuous")
+  val roundsToPlay: ScallopOption[Int] = opt[Int](default = Some(0), validate = (i) => i >= 0, name="rounds", descr = "end the game at this round number")
 
-  val parallel: ScallopOption[Boolean] = toggle(default = Some(true), descrYes = "default: uses multiple threads - faster!", descrNo = "simulation will run single threaded")
+  val serial: ScallopOption[Boolean] = opt[Boolean](descr="play serial - if left blank, runs multithreaded - faster!")
 
-  val show: ScallopOption[Boolean] = toggle(default = Some(true), descrYes = "default: show the game as it is playing", descrNo = "hide the game")
-  val showRoundResultsOnly: ScallopOption[Boolean] = toggle(default = Some(false), descrYes = "use this to only display round results", descrNo = "default: use this to show all results")
-  val showWorst: ScallopOption[Boolean] = toggle(default = Some(false), descrYes = "show worst simulation choices each round", descrNo = "default:hide worst simulation choices each round - faster")
+  val hide: ScallopOption[Boolean] = opt[Boolean](descr="hides default output")
 
-  val randomSeed: ScallopOption[Int] = opt[Int](default = Some(0), descr = "provide a seed to cause game to play with same pieces")
+  val showRoundResultsOnly: ScallopOption[Boolean] = opt[Boolean](descr="use this to only display round results and not all results", short='o')
+
+  val showWorst: ScallopOption[Boolean] = opt[Boolean](hidden=true, descr="show worst simulation choices each round - currently", short='t')
+
+  val gameSeed: ScallopOption[Int] = opt[Int](default = Some(0), descr = "provide a seed to cause every game to play with the same pieces, if you don't specify then the pieces will be random")
+  val gameSeedAllGames: ScallopOption[Int] = opt[Int](default = Some(0), descr = "provide a seed to play a series of games with the same seed value, replaying each game within the session with the same seed value - if you don't specify then the entire series will be random")
+
+  val nobeep: ScallopOption[Boolean] = opt[Boolean](descr="silences end of game beeping")
 
   // the following are non-game arguments that will result in a no game being played
-  val printPieces: ScallopOption[Boolean] = toggle(default = Some(false), descrYes = "print out the game pieces", descrNo = "default: don't print out the game pieces")
+  val printPieces: ScallopOption[Boolean] = opt[Boolean](descr="print out the game pieces ")
   val weightGenerator: ScallopOption[Int] = opt[Int](default = Some(0), validate = (i) => i >= 0, descr = "default(0): generate the weights for each optimization factor based on how well they play - the integer value is how many games to play for each optFactor.  If the value is 0, it skips this")
+
+
+  mainOptions = Seq(gamesToPlay, roundsToPlay, logJSON, hide, nobeep, serial)
 
   verify()
 

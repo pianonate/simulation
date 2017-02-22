@@ -14,11 +14,11 @@
 import Implicits._
 
 case class MultiGameStats(
-  averageScore:     Int,
-  sessionHighScore: Int,
-  machineHighScore: Int,
-  gameCount:        Int,
-  totalTime:        GameTimer
+                           averageScore:     Int,
+                           sessionHighScore: Int,
+                           machineHighScore: Int,
+                           gameNumber:        Int,
+                           totalTime:        GameTimer
 )
 
 case class PerformanceInfo(

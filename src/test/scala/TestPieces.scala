@@ -9,7 +9,7 @@ class TestPieces extends FlatSpec {
   behavior of "the Pieces container"
 
   it must "contain 19 Piece elements in .pieceList" in {
-    val pieces = new GamePieces
+    val pieces = new GamePieces(seed=0)
     assert(pieces.pieceList.length == 19)
   }
 

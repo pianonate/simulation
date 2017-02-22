@@ -7,7 +7,7 @@ import org.scalatest.{FlatSpec, _}
 trait BoardFixture {
   val boardSize = Board.BOARD_SIZE
   val board = new Board(boardSize, Specification())
-  val pieces = new GamePieces
+  val pieces = new GamePieces(seed=new scala.util.Random().nextInt)
   val initialOccupied: Int = board.grid.popCount
   val initialOpenLines: Int = board.grid.openLineCount
 
@@ -232,7 +232,7 @@ class TestBoard extends FlatSpec {
       (boardSize - piece.rows + 1) * (boardSize - piece.cols + 1)
     }
 
-    val pieces = new GamePieces
+    val pieces = new GamePieces(seed=0)
     for {
       piece <- pieces.pieceList
       board = new Board(Board.BOARD_SIZE, Specification())

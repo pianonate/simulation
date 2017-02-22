@@ -35,7 +35,9 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
   }
 
   private[this] val gameStats: GameStats = new GameStats
-  private[this] val gamePieces: GamePieces = new GamePieces(context.randomSeed)
+
+  private[this] val gameSeed = context.getGameSeed
+  private[this] val gamePieces: GamePieces = new GamePieces(gameSeed)
 
   private[this] val score = Counter()
   private[this] val rowsCleared = Counter()
@@ -55,6 +57,12 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
     }*/
 
     try {
+
+      // set the game number and gameSeed so they are part of the JSON file name
+      if (context.logJSON) {
+        context.setJSONFileNameDiscriminators(multiGameStats.gameNumber, gameSeed)
+        logWeights
+      }
 
       /* def loop = {
         var b = 0*/
@@ -180,6 +188,40 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
       s
     }
 
+    def getColorGridBitMask: math.BigInt = {
+
+      var big = math.BigInt(0)
+
+      // only update from 0 if we are logging JSON
+      if (context.logJSON) {
+
+        var row = 0
+        var col = 0
+
+        while (row < Board.BOARD_SIZE) {
+          while (col < Board.BOARD_SIZE) {
+
+            if (this.board.cachedOccupancyGrid(row)(col)) {
+
+              val color = this.board.colorGrid(row)(col)
+              val colorInt = gamePieces.colorIndexMap(color)
+              val shift = (row * (Board.BOARD_SIZE * 4) + col * 4)
+              val shifted = math.BigInt(colorInt) << shift
+              big = big + shifted
+
+            }
+
+            col += 1
+          }
+          col = 0
+          row += 1
+        }
+
+      }
+
+      big
+    }
+
     def clearScreen(): Unit = {
       "clear".!
     }
@@ -209,6 +251,10 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
       val chosenList: List[PieceLocCleared] = getChosenPlcList(replayPieces, bestSimulation)
 
+      // get the bit mask based on the board state before pieces are placed
+      // then pass the bitmask along to json logger
+      val colorGridBitMask = getColorGridBitMask
+
       // as a side effect of placing, returns a string representing board states
       // is there a better way to do this?
       val placePiecesString = placePieces(chosenList)
@@ -216,7 +262,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
       if (context.show) {
         clearScreen()
 
-        val endOfRoundResultsString = getRoundResultsString(multiGameStats.gameCount: Int)
+        val endOfRoundResultsString = getRoundResultsString(multiGameStats.gameNumber: Int)
 
         if (!context.showRoundResultsOnly) {
           val simulationResultsString = getSimulationResultsString(results, bestSimulation)
@@ -231,7 +277,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
         print(endOfRoundResultsString)
       }
 
-      logRound(bestSimulation)
+      logRound(results, bestSimulation, colorGridBitMask)
     }
 
     if (bestSimulation.pieceCount < GamePieces.numPiecesInRound || (rounds.value == context.stopGameAtRound)) {
@@ -667,7 +713,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
         )
 
         // optional so we add an empty array when not showing this
-        val totalElapsedTimeAcrossGamesString = if (multiGameStats.gameCount > 1) Array("total elapsed time".label + multiGameStats.totalTime.elapsedLabel) else Array[String]()
+        val totalElapsedTimeAcrossGamesString = if (multiGameStats.gameNumber > 1) Array("total elapsed time".label + multiGameStats.totalTime.elapsedLabel) else Array[String]()
 
         standardTimingsString ++ totalElapsedTimeAcrossGamesString
       }
@@ -779,59 +825,79 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
     }
   }
 
-  private def logRound(best: Simulation): Unit = {
+  private val delimiter = ","
 
-    // todo - add colorGridAtRoundBegin and serialize color values 4 bits at a time
-    // todo - rename board to boardStartAtRoundEnd
-    // todo - add sessiongGameNumber
-    // todo - add gamePieceSeed for future use
-    // todo - generate sampleJSON with a command line parameter
-    //
+  // todo - implicify dq
+  private val dq = "\""
 
-    /*   log pieces in the following json format
+  private def getNameVal(name: String, value: Any): String = {
+    getNameVal(name, value, delimiter)
+  }
 
-    { "round" : 1,     // round # - Integer
-      "board" : 432,   // bigint representing board state - needs to be unpacked 10 bits at a time to show it
-      "score":  n,     // game score
-      "pieces": [
-         {"pieceName" : "name1", "row": n, "col" : n },
-         {"pieceName" : "name2", "row": n, "col" : n },
-         {"pieceName" : "name3", "row": n, "col" : n }
-      ],
-      "features": [
-          {"featureName": "featurename1", "intValue" : n, "normalizedValue": n, "weightedValue": n, "weight": n},
-          {"featureName": "featurename1", "intValue" : n, "normalizedValue": n, "weightedValue": n, "weight": n},
-          {"featureName": "featurename1", "intValue" : n, "normalizedValue": n, "weightedValue": n, "weight": n}
-      ]}
-      
-     */
+  private def getNameVal(name:String, value:Any, delimiter:String) = {
+    "\"" + name + "\":" + value.toString + delimiter
+  }
 
-    // only if asked to
+  private def logWeights: Unit = {
 
     if (context.logJSON) {
 
-      val delimiter = ","
-
-      def getNameVal(name: String, value: Any): String = {
-        "\"" + name + "\" : " + value.toString + delimiter
-      }
-
-      val pieces = best.plcList.reverse.map { plc =>
-        "{" + getNameVal("pieceName", plc.piece.name) + getNameVal("row", plc.loc.row) + getNameVal("col", plc.loc.col).dropRight(delimiter.length) + "}"
-      }.mkString(delimiter)
-
-      val features = this.board.boardScore.scores.map { scoreComponent =>
-        "{" + getNameVal("featureName", scoreComponent.label) + getNameVal("intValue", scoreComponent.intValue) +
-          getNameVal("normalizedValue", scoreComponent.normalizedValue) + getNameVal("weightedValue", scoreComponent.weightedValue) +
-          getNameVal("weight", scoreComponent.weight).dropRight(delimiter.length) + "}"
-      }.mkString(delimiter)
+      val weights = context.specification.optimizationFactors.map(factor => getNameVal(factor.label, factor.weight, "")).mkString(delimiter)
 
       val s = "{" +
+        getNameVal("type", dq + "weights" + dq) +
+        weights + "}"
+
+      context.jsonLogger.info(s)
+    }
+
+  }
+
+  private def logRound(results:List[SimulationInfo], best: Simulation, colorGridBitMask: BigInt): Unit = {
+
+    // todo - output game seed to screen also
+    // todo - implement implicit for dq and array brackets
+    // todo - include each permutation results indicating which one is the winner
+    // todo - include cleared rows/columns after each piece?  for sure at end of round
+    // todo - with the assumption that you won't generate the same game multiple times a day  when you're running on auto
+    //        output yyyymmdd_game_#.json  the current logging structure will truncate any existing so if you run more than one per day you'll lose the first one
+
+    // log pieces - format is in ./src/main/resources/sample.json
+    // only log if asked to do so
+
+    if (context.logJSON) {
+
+      def getScores(scores:Array[ScoreComponent]):String = {
+        scores.map { scoreComponent =>
+          "{" + getNameVal("name", dq + scoreComponent.label + dq) + getNameVal("intVal", scoreComponent.intValue) +
+            getNameVal("normalizedVal", scoreComponent.normalizedValue) +
+            getNameVal("weightedVal", scoreComponent.weightedValue, "") + "}"
+        }.mkString(delimiter)
+      }
+
+/// todo - it's an array of permutations so provide an index plus a container object for each
+      val permutations = results.map{p =>
+        val pieces = p.pieces.reverse.map(piece => getNameVal("name", dq + piece.name + dq, "")).mkString(delimiter)
+        val scores = getScores(p.best.board.boardScore.scores)
+        pieces + "," + scores
+      }.mkString(delimiter)
+
+      val selectedPieces = best.plcList.reverse.map { plc =>
+        "{" + getNameVal("name", dq + plc.piece.name + dq) + getNameVal("row", plc.loc.row) + getNameVal("col", plc.loc.col, "") + "}"
+      }.mkString(delimiter)
+
+      val endOfRoundScores = getScores(this.board.boardScore.scores)
+
+      val s = "{" +
+        getNameVal("type", dq + "game" + dq) +
         getNameVal("round", rounds.value) +
-        getNameVal("board", this.board.grid.asBigInt) +
         getNameVal("score", score.value) +
-        getNameVal("pieces", "[" + pieces + "]") +
-        getNameVal("features", "[" + features + "]").dropRight(delimiter.length) + "}"
+        getNameVal("gamePieceSeed", gameSeed) +
+        getNameVal("beginOfRoundColorGridBitMask", colorGridBitMask) +
+        getNameVal("endOfRoundBitMask", this.board.grid.asBigInt) +
+        getNameVal("permutations", "[" + permutations + "]") + // todo array bracket this json with an implicit
+        getNameVal("selectedPieces", "[" + selectedPieces + "]") +
+        getNameVal("endOfRoundScores", "[" + endOfRoundScores + "]", "") + "}"
 
       context.jsonLogger.info(s)
     }
@@ -839,4 +905,3 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
   }
 
 }
-

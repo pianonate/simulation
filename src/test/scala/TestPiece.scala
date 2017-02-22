@@ -13,7 +13,7 @@ class TestPiece extends FlatSpec {
   it must "have a grid that matches the colorGrid in size" in {
 
     // validate all the pieces we create
-    val pieces = new GamePieces().pieceList
+    val pieces = new GamePieces(seed=0).pieceList
 
     pieces foreach {piece =>
       val occupancyLength = piece.grid.occupancyGrid.flatten.count(_ == true)
