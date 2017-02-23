@@ -160,7 +160,11 @@ object GameRunner {
         "most simulations/s".label + bestPerSecond.label + "\n" +
         "total elapsed time".label + totalTime.elapsedLabel + "\n\n"
 
-      context.logger.info("game " + gameCount.shortLabel + " over - score: " + results.score.scoreLabel + " average: " + scores.avg.toInt.scoreLabel + " high score: " + scores.max.scoreLabel)
+      context.logger.info("game " + gameCount.shortLabel
+        + " - score: " + results.score.scoreLabel
+        + " average: " + scores.avg.toInt.scoreLabel
+        + " high score: " + scores.max.scoreLabel
+        + " duration: " + results.gameTimer.elapsedLabel)
 
       if (context.show)
         print(endGameString)

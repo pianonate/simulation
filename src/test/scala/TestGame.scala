@@ -4,6 +4,8 @@
  */
 import org.scalatest.FlatSpec
 
+// todo test that all positions are actually being evaluated in a simulation
+
 trait GameInfoFixture {
   val multiGameStats = MultiGameStats(0, 0, 0, 1, new GameTimer)
   val context = new Context(new Conf(Seq()))

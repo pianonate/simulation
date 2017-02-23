@@ -19,7 +19,13 @@ import Implicits._
 
 object GameOver extends Exception
 
-case class GameResults(score: Int, rounds: Int, bestPerSecond: Int, totalSimulations: Long, totalUnsimulatedSimulations: Long)
+case class GameResults(
+  score: Int,
+  rounds: Int,
+  bestPerSecond: Int,
+  totalSimulations: Long,
+  totalUnsimulatedSimulations: Long,
+  gameTimer: GameTimer)
 
 // this constructor is used in testing to pass in a pre-constructed board state
 class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
@@ -97,7 +103,8 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
       rounds.value,
       if (context.replayGame) 0 else gameStats.bestPerSecond,
       if (context.replayGame) 0l else gameStats.totalSimulations,
-      if (context.replayGame) 0l else gameStats.totalUnsimulatedSimulations
+      if (context.replayGame) 0l else gameStats.totalUnsimulatedSimulations,
+      gameTimer
     )
 
   }
@@ -855,6 +862,10 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
   private def logRound(results:List[SimulationInfo], best: Simulation, colorGridBitMask: BigInt): Unit = {
 
+    // todo - add rounds per second to simulation.log
+    // truncate milliseconds in simulation log
+    // remove class/line number in simulation log as this shit is not hard to find
+    // new simulation.log every day and put it in a log folder
     // todo - output game seed to screen also
     // todo - implement implicit for dq and array brackets
     // todo - include each permutation results indicating which one is the winner
