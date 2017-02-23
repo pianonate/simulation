@@ -93,7 +93,6 @@ object Piece {
       override val weight: Int
     ) extends Piece
 
-    // worst transformation ever - let's hope it's worth it
     val rotatedGrid = pieceToCopy.grid.rotate
 
     Rotated(newName, pieceToCopy.color, rotatedGrid, pieceToCopy.weight)

@@ -76,8 +76,6 @@ class Conf(arguments: Seq[String]) extends ScallopConf(arguments) {
 
   val showRoundResultsOnly: ScallopOption[Boolean] = opt[Boolean](descr="use this to only display round results and not all results", short='o')
 
-  val showWorst: ScallopOption[Boolean] = opt[Boolean](hidden=true, descr="show worst simulation choices each round - currently", short='t')
-
   val gameSeed: ScallopOption[Int] = opt[Int](default = Some(0), descr = "provide a seed to cause every game to play with the same pieces, if you don't specify then the pieces will be random")
   val gameSeedAllGames: ScallopOption[Int] = opt[Int](default = Some(0), descr = "provide a seed to play a series of games with the same seed value, replaying each game within the session with the same seed value - if you don't specify then the entire series will be random")
 

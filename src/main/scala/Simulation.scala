@@ -26,7 +26,6 @@ case class PieceLocCleared(
  * @param pieces - the list of pieces that were placed this round
  * @param simulatedCount - how many combinations of locations were simulated for these three pieces
  * @param best - the best simulation as determined by the Specification
- * @param worst - the worst simulation as determined by the Specification
  * @param elapsedMs - how much time did it take to run all of the simulationCount simulations
  */
 case class SimulationInfo(
@@ -34,9 +33,7 @@ case class SimulationInfo(
   simulatedCount:      Int,
   unsimulatedCount:    Int,
   best:                Simulation,
-  worst:               Option[Simulation],
   rcChangedCountBest:  Int,
-  rcChangedCountWorst: Int,
   elapsedMs:           Int
 )
 

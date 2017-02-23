@@ -45,11 +45,6 @@ class Context(conf: Conf) {
   var show: Boolean = !conf.hide()
   var showRoundResultsOnly: Boolean = conf.showRoundResultsOnly()
 
-  // todo - decide whether to delete showWorst and remove the code
-
-  //noinspection VarCouldBeVal
-  var showWorst: Boolean = conf.showWorst()
-
   val stopAtNewHighScore: Boolean = !conf.continueAtNewHighScore()
 
   private val multiGameSeed = conf.gameSeedAllGames()

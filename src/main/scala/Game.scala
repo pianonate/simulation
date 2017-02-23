@@ -155,7 +155,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
       if (context.replayGame && context.ignoreSimulation)
         "\ninstrumented game - skipping results\n"
       else {
-        val resultsString = "\n" + context.specification.getSimulationResultsString(results, bestSimulation, context.showWorst, bullShit.iterator.next) + "\n"
+        val resultsString = "\n" + context.specification.getSimulationResultsString(results, bestSimulation, bullShit.iterator.next) + "\n"
         resultsString
       }
 
@@ -334,14 +334,11 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
     val perSecond = duration.perSecond(simulatedCount + unsimulatedCount)
 
-    val rcChangedCountWorst = if (context.showWorst) result.map(_.rcChangedCountWorst).sum else 0
-
     gameStats.updateStats(
       PerformanceInfo(
         simulatedCount + unsimulatedCount,
         unsimulatedCount,
         result.map(_.rcChangedCountBest).sum,
-        rcChangedCountWorst,
         elapsedMs,
         perSecond
       )
@@ -369,7 +366,6 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
     val simulationCount = Counter()
     val unsimulatedCount = Counter()
     val rcChangedCountBest = Counter()
-    val rcChangedCountWorst = Counter()
 
     // i can't see how to not have this Array
     // i can accumulate locations because you generate one each time through the recursion
@@ -381,7 +377,6 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
     // as the compare is called on each thread while walking through the legalPlacements(piece).par
     // provided by getLegal below
     var best: Option[Simulation] = None
-    var worst: Option[Simulation] = None
 
     case class BoardPieceLocCleared(board: Board, plc: PieceLocCleared)
 
@@ -415,7 +410,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
         linesCleared || mustUpdateForThisPermutation
       }
 
-      def updateBestAndWorst(simulation: Simulation): Unit = {
+      def updateBest(simulation: Simulation): Unit = {
 
         def simulationIsBetterThanBest: Boolean = {
           /* val oldWay = simulation < best.get */
@@ -461,56 +456,13 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
             }
           }
         }
-
-        if (context.showWorst) {
-
-          def simulationIsWorseThanWorst: Boolean = {
-            worst.get.weightedSum > simulation.weightedSum
-          }
-
-          def safeUpdateWorst(): Unit = {
-            val worstID = worst.get.id
-            // contention
-            if (simulationIsWorseThanWorst)
-              // as long as best hasn't changed and we are in a better simulation then update it
-              synchronized {
-                if (worst.get.id == worstID)
-                  worst = Some(simulation)
-                else {
-                  // if the other thread put a worse one in there, then who cares - don't update it
-                  // then check if the new simulation is worse than the new one
-                  //if (simulation > worst.get) {
-                  if (simulationIsWorseThanWorst) {
-
-                    rcChangedCountWorst.inc()
-                    worst = Some(simulation)
-                  }
-                }
-              }
-          }
-
-          worst match {
-            case Some(_) =>
-              safeUpdateWorst()
-
-            case None => synchronized {
-              worst match {
-                case Some(_) =>
-                  safeUpdateWorst()
-                case None =>
-                  worst = Some(simulation) // first simulation is worst
-              }
-            }
-          }
-        }
-
       }
 
       def updateSimulation(plcList: List[PieceLocCleared], board: Board): Unit = {
         if (simulationCount.value < context.maxSimulations) {
           val id = simulationCount.inc()
           val simulation = Simulation(plcList /*.reverse*/ , board, id)
-          updateBestAndWorst(simulation)
+          updateBest(simulation)
         }
       }
 
@@ -594,9 +546,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
       unsimulatedCount.value,
       // todo - you could change this to an Option but then all subsequent code would need to change
       best.getOrElse(emptySimulation), // when is best empty?  when there are no legal positions at all
-      worst, // it's now an option so it will be None if showSimulation is false
       rcChangedCountBest.value,
-      rcChangedCountWorst.value,
       elapsedMs
     )
 
@@ -795,10 +745,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
         )
 
-        // optional so we add an empty array when not showing this
-        val raceConditionOnWorstString = if (context.showWorst) Array("race cond. on worst".label + gameStats.totalRaceConditionOnWorst.label + " (" + lastRoundInfo.rcChangedCountWorst.shortLabel + ")") else Array[String]()
-
-        simulationInfoString ++ raceConditionOnWorstString
+        simulationInfoString
 
       }
 

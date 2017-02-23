@@ -25,7 +25,6 @@ case class PerformanceInfo(
                             simulatedCount:      Int,
                             unsimulatedCount:    Int,
                             rcChangedCountBest:  Int,
-                            rcChangedCountWorst: Int,
                             elapsedMs:           Long,
                             perSecond:           Int
                           )
@@ -40,7 +39,6 @@ class GameStats {
   private var totalSimulationsAcc:Int = 0
   private var totalUnsimulatedAcc:Int = 0
   private var totalRaceConditionOnBestAcc:Int = 0
-  private var totalRaceConditionOnWorstAcc:Int = 0
 
   def updateStats(perfInfo:PerformanceInfo):Unit = {
     lastRoundStats = Some(perfInfo)
@@ -55,16 +53,8 @@ class GameStats {
     totalSimulationsAcc += perfInfo.simulatedCount + perfInfo.unsimulatedCount
     totalUnsimulatedAcc += perfInfo.unsimulatedCount
     totalRaceConditionOnBestAcc += perfInfo.rcChangedCountBest
-    totalRaceConditionOnWorstAcc += perfInfo.rcChangedCountWorst
 
   }
-
-  /*def simulatedCount = lastRoundStats.get.simulatedCount
-  def unsimulatedCount = lastRoundStats.get.unsimulatedCount
-  def rcChangedCountBest = lastRoundStats.get.rcChangedCountBest
-  def rcChangedCountWorst = lastRoundStats.get.rcChangedCountWorst
-  def elapsedMS = lastRoundStats.get.elapsedMs
-  def perSecond = lastRoundStats.get.perSecond*/
 
   def lastRoundInfo: PerformanceInfo = lastRoundStats.get
   def averagePerSecond: Int = perSecondArray.avg.toInt
@@ -72,7 +62,6 @@ class GameStats {
   def totalSimulations: Int = totalSimulationsAcc
   def totalUnsimulatedSimulations: Int = totalUnsimulatedAcc
   def totalRaceConditionOnBest: Int = totalRaceConditionOnBestAcc
-  def totalRaceConditionOnWorst: Int = totalRaceConditionOnWorstAcc
 
 
 }

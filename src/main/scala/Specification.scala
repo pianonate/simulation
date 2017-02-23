@@ -67,9 +67,8 @@ case class Specification(spec: ListMap[String, OptimizationFactor]) {
     resultString
   }
 
-  def getSimulationResultsString(simulationResults: List[SimulationInfo], chosen: Simulation, showWorst: Boolean, bullShit: String): String = {
+  def getSimulationResultsString(simulationResults: List[SimulationInfo], chosen: Simulation, bullShit: String): String = {
     // todo - add in simulations, skipped simulations, persecond information
-    // todo - allow for outputting worst
     // todo - generate json for both brendan and lior
 
     def getPrefixString(name: String, value: String) = name.leftAlignedPadded(maxOptFactorLabelLength + 1).addColon +
