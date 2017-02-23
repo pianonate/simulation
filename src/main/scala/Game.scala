@@ -20,12 +20,13 @@ import Implicits._
 object GameOver extends Exception
 
 case class GameResults(
-  score: Int,
-  rounds: Int,
-  bestPerSecond: Int,
-  totalSimulations: Long,
+  score:                       Int,
+  rounds:                      Int,
+  bestPerSecond:               Int,
+  totalSimulations:            Long,
   totalUnsimulatedSimulations: Long,
-  gameTimer: GameTimer)
+  gameTimer:                   GameTimer
+)
 
 // this constructor is used in testing to pass in a pre-constructed board state
 class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
@@ -834,14 +835,11 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
   private val delimiter = ","
 
-  // todo - implicify dq
-  private val dq = "\""
-
   private def getNameVal(name: String, value: Any): String = {
     getNameVal(name, value, delimiter)
   }
 
-  private def getNameVal(name:String, value:Any, delimiter:String) = {
+  private def getNameVal(name: String, value: Any, delimiter: String) = {
     "\"" + name + "\":" + value.toString + delimiter
   }
 
@@ -852,7 +850,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
       val weights = context.specification.optimizationFactors.map(factor => getNameVal(factor.label, factor.weight, "")).mkString(delimiter)
 
       val s = "{" +
-        getNameVal("type", dq + "weights" + dq) +
+        getNameVal("type", "Weights".doubleQuote) +
         weights + "}"
 
       context.jsonLogger.info(s)
@@ -860,55 +858,57 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
   }
 
-  private def logRound(results:List[SimulationInfo], best: Simulation, colorGridBitMask: BigInt): Unit = {
+  private def logRound(results: List[SimulationInfo], best: Simulation, colorGridBitMask: BigInt): Unit = {
 
-    // todo - add rounds per second to simulation.log
-    // truncate milliseconds in simulation log
-    // remove class/line number in simulation log as this shit is not hard to find
-    // new simulation.log every day and put it in a log folder
-    // todo - output game seed to screen also
-    // todo - implement implicit for dq and array brackets
-    // todo - include each permutation results indicating which one is the winner
-    // todo - include cleared rows/columns after each piece?  for sure at end of round
-    // todo - with the assumption that you won't generate the same game multiple times a day  when you're running on auto
-    //        output yyyymmdd_game_#.json  the current logging structure will truncate any existing so if you run more than one per day you'll lose the first one
+    // todo - include cleared rows/columns after each piece?  for sure at end of round - implies refactoring pieceHandler
 
     // log pieces - format is in ./src/main/resources/sample.json
     // only log if asked to do so
 
     if (context.logJSON) {
 
-      def getScores(scores:Array[ScoreComponent]):String = {
+      def getScores(scores: Array[ScoreComponent]): String = {
         scores.map { scoreComponent =>
-          "{" + getNameVal("name", dq + scoreComponent.label + dq) + getNameVal("intVal", scoreComponent.intValue) +
+          "{" + getNameVal("type", "Feature".doubleQuote) +
+            getNameVal("name", scoreComponent.label.doubleQuote) + getNameVal("intVal", scoreComponent.intValue) +
             getNameVal("normalizedVal", scoreComponent.normalizedValue) +
             getNameVal("weightedVal", scoreComponent.weightedValue, "") + "}"
         }.mkString(delimiter)
       }
 
-/// todo - it's an array of permutations so provide an index plus a container object for each
-      val permutations = results.map{p =>
-        val pieces = p.pieces.reverse.map(piece => getNameVal("name", dq + piece.name + dq, "")).mkString(delimiter)
-        val scores = getScores(p.best.board.boardScore.scores)
-        pieces + "," + scores
-      }.mkString(delimiter)
-
       val selectedPieces = best.plcList.reverse.map { plc =>
-        "{" + getNameVal("name", dq + plc.piece.name + dq) + getNameVal("row", plc.loc.row) + getNameVal("col", plc.loc.col, "") + "}"
+        "{" + getNameVal("type", "PieceLoc".doubleQuote) + getNameVal("name", plc.piece.name.doubleQuote) + getNameVal("row", plc.loc.row) + getNameVal("col", plc.loc.col, "") + "}"
       }.mkString(delimiter)
 
       val endOfRoundScores = getScores(this.board.boardScore.scores)
 
+      val permutations = results.zipWithIndex.map {
+        case (p, i) =>
+
+          val winner = p.best == best
+
+          val pType = getNameVal("type", "Permutation".doubleQuote)
+          val index = getNameVal("index", i + 1) // add 1 because permutations are not 0 based in the _real_ world
+          val winnerString = getNameVal("winner", if (winner) "true" else "false")
+
+          val pieces = p.pieces.reverse.map(piece => "{" + getNameVal("type", "Piece".doubleQuote) + getNameVal("name", piece.name.doubleQuote, "") + "}").mkString(delimiter)
+          val pieceArrayString = getNameVal("pieces", pieces.squareBracket)
+
+          val scores = getScores(p.best.board.boardScore.scores)
+          val permutationScores = getNameVal("permutationScores", scores.squareBracket)
+          "{" + pType + index + winnerString + pieceArrayString + "," + permutationScores + "}"
+      }.mkString(delimiter)
+
       val s = "{" +
-        getNameVal("type", dq + "game" + dq) +
+        getNameVal("type", "Game".doubleQuote) +
         getNameVal("round", rounds.value) +
         getNameVal("score", score.value) +
         getNameVal("gamePieceSeed", gameSeed) +
         getNameVal("beginOfRoundColorGridBitMask", colorGridBitMask) +
         getNameVal("endOfRoundBitMask", this.board.grid.asBigInt) +
-        getNameVal("permutations", "[" + permutations + "]") + // todo array bracket this json with an implicit
-        getNameVal("selectedPieces", "[" + selectedPieces + "]") +
-        getNameVal("endOfRoundScores", "[" + endOfRoundScores + "]", "") + "}"
+        getNameVal("selectedPieces", selectedPieces.squareBracket) +
+        getNameVal("endOfRoundScores", endOfRoundScores.squareBracket, "") +
+        getNameVal("permutations", permutations.squareBracket) + "}"
 
       context.jsonLogger.info(s)
     }

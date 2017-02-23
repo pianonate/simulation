@@ -164,6 +164,7 @@ class StringFormats(val s: String) {
   }*/
 
   def addColon:String = s + ": "
+  def doubleQuote = "\"" + s + "\""
   def elapsedLabel: String = elapsedFormat.format(s)
   def green:String = GREEN + s + SANE
   def greenHeader: String = getHeaderString(GREEN)
@@ -177,6 +178,7 @@ class StringFormats(val s: String) {
   def redHeader: String = getHeaderString(RED)
   def repeat(length:Int): String = s * length
   def rightAlignedPadded(length:Int): String = ("%" + length.toString + "s").format(s)
+  def squareBracket:String = "[" + s + "]"
  // def yellowDigits:String = coloredDigitsLabel(YELLOW)
   def underline:String = UNDERLINE + s + SANE
   def yellow:String = YELLOW + s + SANE

@@ -55,7 +55,7 @@ object GameRunner {
           println(" - score: " + score.label(6) +
             " - done in " + t.elapsedLabel.trim.leftAlignedPadded(6) +
             "- game: " + completed.label(4) + " out of " + totalGames +
-            " (" + ((completed.toDouble / totalGames) * 100).label(2).trim + "%)")
+            " (" + ((completed.toDouble / totalGames) * 100).label(1).trim + "%)")
 
           score
         }
@@ -141,7 +141,7 @@ object GameRunner {
 
       val game = new Game(context, gameInfo)
 
-      val results = game.run
+      val results: GameResults = game.run
 
       scores.append(results.score)
       rounds.append(results.rounds)
@@ -160,11 +160,15 @@ object GameRunner {
         "most simulations/s".label + bestPerSecond.label + "\n" +
         "total elapsed time".label + totalTime.elapsedLabel + "\n\n"
 
-      context.logger.info("game " + gameCount.shortLabel
-        + " - score: " + results.score.scoreLabel
-        + " average: " + scores.avg.toInt.scoreLabel
-        + " high score: " + scores.max.scoreLabel
-        + " duration: " + results.gameTimer.elapsedLabel)
+      val roundsPerSecond = (results.rounds / results.gameTimer.elapsedSeconds).toDouble.label(2)
+
+      context.logger.info("game " + gameCount.label(4).green
+        + " - score: " + results.score.label(7).green
+        + " average: " + scores.avg.toInt.label(7).green
+        + " high score: " + scores.max.label(7).green
+        + " rounds: " + results.rounds.label(7).green
+        + " rounds/s: " + roundsPerSecond.green
+        + " duration: " + results.gameTimer.showElapsed.green)
 
       if (context.show)
         print(endGameString)
@@ -189,11 +193,8 @@ object GameRunner {
     scores.toArray
   }
 
-
-
   // used to beep at the end of the game
   private val toolKit: Toolkit = java.awt.Toolkit.getDefaultToolkit
-
 
   private def countDown(continue: Boolean, context: Context) = {
     if (continue && context.show) {
@@ -209,8 +210,7 @@ object GameRunner {
           toolKit.beep()
           Thread.sleep(500)
         }
-      }
-      else {
+      } else {
         print(" immediately")
       }
 
@@ -220,14 +220,14 @@ object GameRunner {
     }
   }
 
-  def saveHighScore(highScore: Int): Unit = {
+  private def saveHighScore(highScore: Int): Unit = {
     val pw = new PrintWriter(Context.FILE_HIGH_SCORE)
     pw.write(highScore.toString)
     pw.close()
 
   }
 
-  def getHighScore: Int = {
+  private def getHighScore: Int = {
 
     import scala.io.Source
 

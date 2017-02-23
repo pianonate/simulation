@@ -5,7 +5,7 @@
         <file>simulation.log</file>
 
         <encoder>
-            <pattern>%date %level <!--[%thread]--> <!--%logger{10}--> [%-20file:%3line{40}] %msg%n</pattern>
+            <pattern>%date{yyyy-MM-dd HH:mm:ss} %level <!--[%thread]--> <!--%logger{10} [%-20file:%3line{40}]--> %msg%n</pattern>
         </encoder>
     </appender>
 
