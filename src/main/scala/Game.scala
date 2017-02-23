@@ -1,11 +1,9 @@
 /**
  * Created by nathan on 12/10/16.
  * Game will hold a reference to the current board and will also invoke simulations
+ *
  * todo - hook thi sup to ifttt maker channel http://www.makeuseof.com/tag/ifttt-connect-anything-maker-channel/
- * TODO!!! - kevin suggestion - determine actual weights by running each opt factor one thousand times and printing out the average score
- * Todo!!! - change maximizer to short circuit maxmizer that counts how many 3x3's can fit on the board - which maxes out at 3 as you can't get more than 3!!!!
- * Todo!!! - kevin says avoid middle is really important to try
- * Todo for Richard Kim - check to see if it's windows and output cls rather than clear
+ * todo for Richard Kim - check to see if it's windows and output cls rather than clear
  *
  */
 
@@ -185,7 +183,6 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
     }
 
     def getUnplacedPiecesString(bestSimulation: Simulation): String = {
-      // todo - store the unplaced piece and print it out
 
       val s = (bestSimulation.pieceCount until 3).map({ index =>
         //val piece = bestSimulation.plcList(index).piece
@@ -544,7 +541,6 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
       pieces,
       simulationCount.value,
       unsimulatedCount.value,
-      // todo - you could change this to an Option but then all subsequent code would need to change
       best.getOrElse(emptySimulation), // when is best empty?  when there are no legal positions at all
       rcChangedCountBest.value,
       elapsedMs
@@ -652,7 +648,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
   private def getRoundResultsString(gameCount: Int): String = {
 
     if (context.replayGame && context.ignoreSimulation)
-      // todo
+      // todo - how to handle replay mode?
       "Replay Mode - no simulating.  what do you show here?"
     else {
 

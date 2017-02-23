@@ -200,7 +200,6 @@ class StringFormats(val s: String) {
 
     val firstArray = first.split("\n")
 
-    // todo - this create padding lines thing is happening all the time - create a StringFormats def for it
     val second = (firstArray.length until height).map(each => " ".repeat(width)).toArray
 
     val wrapped = firstArray.map(each => color + each.leftAlignedPadded(width) + SANE) ++ second

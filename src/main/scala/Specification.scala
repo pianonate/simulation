@@ -69,7 +69,6 @@ case class Specification(spec: ListMap[String, OptimizationFactor]) {
 
   def getSimulationResultsString(simulationResults: List[SimulationInfo], chosen: Simulation, bullShit: String): String = {
     // todo - add in simulations, skipped simulations, persecond information
-    // todo - generate json for both brendan and lior
 
     def getPrefixString(name: String, value: String) = name.leftAlignedPadded(maxOptFactorLabelLength + 1).addColon +
       value.rightAlignedPadded(prefixWeightFormatLength) + spaceAndVertical
@@ -208,7 +207,7 @@ object Specification {
 
   private val totalPositions = math.pow(Board.BOARD_SIZE, 2).toInt
 
-  // todo - OptimizationFactor of all combinations of 3x3 1x5 and 5x1
+  // todo - OptimizationFactor of all combinations of 3x3 1x5 and 5x1 - this is actually a lookahead.  dive into maching learning, m'lad
 
   // the following code can be paste in by running weightGenerator command line option
   // make sure that if you change any of the key names above, that you change them here as well

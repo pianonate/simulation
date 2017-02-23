@@ -55,7 +55,8 @@ case class OccupancyGrid(
 
   def asBigInt: math.BigInt = {
 
-    // used in logging
+    // todo one might consider testing this
+
     var big = math.BigInt(0)
 
     var row = 0
@@ -71,12 +72,7 @@ case class OccupancyGrid(
       row += 1
     }
 
-    // todo - get rid of the assert as we don't need to calculate popCount on every key
-    //
-    assert(big.bitCount == this.popCount, big.bitCount + " " + this.popCount)
-
     big
-
   }
 
   def copy: OccupancyGrid = {
