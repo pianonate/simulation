@@ -225,8 +225,6 @@ object StringFormats {
   val percentFormat = " %2.2f"
   val skippedSimulationPercentFormat = "     %2.0f"
 
-  val pieceNameFormat: String = "%-" + GamePieces.longestNameLength + "s"
-
 
   val VERTICAL_LINE = "\u2503"
   val HORIZONTAL_LINE = "\u2501"
@@ -274,5 +272,9 @@ object StringFormats {
   val BACKGROUND_MAGENTA = "\u001B[45m"
   val BACKGROUND_CYAN = "\u001B[46m"
   val BACKGROUND_WHITE = "\u001B[47m"
+
+  // initialize this after the name strings above are initialized as GamePieces need name strings to properly initialize
+  val pieceNameFormat: String = "%-" + GamePieces.longestNameLength + "s"
+
 
 }
