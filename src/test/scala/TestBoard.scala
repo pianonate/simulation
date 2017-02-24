@@ -45,7 +45,7 @@ class TestBoard extends FlatSpec {
     val hashCodes = Board.allLocationHashes
     val combo3 = hashCodes.combinations(3).toSet // guarantees uniqueness
     val mappedCombo3 = combo3.map(_.sum)
-    // after mapping to a new set by summing the hashcodes, if they weren't unique then the sizes would be different
+    // after mapping to a new set by summing the hashCodes, if they weren't unique then the sizes would be different
     assert(combo3.size===mappedCombo3.size)
 
     val combo2 = hashCodes.combinations(2).toSet
@@ -54,7 +54,7 @@ class TestBoard extends FlatSpec {
 
     // this test ensures that the routine will work that allows us to skip
     // simulations when permutations generate the same
-    // piece placements i.e., adding the hashcodes from any three locations generates a unique value
+    // piece placements i.e., adding the hashCodes from any three locations generates a unique value
 
   }
 

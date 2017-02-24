@@ -64,7 +64,7 @@ case class OccupancyGrid(
       val rowVal = rowGrid(row)
 
       if (rowVal > 0) {
-        val shift = (row * Board.BOARD_SIZE)
+        val shift = row * Board.BOARD_SIZE
         val shifted = math.BigInt(rowVal) << shift
         big = big + shifted
       }

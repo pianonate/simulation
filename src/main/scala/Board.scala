@@ -32,7 +32,7 @@ class Board(
     )
   }
 
-  // def so a new one is created everytime boardScore is called
+  // def so a new one is created every time boardScore is called
   def boardScore: BoardScore = BoardScore(this, specification)
 
   // the board output shows unoccupied cells so just call .show on every cell
@@ -404,7 +404,7 @@ object Board {
   // this is useful because each permutation will generate most of the same locations and we only need to calculate one of them
   // so we mod by the total permutation count and see if it matches this permutation index and that is the one that is responsible
   val allLocationHashes: Array[Long] = {
-    (0 to (BOARD_SIZE * BOARD_SIZE - 1)).map(x => ((math.sin(x).abs) * math.pow(10, 11)).toLong).toArray
+    (0 until BOARD_SIZE * BOARD_SIZE).map(x => (math.sin(x).abs * math.pow(10, 11)).toLong).toArray
   }
 
   def copy(newName: String, boardToCopy: Board): Board = {

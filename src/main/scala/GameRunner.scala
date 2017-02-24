@@ -81,7 +81,7 @@ object GameRunner {
       case (key, sortedScores) =>
 
         val scoreSum = sortedScores.sum.toDouble
-        println(key.leftAlignedPadded(Specification.maxOptFactorKeyLength + 1).addColon + "average".addColon + sortedScores.avg.toInt.label(6) + " - weight".addColon + (scoreSum / sumOfAllGames))
+        println(key.leftAlignedPadded(Specification.maxOptFactorKeyLength + 1).appendColon + "average".appendColon + sortedScores.avg.toInt.label(6) + " - weight".appendColon + (scoreSum / sumOfAllGames))
 
     }
 
@@ -105,10 +105,10 @@ object GameRunner {
 
     val code = "private val weightMap = Map(\n\n" +
       scores.toSeq.sortBy(a => a._2.sum * -1).map({
-        case (key, scores) =>
-          val scoreSum = scores.sum.toDouble
+        case (key, gameScores) =>
+          val scoreSum = gameScores.sum.toDouble
 
-          ("\t\"" + key + "\" -> " + (scoreSum / sumOfAllGames))
+          "\t\"" + key + "\" -> " + (scoreSum / sumOfAllGames)
 
       }).mkString(",\n").dropRight(2) + "\n\n" + ")"
 

@@ -68,9 +68,9 @@ case class Specification(spec: ListMap[String, OptimizationFactor]) {
   }
 
   def getSimulationResultsString(simulationResults: List[SimulationInfo], chosen: Simulation, bullShit: String): String = {
-    // todo - add in simulations, skipped simulations, persecond information
+    // todo - add in simulations, skipped simulations, perSecond information
 
-    def getPrefixString(name: String, value: String) = name.leftAlignedPadded(maxOptFactorLabelLength + 1).addColon +
+    def getPrefixString(name: String, value: String) = name.leftAlignedPadded(maxOptFactorLabelLength + 1).appendColon +
       value.rightAlignedPadded(prefixWeightFormatLength) + spaceAndVertical
 
     val wrappedBullShit = bullShit.wrap(piecePrefixLength, GamePieces.tallestPiece + 1, StringFormats.BRIGHT_MAGENTA)
@@ -78,7 +78,7 @@ case class Specification(spec: ListMap[String, OptimizationFactor]) {
     val piecesString = simulationResults
       .zipWithIndex
       .map { case (result, index) => result.pieces.permutationPiecesHeader(index) }
-      .spreadHorizontal(bracketWith = StringFormats.VERTICAL_LINE + " ", separator = (StringFormats.VERTICAL_LINE + " "))
+      .spreadHorizontal(bracketWith = StringFormats.VERTICAL_LINE + " ", separator = StringFormats.VERTICAL_LINE + " ")
 
     val piecesHeader = wrappedBullShit.splice(piecesString.split("\n")) + "\n"
 
@@ -104,7 +104,7 @@ case class Specification(spec: ListMap[String, OptimizationFactor]) {
 
     // val winner = simulationResults.map(_.best.weightedSum).max
 
-    val weightedSumString = "sum".leftAlignedPadded(maxOptFactorLabelLength + 1).addColon +
+    val weightedSumString = "sum".leftAlignedPadded(maxOptFactorLabelLength + 1).appendColon +
       scores.map(optScores => optScores.head.weight).sum.weightLabel.rightAlignedPadded(prefixWeightFormatLength) + spaceAndVertical +
       simulationResults.map { result =>
 
@@ -168,7 +168,7 @@ object Specification {
   ).combinations(3).toArray
 
   val avoidMiddleArray: Array[Array[Int]] = {
-    // createes an array of board size
+    // creates an array of board size
     // where int values in the array as you get closer to the middle
     // get much larger
     // then we add up all board positions where a value is on
@@ -207,7 +207,7 @@ object Specification {
 
   private val totalPositions = math.pow(Board.BOARD_SIZE, 2).toInt
 
-  // todo - OptimizationFactor of all combinations of 3x3 1x5 and 5x1 - this is actually a lookahead.  dive into maching learning, m'lad
+  // todo - OptimizationFactor of all combinations of 3x3 1x5 and 5x1 - this is actually a lookahead.  dive into machine learning, m'lad
 
   // the following code can be paste in by running weightGenerator command line option
   // make sure that if you change any of the key names above, that you change them here as well
@@ -293,7 +293,7 @@ object Specification {
     // when the board clears, the scores are perfect - all normalize to 1.0
     // but when multiplying by normalized weights, we ended up with this number:
     // 1.0000000000000002
-    // which is larger than one - and unnacceptable :)
+    // which is larger than one - and unacceptable :)
     // so the answer is to take the first n normalized weights and to calculate the last one by
     // subtracting the sum of the first n from 1.  And here it is:
     val sumOfWeights = weights.sum

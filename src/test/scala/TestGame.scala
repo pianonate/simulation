@@ -11,13 +11,38 @@ trait GameInfoFixture {
   val context = new Context(new Conf(Seq()))
   context.gamesToPlay = 1
   context.show = false
+
 }
 
-// todo - do a test to prove that 100*99*98 is true as it is a fundamental truth of the gaem
+// todo - using standard scala json library, validate that both weights and game json are valid
+// todo - do a test to prove that 100*99*98 is true as it is a fundamental truth of the game
 
 class TestGame extends FlatSpec {
 
   behavior of "A game"
+
+  it must "run all simulations for three singletons" in {
+    new GameInfoFixture {
+      private val plcList = List(
+        PieceLocCleared(GamePieces.singleton, Loc(0, 0), clearedLines = false),
+        PieceLocCleared(GamePieces.singleton, Loc(0, 0), clearedLines = false),
+        PieceLocCleared(GamePieces.singleton, Loc(0, 0), clearedLines = false)
+      )
+      context.setReplayList(plcList)
+      context.stopGameAtRound = 1
+      context.gamesToPlay = 1
+      context.show = false
+      context.ignoreSimulation = false
+      private val game = new Game(context, multiGameStats)
+      private val results: GameResults = game.run
+
+      private val positions = Board.BOARD_SIZE * Board.BOARD_SIZE
+      assert(results.totalSimulations === positions * (positions - 1) * (positions - 2), "expected number of simulations did not happen")
+      assert(results.totalUnsimulatedSimulations === 0, "unsimulated count should be zero when all the pieces are the same")
+
+
+    }
+  }
 
   it must "result in the correct score after clearing a row and a column simultaneously" in {
     new GameInfoFixture {
@@ -43,22 +68,6 @@ class TestGame extends FlatSpec {
     }
   }
 
-//  it must "show how many simulations there are for an empty board with three small pieces" in {
-//    new GameInfoFixture {
-//      private val plcList = List(
-//        PieceLocCleared(GamePieces.singleton, Loc(0, 0), clearedLines = false),
-//        PieceLocCleared(GamePieces.h2Line, Loc(0, 5), clearedLines = false),
-//        PieceLocCleared(GamePieces.v2Line, Loc(5, 9), clearedLines = false)
-//      )
-//      context.setReplayList(plcList)
-//      context.ignoreSimulation = false
-//      context.show = true
-//      private val game = new Game(context, multiGameStats)
-//      game.run
-//
-//    }
-//  }
-
   it must "not get a weighted score larger than 1 when the board is cleared" in {
     new GameInfoFixture {
       // set up a game that will have a row and a column that will clear at the same time
@@ -77,11 +86,9 @@ class TestGame extends FlatSpec {
       private val results: GameResults = game.run
 
       // a score of 20 ensures that a line was cleared
-      assert(results.score===20)
+      assert(results.score === 20)
     }
   }
-
-
 
   // weighting scheme doesn't guarantee a particular choice - we're looking to ensure that a second round can be played
 
@@ -129,7 +136,6 @@ class TestGame extends FlatSpec {
         PieceLocCleared(GamePieces.singleton, Loc(5, 9), clearedLines = false),
         PieceLocCleared(GamePieces.singleton, Loc(5, 9), clearedLines = false)
 
-
       )
 
       context.setReplayList(plcList)
@@ -142,34 +148,5 @@ class TestGame extends FlatSpec {
 
     }
   }
-
-  /*// this test currently CAN'T work.  this is because in a multi-threaded, two different game runs
-  // may find a best score for a set of pieces that are equivalent but the pieces are in a
-  // different position on the board.  A way to deal with this would be to put in a tie-breaker that
-  // favors any result that is closer to 0,0.  this tie-breaker - I think - would cause
-  // repeated games to be compared and they would result in the same answer
-  it must "end up with the same score for two consecutive seeded games in parallel mode" ignore {
-    new GameInfoFixture {
-
-      context.randomSeed = new scala.util.Random().nextInt(1000000000)
-      context.stopGameAtRound = 10
-      context.show = false
-      context.parallel = true
-
-      while (true) {
-        val game = new Game(context, multiGameStats)
-        val results1: GameResults = game.run
-
-        val game2 = new Game(context, multiGameStats)
-        val results2: GameResults = game2.run
-
-        assert(results1.totalSimulations === results2.totalSimulations, "total simulations should match - unsimulated1 " + results1.totalUnsimulatedSimulations + " unsimulated2 " + results2.totalUnsimulatedSimulations)
-        assert(results1.score === results2.score, "scores should match")
-        assert(results1.rounds === results2.rounds, "rounds should match")
-        println(results1.totalSimulations)
-        Thread.sleep(2000)
-      }
-    }
-  } */
 
 }

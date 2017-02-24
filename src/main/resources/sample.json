@@ -1,27 +1,27 @@
 {
   "type": "Game",
   "round": 1,
-  "score": 11,
-  "gamePieceSeed": 40000081,
+  "score": 9,
+  "gamePieceSeed": 370504698,
   "beginOfRoundColorGridBitMask": 0,
-  "endOfRoundBitMask": 1230204728609167690842178060288,
+  "endOfRoundBitMask": 3717446895314984712222542851,
   "selectedPieces": [
     {
       "type": "PieceLoc",
-      "name": "HLine5",
-      "row": 9,
-      "col": 5
+      "name": "VLine2",
+      "row": 0,
+      "col": 1
     },
     {
       "type": "PieceLoc",
-      "name": "LowerRL",
-      "row": 7,
-      "col": 8
+      "name": "Box",
+      "row": 8,
+      "col": 0
     },
     {
       "type": "PieceLoc",
       "name": "VLine3",
-      "row": 7,
+      "row": 0,
       "col": 0
     }
   ],
@@ -29,9 +29,9 @@
     {
       "type": "Feature",
       "name": "maximizer",
-      "intVal": 53,
-      "normalizedVal": 0.828125,
-      "weightedVal": 0.459652498043031
+      "intVal": 55,
+      "normalizedVal": 0.859375,
+      "weightedVal": 0.4769978753276737
     },
     {
       "type": "Feature",
@@ -43,23 +43,23 @@
     {
       "type": "Feature",
       "name": "occupied",
-      "intVal": 11,
-      "normalizedVal": 0.89,
-      "weightedVal": 0.046280280434269766
+      "intVal": 9,
+      "normalizedVal": 0.91,
+      "weightedVal": 0.04732028673616347
     },
     {
       "type": "Feature",
       "name": "open rows + cols",
-      "intVal": 11,
-      "normalizedVal": 0.55,
-      "weightedVal": 0.027099431757255023
+      "intVal": 13,
+      "normalizedVal": 0.65,
+      "weightedVal": 0.03202660116766503
     },
     {
       "type": "Feature",
       "name": "connected open",
-      "intVal": 7,
-      "normalizedVal": 0.7,
-      "weightedVal": 0.03240909683305096
+      "intVal": 8,
+      "normalizedVal": 0.8,
+      "weightedVal": 0.037038967809201094
     },
     {
       "type": "Feature",
@@ -85,11 +85,11 @@
     {
       "type": "Feature",
       "name": "2 neighbors",
-      "intVal": 8,
-      "normalizedVal": 0.8666666666666667,
-      "weightedVal": 0.007679181919613967
+      "intVal": 7,
+      "normalizedVal": 0.8833333333333333,
+      "weightedVal": 0.007826858494991158
     }
-  ]
+  ],
   "permutations": [
     {
       "type": "Permutation",
@@ -102,21 +102,20 @@
         },
         {
           "type": "Piece",
-          "name": "LowerRL"
+          "name": "Box"
         },
         {
           "type": "Piece",
-          "name": "HLine5"
+          "name": "VLine2"
         }
       ],
-      ,
       "permutationScores": [
         {
           "type": "Feature",
           "name": "maximizer",
-          "intVal": 53,
-          "normalizedVal": 0.828125,
-          "weightedVal": 0.459652498043031
+          "intVal": 55,
+          "normalizedVal": 0.859375,
+          "weightedVal": 0.4769978753276737
         },
         {
           "type": "Feature",
@@ -128,23 +127,23 @@
         {
           "type": "Feature",
           "name": "occupied",
-          "intVal": 11,
-          "normalizedVal": 0.89,
-          "weightedVal": 0.046280280434269766
+          "intVal": 9,
+          "normalizedVal": 0.91,
+          "weightedVal": 0.04732028673616347
         },
         {
           "type": "Feature",
           "name": "open rows + cols",
-          "intVal": 11,
-          "normalizedVal": 0.55,
-          "weightedVal": 0.027099431757255023
+          "intVal": 13,
+          "normalizedVal": 0.65,
+          "weightedVal": 0.03202660116766503
         },
         {
           "type": "Feature",
           "name": "connected open",
-          "intVal": 7,
-          "normalizedVal": 0.7,
-          "weightedVal": 0.03240909683305096
+          "intVal": 8,
+          "normalizedVal": 0.8,
+          "weightedVal": 0.037038967809201094
         },
         {
           "type": "Feature",
@@ -170,11 +169,11 @@
         {
           "type": "Feature",
           "name": "2 neighbors",
-          "intVal": 8,
-          "normalizedVal": 0.8666666666666667,
-          "weightedVal": 0.007679181919613967
+          "intVal": 7,
+          "normalizedVal": 0.8833333333333333,
+          "weightedVal": 0.007826858494991158
         }
-      ],
+      ]
     },
     {
       "type": "Permutation",
@@ -183,7 +182,7 @@
       "pieces": [
         {
           "type": "Piece",
-          "name": "LowerRL"
+          "name": "Box"
         },
         {
           "type": "Piece",
@@ -191,45 +190,44 @@
         },
         {
           "type": "Piece",
-          "name": "HLine5"
+          "name": "VLine2"
         }
       ],
-      ,
       "permutationScores": [
         {
           "type": "Feature",
           "name": "maximizer",
-          "intVal": 53,
-          "normalizedVal": 0.828125,
-          "weightedVal": 0.459652498043031
+          "intVal": 55,
+          "normalizedVal": 0.859375,
+          "weightedVal": 0.4769978753276737
         },
         {
           "type": "Feature",
           "name": "avoid middle",
-          "intVal": 33,
-          "normalizedVal": 0.9883966244725738,
-          "weightedVal": 0.20632353753747898
+          "intVal": 39,
+          "normalizedVal": 0.9862869198312236,
+          "weightedVal": 0.20588314578179598
         },
         {
           "type": "Feature",
           "name": "occupied",
-          "intVal": 11,
-          "normalizedVal": 0.89,
-          "weightedVal": 0.046280280434269766
+          "intVal": 9,
+          "normalizedVal": 0.91,
+          "weightedVal": 0.04732028673616347
         },
         {
           "type": "Feature",
           "name": "open rows + cols",
-          "intVal": 9,
-          "normalizedVal": 0.45,
-          "weightedVal": 0.02217226234684502
+          "intVal": 13,
+          "normalizedVal": 0.65,
+          "weightedVal": 0.03202660116766503
         },
         {
           "type": "Feature",
           "name": "connected open",
-          "intVal": 7,
-          "normalizedVal": 0.7,
-          "weightedVal": 0.03240909683305096
+          "intVal": 8,
+          "normalizedVal": 0.8,
+          "weightedVal": 0.037038967809201094
         },
         {
           "type": "Feature",
@@ -255,11 +253,11 @@
         {
           "type": "Feature",
           "name": "2 neighbors",
-          "intVal": 8,
-          "normalizedVal": 0.8666666666666667,
-          "weightedVal": 0.007679181919613967
+          "intVal": 7,
+          "normalizedVal": 0.8833333333333333,
+          "weightedVal": 0.007826858494991158
         }
-      ],
+      ]
     },
     {
       "type": "Permutation",
@@ -272,49 +270,48 @@
         },
         {
           "type": "Piece",
-          "name": "HLine5"
+          "name": "VLine2"
         },
         {
           "type": "Piece",
-          "name": "LowerRL"
+          "name": "Box"
         }
       ],
-      ,
       "permutationScores": [
         {
           "type": "Feature",
           "name": "maximizer",
-          "intVal": 53,
-          "normalizedVal": 0.828125,
-          "weightedVal": 0.459652498043031
+          "intVal": 55,
+          "normalizedVal": 0.859375,
+          "weightedVal": 0.4769978753276737
         },
         {
           "type": "Feature",
           "name": "avoid middle",
-          "intVal": 51,
-          "normalizedVal": 0.9820675105485233,
-          "weightedVal": 0.20500236227043003
+          "intVal": 45,
+          "normalizedVal": 0.9841772151898734,
+          "weightedVal": 0.205442754026113
         },
         {
           "type": "Feature",
           "name": "occupied",
-          "intVal": 11,
-          "normalizedVal": 0.89,
-          "weightedVal": 0.046280280434269766
+          "intVal": 9,
+          "normalizedVal": 0.91,
+          "weightedVal": 0.04732028673616347
         },
         {
           "type": "Feature",
           "name": "open rows + cols",
-          "intVal": 11,
-          "normalizedVal": 0.55,
-          "weightedVal": 0.027099431757255023
+          "intVal": 13,
+          "normalizedVal": 0.65,
+          "weightedVal": 0.03202660116766503
         },
         {
           "type": "Feature",
           "name": "connected open",
-          "intVal": 7,
-          "normalizedVal": 0.7,
-          "weightedVal": 0.03240909683305096
+          "intVal": 8,
+          "normalizedVal": 0.8,
+          "weightedVal": 0.037038967809201094
         },
         {
           "type": "Feature",
@@ -340,11 +337,11 @@
         {
           "type": "Feature",
           "name": "2 neighbors",
-          "intVal": 7,
-          "normalizedVal": 0.8833333333333333,
-          "weightedVal": 0.007826858494991158
+          "intVal": 6,
+          "normalizedVal": 0.9,
+          "weightedVal": 0.00797453507036835
         }
-      ],
+      ]
     },
     {
       "type": "Permutation",
@@ -353,7 +350,7 @@
       "pieces": [
         {
           "type": "Piece",
-          "name": "HLine5"
+          "name": "VLine2"
         },
         {
           "type": "Piece",
@@ -361,201 +358,30 @@
         },
         {
           "type": "Piece",
-          "name": "LowerRL"
+          "name": "Box"
         }
       ],
-      ,
       "permutationScores": [
         {
           "type": "Feature",
           "name": "maximizer",
-          "intVal": 53,
-          "normalizedVal": 0.828125,
-          "weightedVal": 0.459652498043031
+          "intVal": 55,
+          "normalizedVal": 0.859375,
+          "weightedVal": 0.4769978753276737
         },
         {
           "type": "Feature",
           "name": "avoid middle",
-          "intVal": 39,
-          "normalizedVal": 0.9862869198312236,
-          "weightedVal": 0.20588314578179598
+          "intVal": 33,
+          "normalizedVal": 0.9883966244725738,
+          "weightedVal": 0.20632353753747898
         },
         {
           "type": "Feature",
           "name": "occupied",
-          "intVal": 11,
-          "normalizedVal": 0.89,
-          "weightedVal": 0.046280280434269766
-        },
-        {
-          "type": "Feature",
-          "name": "open rows + cols",
           "intVal": 9,
-          "normalizedVal": 0.45,
-          "weightedVal": 0.02217226234684502
-        },
-        {
-          "type": "Feature",
-          "name": "connected open",
-          "intVal": 6,
-          "normalizedVal": 0.6,
-          "weightedVal": 0.027779225856900822
-        },
-        {
-          "type": "Feature",
-          "name": "spaces on a line",
-          "intVal": 20,
-          "normalizedVal": 1.0,
-          "weightedVal": 0.03894821889017383
-        },
-        {
-          "type": "Feature",
-          "name": "3 neighbors",
-          "intVal": 0,
-          "normalizedVal": 1.0,
-          "weightedVal": 0.021272603094526756
-        },
-        {
-          "type": "Feature",
-          "name": "4 neighbors",
-          "intVal": 0,
-          "normalizedVal": 1.0,
-          "weightedVal": 0.01955009923008016
-        },
-        {
-          "type": "Feature",
-          "name": "2 neighbors",
-          "intVal": 7,
-          "normalizedVal": 0.8833333333333333,
-          "weightedVal": 0.007826858494991158
-        }
-      ],
-    },
-    {
-      "type": "Permutation",
-      "index": 5,
-      "winner": false,
-      "pieces": [
-        {
-          "type": "Piece",
-          "name": "LowerRL"
-        },
-        {
-          "type": "Piece",
-          "name": "HLine5"
-        },
-        {
-          "type": "Piece",
-          "name": "VLine3"
-        }
-      ],
-      ,
-      "permutationScores": [
-        {
-          "type": "Feature",
-          "name": "maximizer",
-          "intVal": 53,
-          "normalizedVal": 0.828125,
-          "weightedVal": 0.459652498043031
-        },
-        {
-          "type": "Feature",
-          "name": "avoid middle",
-          "intVal": 39,
-          "normalizedVal": 0.9862869198312236,
-          "weightedVal": 0.20588314578179598
-        },
-        {
-          "type": "Feature",
-          "name": "occupied",
-          "intVal": 11,
-          "normalizedVal": 0.89,
-          "weightedVal": 0.046280280434269766
-        },
-        {
-          "type": "Feature",
-          "name": "open rows + cols",
-          "intVal": 9,
-          "normalizedVal": 0.45,
-          "weightedVal": 0.02217226234684502
-        },
-        {
-          "type": "Feature",
-          "name": "connected open",
-          "intVal": 7,
-          "normalizedVal": 0.7,
-          "weightedVal": 0.03240909683305096
-        },
-        {
-          "type": "Feature",
-          "name": "spaces on a line",
-          "intVal": 20,
-          "normalizedVal": 1.0,
-          "weightedVal": 0.03894821889017383
-        },
-        {
-          "type": "Feature",
-          "name": "3 neighbors",
-          "intVal": 0,
-          "normalizedVal": 1.0,
-          "weightedVal": 0.021272603094526756
-        },
-        {
-          "type": "Feature",
-          "name": "4 neighbors",
-          "intVal": 0,
-          "normalizedVal": 1.0,
-          "weightedVal": 0.01955009923008016
-        },
-        {
-          "type": "Feature",
-          "name": "2 neighbors",
-          "intVal": 7,
-          "normalizedVal": 0.8833333333333333,
-          "weightedVal": 0.007826858494991158
-        }
-      ],
-    },
-    {
-      "type": "Permutation",
-      "index": 6,
-      "winner": false,
-      "pieces": [
-        {
-          "type": "Piece",
-          "name": "HLine5"
-        },
-        {
-          "type": "Piece",
-          "name": "LowerRL"
-        },
-        {
-          "type": "Piece",
-          "name": "VLine3"
-        }
-      ],
-      ,
-      "permutationScores": [
-        {
-          "type": "Feature",
-          "name": "maximizer",
-          "intVal": 53,
-          "normalizedVal": 0.828125,
-          "weightedVal": 0.459652498043031
-        },
-        {
-          "type": "Feature",
-          "name": "avoid middle",
-          "intVal": 39,
-          "normalizedVal": 0.9862869198312236,
-          "weightedVal": 0.20588314578179598
-        },
-        {
-          "type": "Feature",
-          "name": "occupied",
-          "intVal": 11,
-          "normalizedVal": 0.89,
-          "weightedVal": 0.046280280434269766
+          "normalizedVal": 0.91,
+          "weightedVal": 0.04732028673616347
         },
         {
           "type": "Feature",
@@ -567,9 +393,9 @@
         {
           "type": "Feature",
           "name": "connected open",
-          "intVal": 6,
-          "normalizedVal": 0.6,
-          "weightedVal": 0.027779225856900822
+          "intVal": 8,
+          "normalizedVal": 0.8,
+          "weightedVal": 0.037038967809201094
         },
         {
           "type": "Feature",
@@ -595,11 +421,179 @@
         {
           "type": "Feature",
           "name": "2 neighbors",
-          "intVal": 8,
-          "normalizedVal": 0.8666666666666667,
-          "weightedVal": 0.007679181919613967
+          "intVal": 6,
+          "normalizedVal": 0.9,
+          "weightedVal": 0.00797453507036835
+        }
+      ]
+    },
+    {
+      "type": "Permutation",
+      "index": 5,
+      "winner": false,
+      "pieces": [
+        {
+          "type": "Piece",
+          "name": "Box"
+        },
+        {
+          "type": "Piece",
+          "name": "VLine2"
+        },
+        {
+          "type": "Piece",
+          "name": "VLine3"
         }
       ],
+      "permutationScores": [
+        {
+          "type": "Feature",
+          "name": "maximizer",
+          "intVal": 55,
+          "normalizedVal": 0.859375,
+          "weightedVal": 0.4769978753276737
+        },
+        {
+          "type": "Feature",
+          "name": "avoid middle",
+          "intVal": 39,
+          "normalizedVal": 0.9862869198312236,
+          "weightedVal": 0.20588314578179598
+        },
+        {
+          "type": "Feature",
+          "name": "occupied",
+          "intVal": 9,
+          "normalizedVal": 0.91,
+          "weightedVal": 0.04732028673616347
+        },
+        {
+          "type": "Feature",
+          "name": "open rows + cols",
+          "intVal": 13,
+          "normalizedVal": 0.65,
+          "weightedVal": 0.03202660116766503
+        },
+        {
+          "type": "Feature",
+          "name": "connected open",
+          "intVal": 8,
+          "normalizedVal": 0.8,
+          "weightedVal": 0.037038967809201094
+        },
+        {
+          "type": "Feature",
+          "name": "spaces on a line",
+          "intVal": 20,
+          "normalizedVal": 1.0,
+          "weightedVal": 0.03894821889017383
+        },
+        {
+          "type": "Feature",
+          "name": "3 neighbors",
+          "intVal": 0,
+          "normalizedVal": 1.0,
+          "weightedVal": 0.021272603094526756
+        },
+        {
+          "type": "Feature",
+          "name": "4 neighbors",
+          "intVal": 0,
+          "normalizedVal": 1.0,
+          "weightedVal": 0.01955009923008016
+        },
+        {
+          "type": "Feature",
+          "name": "2 neighbors",
+          "intVal": 7,
+          "normalizedVal": 0.8833333333333333,
+          "weightedVal": 0.007826858494991158
+        }
+      ]
+    },
+    {
+      "type": "Permutation",
+      "index": 6,
+      "winner": false,
+      "pieces": [
+        {
+          "type": "Piece",
+          "name": "VLine2"
+        },
+        {
+          "type": "Piece",
+          "name": "Box"
+        },
+        {
+          "type": "Piece",
+          "name": "VLine3"
+        }
+      ],
+      "permutationScores": [
+        {
+          "type": "Feature",
+          "name": "maximizer",
+          "intVal": 55,
+          "normalizedVal": 0.859375,
+          "weightedVal": 0.4769978753276737
+        },
+        {
+          "type": "Feature",
+          "name": "avoid middle",
+          "intVal": 45,
+          "normalizedVal": 0.9841772151898734,
+          "weightedVal": 0.205442754026113
+        },
+        {
+          "type": "Feature",
+          "name": "occupied",
+          "intVal": 9,
+          "normalizedVal": 0.91,
+          "weightedVal": 0.04732028673616347
+        },
+        {
+          "type": "Feature",
+          "name": "open rows + cols",
+          "intVal": 13,
+          "normalizedVal": 0.65,
+          "weightedVal": 0.03202660116766503
+        },
+        {
+          "type": "Feature",
+          "name": "connected open",
+          "intVal": 8,
+          "normalizedVal": 0.8,
+          "weightedVal": 0.037038967809201094
+        },
+        {
+          "type": "Feature",
+          "name": "spaces on a line",
+          "intVal": 20,
+          "normalizedVal": 1.0,
+          "weightedVal": 0.03894821889017383
+        },
+        {
+          "type": "Feature",
+          "name": "3 neighbors",
+          "intVal": 0,
+          "normalizedVal": 1.0,
+          "weightedVal": 0.021272603094526756
+        },
+        {
+          "type": "Feature",
+          "name": "4 neighbors",
+          "intVal": 0,
+          "normalizedVal": 1.0,
+          "weightedVal": 0.01955009923008016
+        },
+        {
+          "type": "Feature",
+          "name": "2 neighbors",
+          "intVal": 6,
+          "normalizedVal": 0.9,
+          "weightedVal": 0.00797453507036835
+        }
+      ]
     }
-  ],
+  ]
 }

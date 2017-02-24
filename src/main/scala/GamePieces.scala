@@ -123,7 +123,7 @@ class GamePieces(seed: Int) {
 
   def printPossiblePieces(): Unit = {
     for (piece <- pieceList.sortBy(_.pointValue)) {
-      println(piece.name.addColon + piece.pointValue)
+      println(piece.name.appendColon + piece.pointValue)
       println(piece.show(piece.cellShowFunction))
       println
     }
@@ -133,7 +133,7 @@ class GamePieces(seed: Int) {
   // the color used on the board will have derived from one of these pieces.
   // provide an integer index that we then pack into a BigInt representing the colored state of a given board
   // val colorIndexMap = pieceList.zipWithIndex.map(tup => (tup._1.color, tup._2 + 1)).toMap
-  val colorIndexMap = pieceList.map(_.color).toSet.zipWithIndex.map(tup => (tup._1, tup._2 + 1)).toMap
+  val colorIndexMap: Map[String, Int] = pieceList.map(_.color).toSet.zipWithIndex.map(tup => (tup._1, tup._2 + 1)).toMap
 
 }
 
@@ -161,32 +161,33 @@ object GamePieces {
   val bigUpperRightElName = "BigUpperRL"
   val bigLowerRightElName = "BigLowerRL"
 
-  def singleton = Line(Piece.getLinearGrid(1), GamePieces.singletonName, StringFormats.BLUE, 4)
+  // used for testing otherwise they could just be private
+  val singleton = Line(Piece.getLinearGrid(1), GamePieces.singletonName, StringFormats.BLUE, 4)
 
-  def h2Line = Line(Piece.getLinearGrid(2), GamePieces.h2LineName, StringFormats.BRIGHT_YELLOW, 6)
-  def v2Line: Piece = Piece.rotate90(GamePieces.v2LineName, h2Line)
+  val h2Line = Line(Piece.getLinearGrid(2), GamePieces.h2LineName, StringFormats.BRIGHT_YELLOW, 6)
+  val v2Line: Piece = Piece.rotate90(GamePieces.v2LineName, h2Line)
 
-  def h3Line = Line(Piece.getLinearGrid(3), GamePieces.h3LineName, StringFormats.YELLOW, 6)
-  def v3Line: Piece = Piece.rotate90(GamePieces.v3LineName, h3Line)
+  val h3Line = Line(Piece.getLinearGrid(3), GamePieces.h3LineName, StringFormats.YELLOW, 6)
+  val v3Line: Piece = Piece.rotate90(GamePieces.v3LineName, h3Line)
 
-  def h4Line = Line(Piece.getLinearGrid(4), GamePieces.h4LineName, StringFormats.BRIGHT_RED, 4)
-  def v4Line: Piece = Piece.rotate90(GamePieces.v4LineName, h4Line)
+  val h4Line = Line(Piece.getLinearGrid(4), GamePieces.h4LineName, StringFormats.BRIGHT_RED, 4)
+  val v4Line: Piece = Piece.rotate90(GamePieces.v4LineName, h4Line)
 
-  def h5Line = Line(Piece.getLinearGrid(5), GamePieces.h5LineName, StringFormats.RED, 4)
-  def v5Line: Piece = Piece.rotate90(GamePieces.v5LineName, h5Line)
+  val h5Line = Line(Piece.getLinearGrid(5), GamePieces.h5LineName, StringFormats.RED, 4)
+  val v5Line: Piece = Piece.rotate90(GamePieces.v5LineName, h5Line)
 
-  def box = Box(Piece.getBoxGrid(2), GamePieces.boxName, StringFormats.GREEN, 12)
-  def bigBox = Box(Piece.getBoxGrid(3), GamePieces.bigBoxName, StringFormats.CYAN, 4)
+  val box = Box(Piece.getBoxGrid(2), GamePieces.boxName, StringFormats.GREEN, 12)
+  val bigBox = Box(Piece.getBoxGrid(3), GamePieces.bigBoxName, StringFormats.CYAN, 4)
 
-  def lowerLeftEl = El(Piece.getBoxGrid(2), GamePieces.lowerLeftElName, StringFormats.MAGENTA, 3)
-  def upperLeftEl: Piece = Piece.rotate90(GamePieces.upperLeftElName, lowerLeftEl)
-  def upperRightEl: Piece = Piece.rotate90(GamePieces.upperRightElName, upperLeftEl)
-  def lowerRightEl: Piece = Piece.rotate90(GamePieces.lowerRightElName, upperRightEl)
+  val lowerLeftEl = El(Piece.getBoxGrid(2), GamePieces.lowerLeftElName, StringFormats.MAGENTA, 3)
+  val upperLeftEl: Piece = Piece.rotate90(GamePieces.upperLeftElName, lowerLeftEl)
+  val upperRightEl: Piece = Piece.rotate90(GamePieces.upperRightElName, upperLeftEl)
+  val lowerRightEl: Piece = Piece.rotate90(GamePieces.lowerRightElName, upperRightEl)
 
-  def bigLowerLeftEl = El(Piece.getBoxGrid(3), GamePieces.bigLowerLeftElName, StringFormats.CYAN, 2)
-  def bigUpperLeftEl: Piece = Piece.rotate90(GamePieces.bigUpperLeftElName, bigLowerLeftEl)
-  def bigUpperRightEl: Piece = Piece.rotate90(GamePieces.bigUpperRightElName, bigUpperLeftEl)
-  def bigLowerRightEl: Piece = Piece.rotate90(GamePieces.bigLowerRightElName, bigUpperRightEl)
+  val bigLowerLeftEl = El(Piece.getBoxGrid(3), GamePieces.bigLowerLeftElName, StringFormats.CYAN, 2)
+  val bigUpperLeftEl: Piece = Piece.rotate90(GamePieces.bigUpperLeftElName, bigLowerLeftEl)
+  val bigUpperRightEl: Piece = Piece.rotate90(GamePieces.bigUpperRightElName, bigUpperLeftEl)
+  val bigLowerRightEl: Piece = Piece.rotate90(GamePieces.bigLowerRightElName, bigUpperRightEl)
 
   private val gamePieces = new GamePieces(seed=0)
   // used for outputting a set of three pieces

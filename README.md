@@ -72,7 +72,7 @@ use packInstall which is provided by the awesome: https://github.com/xerial/sbt-
 $ sbt packInstall
 ```
 
-which will create a launchable script in ~/local/bin
+which will create a runnable script in ~/local/bin
 
 then run simulate from command line either from 
 

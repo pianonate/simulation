@@ -66,7 +66,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
       // set the game number and gameSeed so they are part of the JSON file name
       if (context.logJSON) {
         context.setJSONFileNameDiscriminators(multiGameStats.gameNumber, gameSeed)
-        logWeights
+        logWeights()
       }
 
       /* def loop = {
@@ -100,9 +100,9 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
     GameResults(
       score.value,
       rounds.value,
-      if (context.replayGame) 0 else gameStats.bestPerSecond,
-      if (context.replayGame) 0l else gameStats.totalSimulations,
-      if (context.replayGame) 0l else gameStats.totalUnsimulatedSimulations,
+      if (context.replayGame && context.ignoreSimulation) 0 else gameStats.bestPerSecond,
+      if (context.replayGame && context.ignoreSimulation) 0l else gameStats.totalSimulations,
+      if (context.replayGame && context.ignoreSimulation) 0l else gameStats.totalUnsimulatedSimulations,
       gameTimer
     )
 
@@ -210,7 +210,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
               val color = this.board.colorGrid(row)(col)
               val colorInt = gamePieces.colorIndexMap(color)
-              val shift = (row * (Board.BOARD_SIZE * 4) + col * 4)
+              val shift = row * (Board.BOARD_SIZE * 4) + col * 4
               val shifted = math.BigInt(colorInt) << shift
               big = big + shifted
 
@@ -333,7 +333,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
     gameStats.updateStats(
       PerformanceInfo(
-        simulatedCount + unsimulatedCount,
+        simulatedCount,
         unsimulatedCount,
         result.map(_.rcChangedCountBest).sum,
         elapsedMs,
@@ -582,25 +582,25 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
     val boardSpacer = " ".repeat(2)
     val labelWidth = Specification.maxOptFactorLabelLength
 
-    val scoreLabel = "score".leftAlignedPadded(labelWidth).addColon + score.label(valuesWidth).green + boardSpacer
+    val scoreLabel = "score".leftAlignedPadded(labelWidth).appendColon + score.label(valuesWidth).green + boardSpacer
 
     val newScore = Array(
       scoreLabel,
-      "cleared rows".leftAlignedPadded(labelWidth).addColon + linesClearedResult.rows.label(valuesWidth) + boardSpacer,
-      "cleared cols".leftAlignedPadded(labelWidth).addColon + linesClearedResult.cols.label(valuesWidth) + boardSpacer,
-      " ".leftAlignedPadded(labelWidth) + " ".repeat("".addColon.length) + " ".repeat(valuesWidth) + boardSpacer,
-      ("opt factors".leftAlignedPadded(labelWidth) + " ".repeat("".addColon.length) + " ".repeat(valuesWidth)).underline + boardSpacer
+      "cleared rows".leftAlignedPadded(labelWidth).appendColon + linesClearedResult.rows.label(valuesWidth) + boardSpacer,
+      "cleared cols".leftAlignedPadded(labelWidth).appendColon + linesClearedResult.cols.label(valuesWidth) + boardSpacer,
+      " ".leftAlignedPadded(labelWidth) + " ".repeat("".appendColon.length) + " ".repeat(valuesWidth) + boardSpacer,
+      ("opt factors".leftAlignedPadded(labelWidth) + " ".repeat("".appendColon.length) + " ".repeat(valuesWidth)).underline + boardSpacer
 
     )
 
     val newBoardResultsString = context.specification.spec.values.zip(board.boardScore.scores)
       .map {
         case (optFactor, scoreComponent) =>
-          optFactor.label.leftAlignedPadded(labelWidth).addColon + scoreComponent.intValue.label(valuesWidth) + boardSpacer
+          optFactor.label.leftAlignedPadded(labelWidth).appendColon + scoreComponent.intValue.label(valuesWidth) + boardSpacer
       }.toArray
 
     val scoreInfoLength = newScore.length + newBoardResultsString.length
-    // whichever is longer scoreinfo or board length
+    // whichever is longer score info or board length
     val totalHeight = scoreInfoLength.max(Board.BOARD_SIZE)
 
     val remainingScoreLines = (scoreInfoLength until totalHeight)
@@ -608,7 +608,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
     val newResults: Array[String] = newScore ++ newBoardResultsString ++ remainingScoreLines
 
-    // leave this assert here in case you add a new optiization factor that causes the list of factors to exceed
+    // leave this assert here in case you add a new optimization factor that causes the list of factors to exceed
     // the length of the board - in which case you'll need to modify the code to allow for a buffer at the end of the
     // board as well as the current situation which allows for a buffer at the end of the score and optimization factors
     // aka remainingLines
@@ -779,18 +779,18 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
   private val delimiter = ","
 
   private def getNameVal(name: String, value: Any): String = {
-    getNameVal(name, value, delimiter)
+    getNameVal(name, value, delimited=true)
   }
 
-  private def getNameVal(name: String, value: Any, delimiter: String) = {
-    "\"" + name + "\":" + value.toString + delimiter
+  private def getNameVal(name: String, value: Any, delimited: Boolean) = {
+    "\"" + name + "\":" + value.toString + (if (delimited) delimiter else "")
   }
 
-  private def logWeights: Unit = {
+  private def logWeights(): Unit = {
 
     if (context.logJSON) {
 
-      val weights = context.specification.optimizationFactors.map(factor => getNameVal(factor.label, factor.weight, "")).mkString(delimiter)
+      val weights = context.specification.optimizationFactors.map(factor => getNameVal(factor.label, factor.weight, delimited=false)).mkString(delimiter)
 
       val s = "{" +
         getNameVal("type", "Weights".doubleQuote) +
@@ -815,12 +815,12 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
           "{" + getNameVal("type", "Feature".doubleQuote) +
             getNameVal("name", scoreComponent.label.doubleQuote) + getNameVal("intVal", scoreComponent.intValue) +
             getNameVal("normalizedVal", scoreComponent.normalizedValue) +
-            getNameVal("weightedVal", scoreComponent.weightedValue, "") + "}"
+            getNameVal("weightedVal", scoreComponent.weightedValue, delimited=false) + "}"
         }.mkString(delimiter)
       }
 
       val selectedPieces = best.plcList.reverse.map { plc =>
-        "{" + getNameVal("type", "PieceLoc".doubleQuote) + getNameVal("name", plc.piece.name.doubleQuote) + getNameVal("row", plc.loc.row) + getNameVal("col", plc.loc.col, "") + "}"
+        "{" + getNameVal("type", "PieceLoc".doubleQuote) + getNameVal("name", plc.piece.name.doubleQuote) + getNameVal("row", plc.loc.row) + getNameVal("col", plc.loc.col, delimited=false) + "}"
       }.mkString(delimiter)
 
       val endOfRoundScores = getScores(this.board.boardScore.scores)
@@ -834,11 +834,11 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
           val index = getNameVal("index", i + 1) // add 1 because permutations are not 0 based in the _real_ world
           val winnerString = getNameVal("winner", if (winner) "true" else "false")
 
-          val pieces = p.pieces.reverse.map(piece => "{" + getNameVal("type", "Piece".doubleQuote) + getNameVal("name", piece.name.doubleQuote, "") + "}").mkString(delimiter)
-          val pieceArrayString = getNameVal("pieces", pieces.squareBracket)
+          val pieces = p.pieces.reverse.map(piece => "{" + getNameVal("type", "Piece".doubleQuote) + getNameVal("name", piece.name.doubleQuote, delimited=false) + "}").mkString(delimiter)
+          val pieceArrayString = getNameVal("pieces", pieces.squareBracket, delimited=false)
 
           val scores = getScores(p.best.board.boardScore.scores)
-          val permutationScores = getNameVal("permutationScores", scores.squareBracket)
+          val permutationScores = getNameVal("permutationScores", scores.squareBracket, delimited=false)
           "{" + pType + index + winnerString + pieceArrayString + "," + permutationScores + "}"
       }.mkString(delimiter)
 
@@ -850,8 +850,8 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
         getNameVal("beginOfRoundColorGridBitMask", colorGridBitMask) +
         getNameVal("endOfRoundBitMask", this.board.grid.asBigInt) +
         getNameVal("selectedPieces", selectedPieces.squareBracket) +
-        getNameVal("endOfRoundScores", endOfRoundScores.squareBracket, "") +
-        getNameVal("permutations", permutations.squareBracket) + "}"
+        getNameVal("endOfRoundScores", endOfRoundScores.squareBracket) +
+        getNameVal("permutations", permutations.squareBracket, delimited=false) + "}"
 
       context.jsonLogger.info(s)
     }

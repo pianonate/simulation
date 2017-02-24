@@ -92,7 +92,7 @@ class IntFormats(val i: Int) {
   }
   def greenLabel: String = GREEN + optFactorLabel + SANE
   def greenPerSecondLabel: String = GREEN + perSecondLabel + SANE
-  def indexLabel:String = (i + 1).toString.addColon
+  def indexLabel:String = (i + 1).toString.appendColon
   def label: String = numberFormat.format(i)
   def label(length: Int): String = ("%," + length.toString + "d").format(i)
   def optFactorLabel: String = optFactorResultFormat.format(i)
@@ -124,7 +124,7 @@ class PieceListFormats(val pieceList: List[Piece]) {
 
     val numPieces = GamePieces.numPiecesInRound
 
-    val header = "Permutation".addColon + (index + 1) + (if (index==0) " (game selected)" else "")
+    val header = "Permutation".appendColon + (index + 1) + (if (index==0) " (game selected)" else "")
     val headerBuffer = (maxPieceWidth * numPieces) + (numPieces * 3) - (header.length+2)
     val paddedHeader = header + " ".repeat(headerBuffer) + "\n"
 
@@ -158,13 +158,8 @@ class StringFormats(val s: String) {
     "\n" + color + pad1 + " " + s + " " + pad2 + SANE
   }
 
-/*  private def coloredDigitsLabel(color:String):String = {
-    val replaced = s.replaceAll("([^0\\.])", color + "$1" + SANE)
-    replaced
-  }*/
-
-  def addColon:String = s + ": "
-  def doubleQuote = "\"" + s + "\""
+  def appendColon:String = s + ": "
+  def doubleQuote: String = "\"" + s + "\""
   def elapsedLabel: String = elapsedFormat.format(s)
   def green:String = GREEN + s + SANE
   def greenHeader: String = getHeaderString(GREEN)
@@ -195,12 +190,12 @@ class StringFormats(val s: String) {
     //       you could probably speed this up although it's not happening very often
     val first = s.split(" ").foldLeft(Array(""))((out, in) => {
       if ((out.last + " " + in).trim.length > width) out :+ in
-      else out.updated(out.size - 1, out.last + " " + in)
+      else out.updated(out.length - 1, out.last + " " + in)
     }).mkString("\n").trim
 
     val firstArray = first.split("\n")
 
-    val second = (firstArray.length until height).map(each => " ".repeat(width)).toArray
+    val second = (firstArray.length until height).map(_ => " ".repeat(width)).toArray
 
     val wrapped = firstArray.map(each => color + each.leftAlignedPadded(width) + SANE) ++ second
     wrapped.mkString("\n")

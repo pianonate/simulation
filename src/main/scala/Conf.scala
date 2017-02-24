@@ -11,7 +11,7 @@ class Conf(arguments: Seq[String]) extends ScallopConf(arguments) {
   // max simulations if you had 3 singletons chosen on an empty board:
   private val BOARD_UNOCCUPIED = Board.BOARD_SIZE * Board.BOARD_SIZE
   private val MAX_SIMULATION_ITERATIONS: Int = BOARD_UNOCCUPIED * (BOARD_UNOCCUPIED - 1) * (BOARD_UNOCCUPIED - 2)
-  private val ERASE_TERMINAL_BUFFER_EVERY_N_ROUNDS = 1000
+  // private val ERASE_TERMINAL_BUFFER_EVERY_N_ROUNDS = 1000
 
   private val header = {
 

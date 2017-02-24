@@ -1,5 +1,6 @@
 /**
  * Created by nathan mccoy on 2/5/17.
+ * test GameRunner class
  */
 
 import org.scalatest.FlatSpec
