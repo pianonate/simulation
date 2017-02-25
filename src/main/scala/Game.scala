@@ -165,17 +165,27 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
       if (context.replayGame && context.ignoreSimulation) replayPieces else bestSimulation.plcList.reverse
     }
 
-    def placePieces(chosenList: List[PieceLocCleared]): String = {
+    def placePieces(chosenList: List[PieceLocCleared]): List[PieceHandlerInfo] = {
 
       // zip the piece location cleared list it's index so we don't have to keep a
       // global track of placed pieces
-      val a: List[List[String]] = chosenList.zipWithIndex.map {
+      chosenList.zipWithIndex.map {
         case (plc, index) =>
           pieceHandler(
             plc.piece,
             plc.loc,
             index + 1
-          ).split("\n")
+          )
+      }
+
+    }
+
+    def getPlacePiecesResultsString(pieceHandlerInfoList: List[PieceHandlerInfo]): String = {
+
+      // zip the piece location cleared list it's index so we don't have to keep a
+      // global track of placed pieces
+      val a: List[List[String]] = pieceHandlerInfoList.map {
+        info => getPieceHandlerResults(info).split("\n")
       }.transpose
 
       val boards = a.map(each => each.mkString(StringFormats.VERTICAL_LINE + " ".repeat(3))).mkString("\n")
@@ -261,7 +271,9 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
       // as a side effect of placing, returns a string representing board states
       // is there a better way to do this?
-      val placePiecesString = placePieces(chosenList)
+      val placePiecesInfo = placePieces(chosenList)
+
+      val placePiecesString = getPlacePiecesResultsString(placePiecesInfo)
 
       if (context.show) {
         clearScreen()
@@ -380,7 +392,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
     def placeMe(piece: Piece, theBoard: Board, loc: Loc): BoardPieceLocCleared = {
       val boardCopy = Board.copy("simulationBoard", theBoard)
       boardCopy.place(piece, loc, updateColor = false)
-      val cleared = boardCopy.clearLines(clearColor = false)
+      val cleared = boardCopy.clearLines
       val isCleared = (cleared.rows + cleared.cols) > 0
 
       // return the board with an instance of a PieceLocCleared class
@@ -554,17 +566,13 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
     loc: Loc,
     index: Int,
     unclearedBoard: Board,
+    clearedBoard: Board,
     score: Int,
     rowsCleared: Int,
-    colsCleard:Int
+    colsCleared:Int
   )
 
-  private def pieceHandler(piece: Piece, loc: Loc, index: Int): String = {
-
-
-    def getShowBoard(board: Board) = {
-      board.show(board.cellShowFunction)
-    }
+  private def pieceHandler(piece: Piece, loc: Loc, index: Int): PieceHandlerInfo = {
 
     // todo take the returned information from pieceHandler to construct the information string separately
 
@@ -582,9 +590,8 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
     score.inc(piece.pointValue)
 
     val unclearedBoard = Board.copy("unclearedBoard", this.board)
-    val boardBeforeClearing = getShowBoard(unclearedBoard)
 
-    val linesClearedResult = board.clearLines(clearColor = true)
+    val linesClearedResult = board.clearLines
     val linesCleared = linesClearedResult.rows > 0 || linesClearedResult.cols > 0
 
     if (linesCleared) {
@@ -595,36 +602,48 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
     }
 
-    val pieceHandlerInfo = PieceHandlerInfo(
+    val clearedBoard = Board.copy("clearedBoard", this.board)
+
+    PieceHandlerInfo(
       piece,
       loc,
       index,
       unclearedBoard,
+      clearedBoard,
       score.value,
-      rowsCleared.value,
-      colsCleared.value
+      linesClearedResult.rows,
+      linesClearedResult.cols
     )
+
+  }
+
+  private def getPieceHandlerResults(pieceHandlerInfo:PieceHandlerInfo): String = {
+
+
+    def getShowBoard(board: Board) = {
+      board.show(board.cellShowFunction)
+    }
 
     val minScoreLength = 5 // to allow for 4 digits and a comma
     // this is a whole lot of string construction... should it be here? or should we split pieceHandler and boardResultsString into two separate operations
-    val scoreLength = score.shortLabel.length.max(minScoreLength)
+    val scoreLength = pieceHandlerInfo.score.shortLabel.length.max(minScoreLength)
     val valuesWidth = scoreLength.max(minScoreLength)
 
     val boardSpacer = " ".repeat(2)
     val labelWidth = Specification.maxOptFactorLabelLength
 
-    val scoreLabel = "score".leftAlignedPadded(labelWidth).appendColon + score.label(valuesWidth).green + boardSpacer
+    val scoreLabel = "score".leftAlignedPadded(labelWidth).appendColon + pieceHandlerInfo.score.label(valuesWidth).green + boardSpacer
 
     val newScore = Array(
       scoreLabel,
-      "cleared rows".leftAlignedPadded(labelWidth).appendColon + linesClearedResult.rows.label(valuesWidth) + boardSpacer,
-      "cleared cols".leftAlignedPadded(labelWidth).appendColon + linesClearedResult.cols.label(valuesWidth) + boardSpacer,
+      "cleared rows".leftAlignedPadded(labelWidth).appendColon + pieceHandlerInfo.rowsCleared.label(valuesWidth) + boardSpacer,
+      "cleared cols".leftAlignedPadded(labelWidth).appendColon + pieceHandlerInfo.colsCleared.label(valuesWidth) + boardSpacer,
       " ".leftAlignedPadded(labelWidth) + " ".repeat("".appendColon.length) + " ".repeat(valuesWidth) + boardSpacer,
       ("opt factors".leftAlignedPadded(labelWidth) + " ".repeat("".appendColon.length) + " ".repeat(valuesWidth)).underline + boardSpacer
 
     )
 
-    val newBoardResultsString = context.specification.spec.values.zip(board.boardScore.scores)
+    val newBoardResultsString = context.specification.spec.values.zip(pieceHandlerInfo.clearedBoard.boardScore.scores)
       .map {
         case (optFactor, scoreComponent) =>
           optFactor.label.leftAlignedPadded(labelWidth).appendColon + scoreComponent.intValue.label(valuesWidth) + boardSpacer
@@ -648,22 +667,22 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
     val appendToBoard = "\n" + (Board.BOARD_SIZE until totalHeight)
       .map(_ => " ".repeat(Board.BOARD_SIZE * 2 - 1 + boardSpacer.length) + "\n").mkString
 
-    val newBoard = (boardBeforeClearing + appendToBoard) splice newResults
+    val newBoard = (getShowBoard(pieceHandlerInfo.unclearedBoard) + appendToBoard) splice newResults
 
-    val finalBoard = if (index == GamePieces.numPiecesInRound) newBoard splice (getShowBoard(this.board) + appendToBoard).split("\n") else newBoard
+    val finalBoard = if (pieceHandlerInfo.index == GamePieces.numPiecesInRound) newBoard splice (getShowBoard(this.board) + appendToBoard).split("\n") else newBoard
 
     // todo - get rid of piece.cellShowFunction - it's got to work better than this
 
-    val placingLabel: String = "Placing " + index.firstSecondThirdLabel + " ".repeat(2)
+    val placingLabel: String = "Placing " + pieceHandlerInfo.index.firstSecondThirdLabel + " ".repeat(2)
     val placingBuffer = placingLabel.length
-    val pieceWidth = piece.cols * 2 - 1
+    val pieceWidth = pieceHandlerInfo.piece.cols * 2 - 1
 
-    val pieceArray: Array[String] = piece.show(piece.cellShowFunction).split("\n").map(each => each + " ".repeat(placingBuffer - pieceWidth - 2))
+    val pieceArray: Array[String] = pieceHandlerInfo.piece.show(pieceHandlerInfo.piece.cellShowFunction).split("\n").map(each => each + " ".repeat(placingBuffer - pieceWidth - 2))
 
     val placingHeader = Array(placingLabel) ++ pieceArray
 
     val remainingPieceLines = (placingHeader.length to GamePieces.tallestPiece).map(_ => " ".repeat(placingBuffer)).toArray
-    val atLoc = Array(("at " + loc.show).leftAlignedPadded(placingBuffer))
+    val atLoc = Array(("at " + pieceHandlerInfo.loc.show).leftAlignedPadded(placingBuffer))
 
     val placingContent = placingHeader ++ remainingPieceLines ++ atLoc
     val remainingPlacingLines = (placingContent.length until finalBoard.length).map(_ => " ".repeat(placingBuffer)).toArray

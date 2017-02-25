@@ -13,6 +13,8 @@
 
 case class ClearedLines(rows: Int, cols: Int)
 
+// todo there seems to be a bug in count 2 neighbors.  placing a single v2Line at 8,0 results in a 2 neighbors score of 5 whereas it should be 1
+
 class Board(
   final val name:          String,
   final val color:         String,
@@ -84,37 +86,7 @@ class Board(
   //
   // much further down the road - sped this up by 180% by removing lambdas,
   // optimizing the sentinel creation in calls to grid.fullRows, grid.fulLCols
-  def clearLines(clearColor: Boolean): ClearedLines = {
-
-    //hmmm - so clearColor is only necessary on the real board, but not on simulations.  We don't use
-    //       colorGrid to determine occupancy anymore so...for now, clearColor is called explicitly
-    //       true for the real board, false for simulations.  no need to spend the time in a simulation
-
-    def clearCol(col: Int): Unit = { /*{ for (i <- layout.indices) layout(i)(col) = new Cell(false, this.color, true) }*/
-      grid.clearCol(col)
-
-      if (clearColor) {
-        // clear all col positions in each row
-        var row = 0
-        while (row < rows) {
-          colorGrid(row)(col) = ""
-          row += 1
-        }
-      }
-    }
-
-    def clearRow(row: Int, rowColorCells: Array[String]): Unit = {
-
-      grid.clearRow(row)
-
-      if (clearColor) {
-        var col = 0
-        while (col < cols) {
-          rowColorCells(col) = ""
-          col += 1
-        }
-      }
-    }
+  def clearLines: ClearedLines = {
 
     val clearableRows = grid.fullRows
     val clearableCols = grid.fullCols
@@ -123,31 +95,23 @@ class Board(
     // used to eliminate separate clearRows/clearCols
     // shee-ite
 
-    def clearRows(rowsToClear: Array[Long]): Int = {
+    def clearLines(linesToClear: Array[Long], rows: Boolean): Int = {
       var i = 0
-      while (i < rowsToClear.length && rowsToClear(i) > -1) {
-        val n = rowsToClear(i).toInt
-        // holy crap - just fixed this bug that's been in there FOR A WHILE
-        // i had colorGrid(i) rather than colorGrid(n)
-        // one reason why functional programming is better - even if slower - fewer mistakes
-        clearRow(n, this.colorGrid(n))
+      while (i < linesToClear.length && linesToClear(i) > -1) {
+        val n = linesToClear(i).toInt
+
+        rows match {
+          case _ if rows => grid.clearRow(n)
+          case _         => grid.clearCol(n)
+        }
+
         i += 1
       }
       i
     }
 
-    def clearCols(colsToClear: Array[Long]): Int = {
-      var i = 0
-      while (i < colsToClear.length && colsToClear(i) > -1) {
-        val n = colsToClear(i).toInt
-        clearCol(n)
-        i += 1
-      }
-      i
-    }
-
-    val clearedRows = clearRows(clearableRows)
-    val clearedCols = clearCols(clearableCols)
+    val clearedRows = clearLines(clearableRows, rows=true)
+    val clearedCols = clearLines(clearableCols, rows=false)
 
     // rows cleared and cols cleared
     //(clearableRows.length, clearableCols.length)

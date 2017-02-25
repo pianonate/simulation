@@ -101,7 +101,7 @@ class TestBoard extends FlatSpec {
       //        are returned in a different order, we may not
       //        clear enough lines to have this execute safely
       for (piece <- pieces.pieceList) {
-        board.clearLines(clearColor = true)
+        board.clearLines
         val boardScore = board.grid.popCount
         val pieceScore = piece.pointValue
         val loc = board.legalPlacements(piece).head
@@ -141,7 +141,7 @@ class TestBoard extends FlatSpec {
     new BoardFixture {
 
       addRow(boardSize / 2)
-      board.clearLines(clearColor = true)
+      board.clearLines
       assert(board.grid.openLineCount === initialOpenLines)
 
     }
@@ -150,7 +150,7 @@ class TestBoard extends FlatSpec {
   it must "have same number of open lines after adding and clearing the same column" in {
     new BoardFixture {
       addCol(boardSize / 2)
-      board.clearLines(clearColor = true)
+      board.clearLines
       assert(board.grid.openLineCount === initialOpenLines)
 
     }
@@ -160,7 +160,7 @@ class TestBoard extends FlatSpec {
     new BoardFixture {
       addCol(boardSize / 2)
       addRow(boardSize / 2)
-      board.clearLines(clearColor = true)
+      board.clearLines
       assert(board.grid.openLineCount === initialOpenLines)
 
     }
@@ -170,12 +170,12 @@ class TestBoard extends FlatSpec {
     new BoardFixture {
       (0 to 3).foreach(i => addRow(i))
       assert(board.grid.popCount === (4 * boardSize))
-      assert(board.clearLines(clearColor = false).rows === 4)
+      assert(board.clearLines.rows === 4)
       assert(board.grid.popCount === 0)
 
       (0 to 3).foreach(i => addCol(i))
       assert(board.grid.popCount === (4 * boardSize))
-      assert(board.clearLines(clearColor = false).cols === 4)
+      assert(board.clearLines.cols === 4)
       assert(board.grid.popCount === 0)
 
     }
@@ -190,12 +190,12 @@ class TestBoard extends FlatSpec {
         addRow(i)
         val rowMax = board.grid.maxContiguousOpenLines
         assert(expected === rowMax)
-        board.clearLines(clearColor = true)
+        board.clearLines
 
         addCol(i)
         val colMax = board.grid.maxContiguousOpenLines
         assert(expected === colMax)
-        board.clearLines(clearColor = true)
+        board.clearLines
 
       }
       /*
@@ -218,7 +218,7 @@ class TestBoard extends FlatSpec {
     new BoardFixture {
       val occupancy: Int = board.grid.popCount
       addRow(0)
-      board.clearLines(clearColor = true)
+      board.clearLines
       for {
         i <- board.colorGrid.indices
         j <- board.colorGrid(0).indices
