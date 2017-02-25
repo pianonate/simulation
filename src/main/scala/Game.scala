@@ -166,6 +166,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
     }
 
     def placePieces(chosenList: List[PieceLocCleared]): String = {
+
       // zip the piece location cleared list it's index so we don't have to keep a
       // global track of placed pieces
       val a: List[List[String]] = chosenList.zipWithIndex.map {
@@ -185,9 +186,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
     def getUnplacedPiecesString(bestSimulation: Simulation): String = {
 
       val s = (bestSimulation.pieceCount until 3).map({ index =>
-        //val piece = bestSimulation.plcList(index).piece
-        // val pieceString = piece.show(piece.cellShowFunction)
-        "\nDammit!  Couldn't place piece " + (index + 1) + "\n" // + pieceString
+        "\nDammit!  Couldn't place piece " + (index + 1) + "\n"
       }).mkString("\n")
 
       s
@@ -267,7 +266,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
       if (context.show) {
         clearScreen()
 
-        val endOfRoundResultsString = getRoundResultsString(multiGameStats.gameNumber: Int)
+        val endOfRoundResultsString = getRoundResultsString
 
         if (!context.showRoundResultsOnly) {
           val simulationResultsString = getSimulationResultsString(results, bestSimulation)
@@ -550,8 +549,29 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
   }
 
+  case class PieceHandlerInfo(
+    piece: Piece,
+    loc: Loc,
+    index: Int,
+    unclearedBoard: Board,
+    score: Int,
+    rowsCleared: Int,
+    colsCleard:Int
+  )
+
   private def pieceHandler(piece: Piece, loc: Loc, index: Int): String = {
+
+
+    def getShowBoard(board: Board) = {
+      board.show(board.cellShowFunction)
+    }
+
     // todo take the returned information from pieceHandler to construct the information string separately
+
+    // approach is to create a copy of the board after each piece is placed but before lines are cleared and then return this board along with the piece,
+    // location, score, and cleared rows and cleared cols after the piece is placed as well as a copy of the board after the lines are cleared (just for the last one)
+    // then pass this into a method that is split off from this one that has the sole responsibility of constructing
+    // the result string - only if we are doing a show results
 
     board.place(piece, loc, updateColor = true)
 
@@ -561,7 +581,8 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
     // score me baby
     score.inc(piece.pointValue)
 
-    val boardBeforeClearing = getShowBoard
+    val unclearedBoard = Board.copy("unclearedBoard", this.board)
+    val boardBeforeClearing = getShowBoard(unclearedBoard)
 
     val linesClearedResult = board.clearLines(clearColor = true)
     val linesCleared = linesClearedResult.rows > 0 || linesClearedResult.cols > 0
@@ -573,6 +594,16 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
       score.inc(linesClearedResult.rows * Board.BOARD_SIZE + linesClearedResult.cols * Board.BOARD_SIZE - linesClearedResult.rows * linesClearedResult.cols)
 
     }
+
+    val pieceHandlerInfo = PieceHandlerInfo(
+      piece,
+      loc,
+      index,
+      unclearedBoard,
+      score.value,
+      rowsCleared.value,
+      colsCleared.value
+    )
 
     val minScoreLength = 5 // to allow for 4 digits and a comma
     // this is a whole lot of string construction... should it be here? or should we split pieceHandler and boardResultsString into two separate operations
@@ -619,7 +650,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
     val newBoard = (boardBeforeClearing + appendToBoard) splice newResults
 
-    val finalBoard = if (index == GamePieces.numPiecesInRound) newBoard splice (getShowBoard + appendToBoard).split("\n") else newBoard
+    val finalBoard = if (index == GamePieces.numPiecesInRound) newBoard splice (getShowBoard(this.board) + appendToBoard).split("\n") else newBoard
 
     // todo - get rid of piece.cellShowFunction - it's got to work better than this
 
@@ -641,11 +672,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
   }
 
-  private def getShowBoard = {
-    board.show(board.cellShowFunction)
-  }
-
-  private def getRoundResultsString(gameCount: Int): String = {
+  private def getRoundResultsString: String = {
 
     if (context.replayGame && context.ignoreSimulation)
       // todo - how to handle replay mode?
@@ -660,7 +687,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
         val gameElapsedNanoseconds = gameTimer.elapsedNanoseconds.toFloat
         val standardTimingsString = Array(
           "",
-          ("game " + gameCount.shortLabel + " round " + rounds.shortLabel + " results").header,
+          ("game " + multiGameStats.gameNumber.shortLabel + " round " + rounds.shortLabel + " results").header,
           // duration info
           "game elapsed time".label + gameTimer.elapsedLabel,
           "non simulation time".label + nonSimulationTimer.elapsedLabelMs + (nonSimulationTimer.elapsedNanoseconds / gameElapsedNanoseconds).percentLabel
@@ -803,10 +830,10 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
   private def logRound(results: List[SimulationInfo], best: Simulation, colorGridBitMask: BigInt): Unit = {
 
-    // todo - include cleared rows/columns after each piece?  for sure at end of round - implies refactoring pieceHandler
+    // todo - include cleared rows/columns after each piece? implies refactoring pieceHandler
 
     // log pieces - format is in ./src/main/resources/sample.json
-    // only log if asked to do so
+    // only log if asked to do so via command line parameter -j, --logjson
 
     if (context.logJSON) {
 
@@ -846,6 +873,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
         getNameVal("type", "Game".doubleQuote) +
         getNameVal("round", rounds.value) +
         getNameVal("score", score.value) +
+        getNameVal("linesCleared", rowsCleared.value + colsCleared.value) +
         getNameVal("gamePieceSeed", gameSeed) +
         getNameVal("beginOfRoundColorGridBitMask", colorGridBitMask) +
         getNameVal("endOfRoundBitMask", this.board.grid.asBigInt) +

@@ -3,10 +3,9 @@
  * parses command line and sets defaults
  */
 
-import scala.util.Random
-
 import org.slf4j.LoggerFactory
 import org.slf4j.MDC
+
 
 import ch.qos.logback.classic.{ Logger,  LoggerContext }
 
@@ -17,13 +16,7 @@ class Context(conf: Conf) {
   val logger:Logger  = loggerContext.getLogger("root") // Logger("simulation_logger") // gets root logger - could also get it from loggerContext via loggerContext.getLogger("ROOT")
   logger.info("starting simulation")
 
-  // todo - there's probably a different way to get at this
-  val jsonLogger:Logger = loggerContext.getLogger("json")
 
-  // used to append a game number to a json file so we get a file per game
-  def setJSONFileNameDiscriminators(gameNumber: Int, gameSeed: Int): Unit = {
-    MDC.put("gameInfo", "game_" + gameNumber.toString + "_seed_" + gameSeed.toString)
-  }
 
   sys.addShutdownHook(
     {
@@ -33,6 +26,13 @@ class Context(conf: Conf) {
       if (this.show) println("goodbye - i hoped you enjoyed this simulation") //}
     }
   )
+
+  val jsonLogger:Logger = loggerContext.getLogger("json")
+
+  // used to append a game number to a json file so we get a file per game
+  def setJSONFileNameDiscriminators(gameNumber: Int, gameSeed: Int): Unit = {
+    MDC.put("gameInfo", "game_" + gameNumber.toString + "_seed_" + gameSeed.toString)
+  }
 
   // vars so you can change test specifications - consider other mechanisms if you wish
   val beep: Boolean = !conf.nobeep()
@@ -78,11 +78,10 @@ class Context(conf: Conf) {
     replayGame = true
     internalReplayListIterator = plcList.toIterator
   }
-  def takeReplayPiecesForRound: Iterator[PieceLocCleared] = internalReplayListIterator.take(3)
+  def takeReplayPiecesForRound: Iterator[PieceLocCleared] = internalReplayListIterator.take(GamePieces.numPiecesInRound)
 
 }
 
 object Context {
   val FILE_HIGH_SCORE = ".highscore"
-  val FILE_SAVED_GAME = ".simulationSavedGame"
 }

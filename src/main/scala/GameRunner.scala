@@ -168,7 +168,7 @@ object GameRunner {
         + " high score: " + scores.max.label(7).green
         + " rounds: " + results.rounds.label(7).green
         + " rounds/s: " + roundsPerSecond.green
-        + " duration: " + results.gameTimer.showElapsed.green)
+        + " duration: " + results.gameTimer.elapsedLabel.green)
 
       if (context.show)
         print(endGameString)

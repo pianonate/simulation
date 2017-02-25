@@ -15,7 +15,6 @@ trait GameInfoFixture {
 }
 
 // todo - using standard scala json library, validate that both weights and game json are valid
-// todo - do a test to prove that 100*99*98 is true as it is a fundamental truth of the game
 
 class TestGame extends FlatSpec {
 
