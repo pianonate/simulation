@@ -255,7 +255,7 @@ object Specification {
 
   )*/
 
-  // after changing the value of clearing open lines to their "real" values
+/*  // after changing the value of clearing open lines to their "real" values
   // 2/25/17
   private val weightMap = Map(
 
@@ -269,7 +269,24 @@ object Specification {
     "neighborsFourKey" -> 0.020162469328094176,
     "neighborsTwoKey" -> 0.0089532445397412
 
+  )*/
+
+  // after fixing the bug where simulations weren't getting scored for all location/piece combinations
+  // and also not always when lines were clearing
+  private val weightMap = Map(
+
+    "maximizerKey" -> 0.622593416953521,
+    "avoidMiddleKey" -> 0.1628650146642616,
+    "occupiedKey" -> 0.051514039866263454,
+    "openLinesKey" -> 0.043463901967082864,
+    "maxContiguousKey" -> 0.041670072171356126,
+    "lineContiguousUnoccupiedKey" -> 0.03385277575559437,
+    "neighborsFourKey" -> 0.01903122736923337,
+    "neighborsThreeKey" -> 0.018033335297438363,
+    "neighborsTwoKey" -> 0.0069762159552488
+
   )
+
 
 
   private val allOptimizationFactors = ListMap(

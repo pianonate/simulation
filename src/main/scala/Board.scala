@@ -13,7 +13,9 @@
 
 case class ClearedLines(rows: Int, cols: Int)
 
-// todo there seems to be a bug in count 2 neighbors.  placing a single v2Line at 8,0 results in a 2 neighbors score of 5 whereas it should be 1
+// todo - do boards need to be pieces?  pieces don't need color grids but boards do
+// boards don't need primes but pieces do
+// if there is any value to mixin, then do that - for example, mixin name and grid but that's it.
 
 class Board(
   final val name:          String,

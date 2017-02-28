@@ -4,10 +4,6 @@
  */
 import org.scalatest.FlatSpec
 
-import scala.collection.mutable
-
-// todo test that all positions are actually being evaluated in a simulation
-
 trait GameInfoFixture {
   val multiGameStats = MultiGameStats(0, 0, 0, 1, new GameTimer)
   val context = new Context(new Conf(Seq()))
@@ -23,16 +19,6 @@ class TestGame extends FlatSpec {
 
   it must "simulate all legal positions for all permutations" in {
     new GameInfoFixture {
-
-      // set up a game that will have a row and a column that will clear at the same time
-      private val plcList = List(
-        PieceLocCleared(GamePieces.h3Line, Loc(0, 0), clearedLines = false),
-        PieceLocCleared(GamePieces.h2Line, Loc(0, 5), clearedLines = false),
-        PieceLocCleared(GamePieces.h5Line, Loc(5, 9), clearedLines = false)
-      )
-      // setReplayList will put the game in a mode where it only plays from the specified list (in this case the one above)
-      context.setReplayList(plcList)
-      context.ignoreSimulation = false
 
       // this test will use 3 different pieces each time it runs
       // which is just an added boost of randomness to make sure everything is good

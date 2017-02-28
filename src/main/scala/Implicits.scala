@@ -185,9 +185,12 @@ class StringFormats(val s: String) {
 
   def wrap(width:Int, height:Int, color:String): String = {
 
-    //todo - you got some of this off the web
+    //todo - low priority - measure first -
+    //       you got some of this off the web
     //       it's got to be inefficient to mk, split, mk again
     //       you could probably speed this up although it's not happening very often
+    //       and you're only calling it to fit the bullshit in the upper left corner
+    //
     val first = s.split(" ").foldLeft(Array(""))((out, in) => {
       if ((out.last + " " + in).trim.length > width) out :+ in
       else out.updated(out.length - 1, out.last + " " + in)

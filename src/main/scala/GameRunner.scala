@@ -28,17 +28,19 @@ object GameRunner {
     // play the same game for each
     val randomizer = new scala.util.Random(1)
 
-    // todo - ask kevin
-    // i thought of an optimization to store previously generated weights in a file
-    // given that the randomization is always seeded with the same value (above)
-    // however because the game plays multi-threaded, it may be that a particular set
-    // of locs are chosen for a round that is different each time hou run it
-    // this is because different locations will result in the same weight value
-    // even if one is obviously better than another - they're not different when it comes to
-    // that one weight value
-    // do it doesn't seem legitimate to choose one result vs. another by simply
-    // favoring the run that you wrote to disk.
-    // check with Kevin or Brendan on this as maybe it doesn't make a difference
+    /*     
+     todo - ask kevin
+     i thought of an optimization to store previously generated weights in a file
+     given that the randomization is always seeded with the same value (above)
+     however because the game plays multi-threaded, it may be that a particular set
+     of locs are chosen for a round that is different each time hou run it
+     this is because different locations will result in the same weight value
+     even if one is obviously better than another - they're not different when it comes to
+     that one weight value
+     do it doesn't seem legitimate to choose one result vs. another by simply
+     favoring the run that you wrote to disk.
+     check with Kevin or Brendan on this as maybe it doesn't make a difference 
+     */
 
     val seeds = Array.fill[Int](iterations)(randomizer.nextInt.abs)
 
@@ -61,9 +63,9 @@ object GameRunner {
 
           val result = optFactor.key.rightAlignedPadded(longestKeyLength) + " - score: " + score.label(6).green +
             " - done in " + singleGameTimer.elapsedLabel.trim.leftAlignedPadded(6).green +
-            "- game: " + completed.label(4) + " out of " + totalGames +
+            "- game: " + completed.label(4).green + " out of " + totalGames.toString.green +
             " (" + ((completed.toDouble / totalGames) * 100).label(1).trim.green + "%".green + ")" +
-            " game seed: " + context.getGameSeed.toString.green +
+            " game seed: " + context.getGameSeed.label(9).green +
             " elapsed: " + allGamesTimer.elapsedLabelMs.trim.green
 
           // output to screen and to main log file

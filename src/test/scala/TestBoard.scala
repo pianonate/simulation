@@ -41,6 +41,14 @@ class TestBoard extends FlatSpec {
 
   behavior of "A board"
 
+  it must "count 2 neighbors correctly" in {
+    new BoardFixture {
+      board.place(GamePieces.singleton, Loc(0,0),updateColor = true)
+      val score = board.boardScore.twoNeighborsScore.intValue
+      assert(score==5, "placing a singleton at the upper left should result in a two neighbor count of 5")
+    }
+  }
+
   it must "generate hash codes that add up in any combination of 2 or 3 to unique values" in {
     val hashCodes = Board.allLocationHashes
     val combo3 = hashCodes.combinations(3).toSet // guarantees uniqueness
