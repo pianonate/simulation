@@ -15,7 +15,7 @@ class TestSpecification extends FlatSpec {
       val fullSpec = Specification(filtered=false)
 
       assert(fullSpec.spec.nonEmpty)
-      context.maxSimulations = 10 // ensure the game runs super fast - just to exercise code
+      context.stopGameAtRound = 2 // ensure the game runs fast - just to exercise code
       context.gamesToPlay = 1 // only run one game
       context.show = false // don't show results as the game is playing
 

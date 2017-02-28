@@ -2,13 +2,10 @@
  * Created by nathan on 12/10/16.
  * Game will hold a reference to the current board and will also invoke simulations
  *
- * todo - hook thi sup to ifttt maker channel http://www.makeuseof.com/tag/ifttt-connect-anything-maker-channel/
+ * todo - hook this up to ifttt maker channel http://www.makeuseof.com/tag/ifttt-connect-anything-maker-channel/
  * todo for Richard Kim - check to see if it's windows and output cls rather than clear
  *
  */
-
-//import java.util.concurrent.ThreadPoolExecutor.DiscardPolicy
-//import java.util.concurrent.{Executors, LinkedBlockingQueue, ThreadPoolExecutor, TimeUnit}
 
 import scala.collection.GenSeq
 import scala.sys.process._
@@ -24,6 +21,13 @@ case class GameResults(
   totalSimulations:            Long,
   totalUnsimulatedSimulations: Long,
   gameTimer:                   GameTimer
+)
+
+case class SelfTestResults(
+                            legalPositions:        scala.collection.mutable.ListBuffer[Long],
+                            simulatedPositions:    scala.collection.mutable.ListBuffer[Long],
+                            linesClearedPositions: scala.collection.mutable.ListBuffer[Long]
+
 )
 
 // this constructor is used in testing to pass in a pre-constructed board state
@@ -52,6 +56,15 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
   private[this] val nonSimulationTimer = new GameTimer()
 
   private[this] val bullShit = new BullShit(rounds, gameTimer)
+
+  // used in simulationSelfTest mode
+  // this was the only way I could figure out how to test the
+  // logic that skips simulations correctly
+  private[this] val legalPositionsSelfTest = scala.collection.mutable.ListBuffer[Long]()
+  private[this] val simulatedPositionsSelfTest = scala.collection.mutable.ListBuffer[Long]()
+  private[this] val clearedLinesPositionsSelfTest = scala.collection.mutable.ListBuffer[Long]()
+
+  def getSelfTestResults: SelfTestResults = SelfTestResults(legalPositionsSelfTest, simulatedPositionsSelfTest, clearedLinesPositionsSelfTest)
 
   def run: GameResults = {
 
@@ -293,7 +306,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
         print(endOfRoundResultsString)
       }
 
-      logRound(results, bestSimulation, colorGridBitMask)
+      logRound(results, bestSimulation, placePiecesInfo, colorGridBitMask)
     }
 
     if (bestSimulation.pieceCount < GamePieces.numPiecesInRound || (rounds.value == context.stopGameAtRound)) {
@@ -318,6 +331,15 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
     // and for each ordering, try all combinations of legal locations
     // the best score as defined by Simulations.compare after trying all legal locations is chosen
     val duration = new GameTimer
+
+    if (context.simulationSelfTest) {
+      // the test should only be called for one round but just in case it's not
+      // then the test will get the last round of information as we will clear
+      // these lists each time...thus:
+      this.legalPositionsSelfTest.clear()
+      this.simulatedPositionsSelfTest.clear()
+      this.clearedLinesPositionsSelfTest.clear()
+    }
 
     val permutations = pieces
       .permutations
@@ -375,12 +397,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
     val unsimulatedCount = Counter()
     val rcChangedCountBest = Counter()
 
-    // i can't see how to not have this Array
-    // i can accumulate locations because you generate one each time through the recursion
-    // but you only store the last simulation - so there's nothing to accumulate...
-    // val simulations = new Array[Simulation](maxSimulations)
-
-    // keep these populated
+    // keep best populated
     // as this is better than sorting at the end as it allows for a parallel sort
     // as the compare is called on each thread while walking through the legalPlacements(piece).par
     // provided by getLegal below
@@ -400,9 +417,9 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
     }
 
-    def createSimulations(board: Board, pieces: List[Piece], linesCleared: Boolean, plcAccumulator: List[PieceLocCleared], updatableAccumulator: Long): Unit = {
+    def createSimulations(board: Board, pieces: List[Piece], linesClearedAcc: Boolean, plcAcc: List[PieceLocCleared], locPieceHashAcc: Long): Unit = {
 
-      def isUpdatable(locHash: Long): Boolean = {
+      def isUpdatable(locPieceHash: Long, linesCleared: Boolean): Boolean = {
 
         /* locHash is the sum of all locHashes (accumulated on updatableAccumulator
            this permutation is only responsible for it's proportion of these locHashes
@@ -411,7 +428,14 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
            on all permutations
            */
         def mustUpdateForThisPermutation: Boolean = {
-          (locHash % totalPermutations) == permutationIndex
+          (locPieceHash % totalPermutations) == permutationIndex
+        }
+
+        // the final piece of the simulation count self test is to account
+        // for cleared lines that force a calculation even on a thread
+        // that is not responsible for this permuation
+        if (linesCleared && !mustUpdateForThisPermutation) {
+          synchronized { clearedLinesPositionsSelfTest += locPieceHash }
         }
 
         // we have to count this one if it clears lines as this can happen on any permutation
@@ -467,11 +491,9 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
       }
 
       def updateSimulation(plcList: List[PieceLocCleared], board: Board): Unit = {
-        if (simulationCount.value < context.maxSimulations) {
-          val id = simulationCount.inc()
-          val simulation = Simulation(plcList /*.reverse*/ , board, id)
-          updateBest(simulation)
-        }
+        val id = simulationCount.inc()
+        val simulation = Simulation(plcList /*.reverse*/ , board, id)
+        updateBest(simulation)
       }
 
       def getLegal(board: Board, piece: Piece): GenSeq[Loc] = {
@@ -486,61 +508,70 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
       val paralegal: GenSeq[Loc] = getLegal(board, piece)
 
       def simulationHandler(loc: Loc) = {
+        val result = placeMe(piece, board, loc)
+        val boardCopy = result.board
+        val plc = result.plc
 
-        // you can configure max simulations at command line (or in tests)
-        // if you want to step through code with fewer simulations executed
-        // or if you want to profile with fewer simulations
-        if (simulationCount.value < context.maxSimulations) {
+        // each location has a unique value and the value are distributed such that when added together
+        // the values are unique.  this allows us to view a combination of locations as unique
+        // and given these combinations will be repeated in each simulation, a simulation is only
+        // responsible to be created for it's proportion of the total number of simulations
+        // we mod the total to make this work
 
-          val result = placeMe(piece, board, loc)
-          val boardCopy = result.board
-          val plc = result.plc
+        // fixed a bug that you need to take piece into account.  multiplying it times the pieces prime number
+        // (generated at construction) to generate unique values for piece/loc combos
+        val locIndex = loc.row * Board.BOARD_SIZE + loc.col
+        val locPieceHash = Board.allLocationHashes(locIndex) * piece.prime + locPieceHashAcc
 
-          // each location has a unique value and the value are distributed such that when added together
-          // the values are unique.  this allows us to view a combination of locations as unique
-          // and given these combinations will be repeated in each simulation, a simulation is only
-          // responsible to be created for it's proportion of the total number of simulations
-          // we mod the total to make this work
-          val locHash = Board.allLocationHashes(loc.row * Board.BOARD_SIZE + loc.col) + updatableAccumulator
-          val plcList = plc :: plcAccumulator
+        val plcList = plc :: plcAcc
 
-          if (pieces.tail.nonEmpty) {
+        // recurse
+        // if we have already cleared lines then propagate that so we don't pay the freight
+        // in "isUpdatable" where it's an expensive calculation
+        val linesCleared = if (linesClearedAcc) linesClearedAcc else plc.clearedLines
 
-            // recurse
-            // if we have already cleared lines then propagate that so we don't pay the freight
-            // in "isUpdatable" where it's an expensive calculation
-            val cleared = if (linesCleared) linesCleared else plc.clearedLines
-            createSimulations(boardCopy, pieces.tail, cleared, plcList, locHash)
+        if (pieces.tail.nonEmpty) {
 
+          createSimulations(boardCopy, pieces.tail, linesCleared, plcList, locPieceHash)
+
+        } else {
+
+          // following is for testing that we are simulating all possible simulations
+          // this records legal positions
+          // it's okay to keep pumping legalPositions in on all threads
+          // as the set will guarantee the right count
+          if (context.simulationSelfTest)
+            synchronized { this.legalPositionsSelfTest += locPieceHash }
+
+          // only add simulation when we've reached the last legal location on this path
+          if (isUpdatable(locPieceHash, linesCleared)) {
+
+            // this completes the test of validating we are simulating all legal positions
+            // this records all simulations
+            if (context.simulationSelfTest)
+              synchronized { this.simulatedPositionsSelfTest += locPieceHash }
+
+            updateSimulation(plcList, boardCopy)
           } else {
-
-            // only add simulation when we've reached the last legal location on this path
-            if (isUpdatable(locHash)) {
-              updateSimulation(plcList, boardCopy)
-            } else {
-              unsimulatedCount.inc()
-            }
+            unsimulatedCount.inc()
           }
+
         }
       }
 
       if (paralegal.nonEmpty) {
         paralegal.foreach(simulationHandler)
       } else {
-        // this method was called so the expectation is that there are legal placements
-        // given that there are not any legal placements in this path,
-        // then update a simulation with, the smaller number of pieces that were found to fit
+        // this method was called so there aren't any legal placements in this path
+        // then update a simulation with the pieces that were found to fit
         // this allows showing the final pieces placed on the board at the end of the game
-        // as long as one of the permutations has the ability to place 3 pieces,
-        // the following permutation will never be selected to be placed
-        // this is guaranteed by Simulation.compare method which considers
-        // smaller piece counts to be not comparable
-        updateSimulation(plcAccumulator, board)
+        // this particular unfinished simulation will not be chosen as long as another
+        // simulation is available that has finished for all 3 pieces
+        updateSimulation(plcAcc, board)
       }
-
     }
 
-    createSimulations(board, pieces, linesCleared = false, List(), 0)
+    createSimulations(board, pieces, linesClearedAcc = false, List(), 0)
 
     def emptySimulation: Simulation = Simulation(List(), this.board, 0)
 
@@ -561,15 +592,16 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
   }
 
+  // returned from pieceHandler to drive both output to stdout and to json logger
   case class PieceHandlerInfo(
-    piece: Piece,
-    loc: Loc,
-    index: Int,
+    piece:          Piece,
+    loc:            Loc,
+    index:          Int,
     unclearedBoard: Board,
-    clearedBoard: Board,
-    score: Int,
-    rowsCleared: Int,
-    colsCleared:Int
+    clearedBoard:   Board,
+    score:          Int,
+    rowsCleared:    Int,
+    colsCleared:    Int
   )
 
   private def pieceHandler(piece: Piece, loc: Loc, index: Int): PieceHandlerInfo = {
@@ -598,7 +630,10 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
       rowsCleared.inc(linesClearedResult.rows)
       colsCleared.inc(linesClearedResult.cols)
-      score.inc(linesClearedResult.rows * Board.BOARD_SIZE + linesClearedResult.cols * Board.BOARD_SIZE - linesClearedResult.rows * linesClearedResult.cols)
+      // score.inc(linesClearedResult.rows * Board.BOARD_SIZE + linesClearedResult.cols * Board.BOARD_SIZE - linesClearedResult.rows * linesClearedResult.cols)
+      val total = linesClearedResult.rows + linesClearedResult.cols
+
+      score.inc(Game.lineClearingScore(total))
 
     }
 
@@ -617,8 +652,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
   }
 
-  private def getPieceHandlerResults(pieceHandlerInfo:PieceHandlerInfo): String = {
-
+  private def getPieceHandlerResults(pieceHandlerInfo: PieceHandlerInfo): String = {
 
     def getShowBoard(board: Board) = {
       board.show(board.cellShowFunction)
@@ -825,7 +859,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
   private val delimiter = ","
 
   private def getNameVal(name: String, value: Any): String = {
-    getNameVal(name, value, delimited=true)
+    getNameVal(name, value, delimited = true)
   }
 
   private def getNameVal(name: String, value: Any, delimited: Boolean) = {
@@ -836,7 +870,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
     if (context.logJSON) {
 
-      val weights = context.specification.optimizationFactors.map(factor => getNameVal(factor.label, factor.weight, delimited=false)).mkString(delimiter)
+      val weights = context.specification.optimizationFactors.map(factor => getNameVal(factor.label, factor.weight, delimited = false)).mkString(delimiter)
 
       val s = "{" +
         getNameVal("type", "Weights".doubleQuote) +
@@ -847,9 +881,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
   }
 
-  private def logRound(results: List[SimulationInfo], best: Simulation, colorGridBitMask: BigInt): Unit = {
-
-    // todo - include cleared rows/columns after each piece? implies refactoring pieceHandler
+  private def logRound(results: List[SimulationInfo], best: Simulation, pieceHandlerInfo: List[PieceHandlerInfo], colorGridBitMask: BigInt): Unit = {
 
     // log pieces - format is in ./src/main/resources/sample.json
     // only log if asked to do so via command line parameter -j, --logjson
@@ -861,12 +893,19 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
           "{" + getNameVal("type", "Feature".doubleQuote) +
             getNameVal("name", scoreComponent.label.doubleQuote) + getNameVal("intVal", scoreComponent.intValue) +
             getNameVal("normalizedVal", scoreComponent.normalizedValue) +
-            getNameVal("weightedVal", scoreComponent.weightedValue, delimited=false) + "}"
+            getNameVal("weightedVal", scoreComponent.weightedValue, delimited = false) + "}"
         }.mkString(delimiter)
       }
 
-      val selectedPieces = best.plcList.reverse.map { plc =>
-        "{" + getNameVal("type", "PieceLoc".doubleQuote) + getNameVal("name", plc.piece.name.doubleQuote) + getNameVal("row", plc.loc.row) + getNameVal("col", plc.loc.col, delimited=false) + "}"
+      val selectedPieces = pieceHandlerInfo.map { info =>
+        "{" +
+          getNameVal("type", "PieceLoc".doubleQuote) +
+          getNameVal("name", info.piece.name.doubleQuote) +
+          getNameVal("row", info.loc.row) +
+          getNameVal("col", info.loc.col) +
+          getNameVal("rowsCleared", info.rowsCleared) +
+          getNameVal("colsCleared", info.colsCleared, delimited = false) +
+          "}"
       }.mkString(delimiter)
 
       val endOfRoundScores = getScores(this.board.boardScore.scores)
@@ -880,11 +919,11 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
           val index = getNameVal("index", i + 1) // add 1 because permutations are not 0 based in the _real_ world
           val winnerString = getNameVal("winner", if (winner) "true" else "false")
 
-          val pieces = p.pieces.reverse.map(piece => "{" + getNameVal("type", "Piece".doubleQuote) + getNameVal("name", piece.name.doubleQuote, delimited=false) + "}").mkString(delimiter)
-          val pieceArrayString = getNameVal("pieces", pieces.squareBracket, delimited=false)
+          val pieces = p.pieces.reverse.map(piece => "{" + getNameVal("type", "Piece".doubleQuote) + getNameVal("name", piece.name.doubleQuote, delimited = false) + "}").mkString(delimiter)
+          val pieceArrayString = getNameVal("pieces", pieces.squareBracket, delimited = false)
 
           val scores = getScores(p.best.board.boardScore.scores)
-          val permutationScores = getNameVal("permutationScores", scores.squareBracket, delimited=false)
+          val permutationScores = getNameVal("permutationScores", scores.squareBracket, delimited = false)
           "{" + pType + index + winnerString + pieceArrayString + "," + permutationScores + "}"
       }.mkString(delimiter)
 
@@ -898,11 +937,19 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
         getNameVal("endOfRoundBitMask", this.board.grid.asBigInt) +
         getNameVal("selectedPieces", selectedPieces.squareBracket) +
         getNameVal("endOfRoundScores", endOfRoundScores.squareBracket) +
-        getNameVal("permutations", permutations.squareBracket, delimited=false) + "}"
+        getNameVal("permutations", permutations.squareBracket, delimited = false) + "}"
 
       context.jsonLogger.info(s)
     }
 
   }
 
+}
+
+object Game {
+  private val lineClearingScore: Array[Int] = {
+    val r = 1 to 6
+    // Array(0,10,30,60,100,150,210)
+    r.scanLeft(0)(_ + _ * 10).toArray
+  }
 }

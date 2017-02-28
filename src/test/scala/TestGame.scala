@@ -4,6 +4,8 @@
  */
 import org.scalatest.FlatSpec
 
+import scala.collection.mutable
+
 // todo test that all positions are actually being evaluated in a simulation
 
 trait GameInfoFixture {
@@ -15,10 +17,51 @@ trait GameInfoFixture {
 }
 
 // todo - using standard scala json library, validate that both weights and game json are valid
-
 class TestGame extends FlatSpec {
 
   behavior of "A game"
+
+  it must "simulate all legal positions for all permutations" in {
+    new GameInfoFixture {
+
+      // set up a game that will have a row and a column that will clear at the same time
+      private val plcList = List(
+        PieceLocCleared(GamePieces.h3Line, Loc(0, 0), clearedLines = false),
+        PieceLocCleared(GamePieces.h2Line, Loc(0, 5), clearedLines = false),
+        PieceLocCleared(GamePieces.h5Line, Loc(5, 9), clearedLines = false)
+      )
+      // setReplayList will put the game in a mode where it only plays from the specified list (in this case the one above)
+      context.setReplayList(plcList)
+      context.ignoreSimulation = false
+
+      // this test will use 3 different pieces each time it runs
+      // which is just an added boost of randomness to make sure everything is good
+      context.stopGameAtRound = 1
+      context.simulationSelfTest = true
+
+      context.parallel = false
+
+      private val game = new Game(context, multiGameStats)
+      private val gameResults: GameResults = game.run
+      private val selfTestResults: SelfTestResults = game.getSelfTestResults
+
+      private val simulatedPositions = selfTestResults.simulatedPositions
+      private val linesClearedPositions = selfTestResults.linesClearedPositions
+
+      private val legalPositionsSet = selfTestResults.legalPositions.toSet
+      private val simulatedPositionsSet = simulatedPositions.toSet
+
+      private val missingSimulations = legalPositionsSet.diff(simulatedPositionsSet)
+      private val missingLegal = simulatedPositionsSet.diff(legalPositionsSet)
+
+      private val expectedSimulationCount = legalPositionsSet.size + linesClearedPositions.size
+
+      assert(missingSimulations.isEmpty, "there are legal positions that are unsimulated")
+      assert(missingLegal.isEmpty, "there are simulations that didn't have an associated legal position")
+      assert(selfTestResults.simulatedPositions.size===expectedSimulationCount,
+        "the simulated positions is different than the expected simulation count (legal positions + cleared lines count)")
+    }
+  }
 
   it must "run all simulations for three singletons" in {
     new GameInfoFixture {
@@ -29,8 +72,6 @@ class TestGame extends FlatSpec {
       )
       context.setReplayList(plcList)
       context.stopGameAtRound = 1
-      context.gamesToPlay = 1
-      context.show = false
       context.ignoreSimulation = false
       private val game = new Game(context, multiGameStats)
       private val results: GameResults = game.run
@@ -39,9 +80,11 @@ class TestGame extends FlatSpec {
       assert(results.totalSimulations === positions * (positions - 1) * (positions - 2), "expected number of simulations did not happen")
       assert(results.totalUnsimulatedSimulations === 0, "unsimulated count should be zero when all the pieces are the same")
 
-
     }
   }
+
+  // todo - set up all line clearing scoring combinations and test them for lines cleared of 1 to 6
+  // todo - update brendan doc with line clearing scoring algo Array(10,30,60,100,150,210)
 
   it must "result in the correct score after clearing a row and a column simultaneously" in {
     new GameInfoFixture {
@@ -62,8 +105,8 @@ class TestGame extends FlatSpec {
       private val game = new Game(context, multiGameStats)
       private val results: GameResults = game.run
 
-      // 39 is a magic value - but this MUST be the score based on the pieces setup above
-      assert(results.score === 39)
+      // 50 is a magic value - but this MUST be the score based on the pieces setup above
+      assert(results.score === 50)
     }
   }
 
@@ -125,7 +168,7 @@ class TestGame extends FlatSpec {
         }
       }
 
-      val board = new Board("testBoard", Board.BOARD_COLOR, grid, colorGrid, context.specification)
+      val board = new Board("testBoard", Board.BOARD_COLOR, 0, grid, colorGrid, context.specification)
 
       val plcList = List(
         PieceLocCleared(GamePieces.bigBox, Loc(0, 0), clearedLines = false),

@@ -12,26 +12,35 @@ object GameRunner {
 
   def generateWeights(context: Context): Unit = {
 
-    val timer = new GameTimer
+    context.logger.info("generating weights")
 
-    def gamesPerMinute(games: Int) = math.floor(games / timer.elapsedMinutes).toInt
+    val allGamesTimer = new GameTimer
+
+    def gamesPerMinute(games: Int) = math.floor(games / allGamesTimer.elapsedMinutes).toInt
 
     context.gamesToPlay = 1
 
     val specification = Specification(filtered = false)
     val iterations = context.generateWeightsGamesToPlay
-    val iterationLength = iterations.toString.length
     val totalGames = iterations * specification.length
     val longestKeyLength = specification.spec.keys.map(_.length).max
 
     // play the same game for each
     val randomizer = new scala.util.Random(1)
 
-    // todo write randomizer output to a file as it won't change except when you change the algorithm of
-    // a particular factor - you should load already calculated
-    // weights from the file and then pick up wherever it left off and add more if a larger value was specified
+    // todo - ask kevin
+    // i thought of an optimization to store previously generated weights in a file
+    // given that the randomization is always seeded with the same value (above)
+    // however because the game plays multi-threaded, it may be that a particular set
+    // of locs are chosen for a round that is different each time hou run it
+    // this is because different locations will result in the same weight value
+    // even if one is obviously better than another - they're not different when it comes to
+    // that one weight value
+    // do it doesn't seem legitimate to choose one result vs. another by simply
+    // favoring the run that you wrote to disk.
+    // check with Kevin or Brendan on this as maybe it doesn't make a difference
 
-    val seeds = Array.fill[Int](iterations)(randomizer.nextInt)
+    val seeds = Array.fill[Int](iterations)(randomizer.nextInt.abs)
 
     val scores = specification.spec.zipWithIndex.map {
       case ((key, optFactor), factorIndex) =>
@@ -39,12 +48,10 @@ object GameRunner {
         context.specification = Specification(optFactor)
 
         val gameScore: Seq[Int] = for (gameIndex <- 0 until iterations) yield {
-          val t = new GameTimer
+          val singleGameTimer = new GameTimer
 
           // each factor will play the same game to see how each performs against the same set of pieces
           context.setGameSeed(seeds(gameIndex))
-
-          print(optFactor.key.rightAlignedPadded(longestKeyLength) + " game - " + (gameIndex + 1).label(iterationLength))
 
           // play a game and get its score back - this seems a little obscure in terms of how to get the score...
           // could you be more clear?
@@ -52,10 +59,16 @@ object GameRunner {
 
           val completed: Int = (factorIndex * iterations) + (gameIndex + 1)
 
-          println(" - score: " + score.label(6) +
-            " - done in " + t.elapsedLabel.trim.leftAlignedPadded(6) +
+          val result = optFactor.key.rightAlignedPadded(longestKeyLength) + " - score: " + score.label(6).green +
+            " - done in " + singleGameTimer.elapsedLabel.trim.leftAlignedPadded(6).green +
             "- game: " + completed.label(4) + " out of " + totalGames +
-            " (" + ((completed.toDouble / totalGames) * 100).label(1).trim + "%)")
+            " (" + ((completed.toDouble / totalGames) * 100).label(1).trim.green + "%".green + ")" +
+            " game seed: " + context.getGameSeed.toString.green +
+            " elapsed: " + allGamesTimer.elapsedLabelMs.trim.green
+
+          // output to screen and to main log file
+          println(result)
+          context.logger.info(result)
 
           score
         }
@@ -69,7 +82,7 @@ object GameRunner {
 
     println("factors".label + specification.length.shortLabel)
     println("games per factor".label + iterations.shortLabel)
-    println("games played".label + totalGames.shortLabel + " in " + timer.elapsedLabel.trim)
+    println("games played".label + totalGames.shortLabel + " in " + allGamesTimer.elapsedLabel.trim)
     val endGamesPerMinute = gamesPerMinute(totalGames)
 
     println("games/minute".label + endGamesPerMinute)
@@ -118,6 +131,9 @@ object GameRunner {
 
   def play(context: Context, startGameCount: Int = 0): Array[Int] = {
 
+    if (!context.generatingWeights)
+      context.logger.info("starting simulation")
+
     import scala.collection.mutable.ListBuffer
 
     val scores = new ListBuffer[Int]
@@ -125,6 +141,23 @@ object GameRunner {
     val simulationsPerSecond = new ListBuffer[Int]
     val gameCount = Counter(startGameCount)
     val totalTime = new GameTimer
+
+    def logGame(results: GameResults) {
+
+      if (!context.generatingWeights) {
+
+        val roundsPerSecond = (results.rounds / results.gameTimer.elapsedSeconds).toDouble.label(2)
+
+        context.logger.info("game " + gameCount.label(4).green
+          + " - score: " + results.score.label(7).green
+          + " average: " + scores.avg.toInt.label(7).green
+          + " high score: " + scores.max.label(7).green
+          + " rounds: " + results.rounds.label(7).green
+          + " rounds/s: " + roundsPerSecond.green
+          + " duration: " + results.gameTimer.elapsedLabel.green
+          + " game seed: " + context.getGameSeed)
+      }
+    }
 
     var continue = true
 
@@ -151,6 +184,8 @@ object GameRunner {
       val mostRounds = rounds.max
       val bestPerSecond = simulationsPerSecond.max
 
+      logGame(results)
+
       val endGameString = "multiple game stats".header + "\n" +
         "games played".label + gameCount.label + "\n" +
         "average score".label + scores.avg.toInt.scoreLabel + "\n" +
@@ -159,16 +194,6 @@ object GameRunner {
         "most rounds".label + mostRounds.label + "\n" +
         "most simulations/s".label + bestPerSecond.label + "\n" +
         "total elapsed time".label + totalTime.elapsedLabel + "\n\n"
-
-      val roundsPerSecond = (results.rounds / results.gameTimer.elapsedSeconds).toDouble.label(2)
-
-      context.logger.info("game " + gameCount.label(4).green
-        + " - score: " + results.score.label(7).green
-        + " average: " + scores.avg.toInt.label(7).green
-        + " high score: " + scores.max.label(7).green
-        + " rounds: " + results.rounds.label(7).green
-        + " rounds/s: " + roundsPerSecond.green
-        + " duration: " + results.gameTimer.elapsedLabel.green)
 
       if (context.show)
         print(endGameString)
@@ -190,7 +215,11 @@ object GameRunner {
 
     } while (continue)
 
+    // return value to the weighted game - probably better would be to create a routine that both
+    // of these call to run a game - Play would be in a loop and weighted is "just one"
+    // they have different logging etc. so there are differences that can be refactored
     scores.toArray
+
   }
 
   // used to beep at the end of the game

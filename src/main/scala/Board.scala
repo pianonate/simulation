@@ -18,6 +18,7 @@ case class ClearedLines(rows: Int, cols: Int)
 class Board(
   final val name:          String,
   final val color:         String,
+  final val prime:         Int = 0,
   final val grid:          OccupancyGrid,
   final val colorGrid:     Array[Array[String]],
   final val specification: Specification
@@ -28,6 +29,7 @@ class Board(
     this(
       "Board",
       Board.BOARD_COLOR,
+      0,
       OccupancyGrid(size, size, filled = false),
       Board.getBoardColorGrid,
       specification
@@ -110,8 +112,8 @@ class Board(
       i
     }
 
-    val clearedRows = clearLines(clearableRows, rows=true)
-    val clearedCols = clearLines(clearableCols, rows=false)
+    val clearedRows = clearLines(clearableRows, rows = true)
+    val clearedCols = clearLines(clearableCols, rows = false)
 
     // rows cleared and cols cleared
     //(clearableRows.length, clearableCols.length)
@@ -373,7 +375,7 @@ object Board {
 
   def copy(newName: String, boardToCopy: Board): Board = {
 
-    new Board(newName, BOARD_COLOR, boardToCopy.grid.copy, boardToCopy.colorGrid, boardToCopy.specification)
+    new Board(newName, BOARD_COLOR, 0, boardToCopy.grid.copy, boardToCopy.colorGrid, boardToCopy.specification)
 
   }
 

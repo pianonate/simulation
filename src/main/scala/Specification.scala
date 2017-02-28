@@ -241,7 +241,7 @@ object Specification {
   )*/
 
   // from the 300 run post bug fix 2/14/2017
-  private val weightMap = Map(
+ /* private val weightMap = Map(
 
     "maximizerKey" -> 0.5550520731085657,
     "avoidMiddleKey" -> 0.2087456921937354,
@@ -253,7 +253,24 @@ object Specification {
     "neighborsFourKey" -> 0.01955009923008016,
     "neighborsTwoKey" -> 0.0088605945226315
 
+  )*/
+
+  // after changing the value of clearing open lines to their "real" values
+  // 2/25/17
+  private val weightMap = Map(
+
+    "maximizerKey" -> 0.5554697757320329,
+    "avoidMiddleKey" -> 0.20171785215960134,
+    "occupiedKey" -> 0.053321424756901936,
+    "openLinesKey" -> 0.05154500862465995,
+    "maxContiguousKey" -> 0.04485865044162731,
+    "lineContiguousUnoccupiedKey" -> 0.04118256087725565,
+    "neighborsThreeKey" -> 0.022789013540085522,
+    "neighborsFourKey" -> 0.020162469328094176,
+    "neighborsTwoKey" -> 0.0089532445397412
+
   )
+
 
   private val allOptimizationFactors = ListMap(
 

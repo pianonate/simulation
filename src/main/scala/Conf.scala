@@ -70,7 +70,7 @@ class Conf(arguments: Seq[String]) extends ScallopConf(arguments) {
   val gamesToPlay: ScallopOption[Int] = opt[Int](default = Some(0), validate = (i) => i >= 0, name="games", descr = "number of games to play - 0 is continuous")
   val roundsToPlay: ScallopOption[Int] = opt[Int](default = Some(0), validate = (i) => i >= 0, name="rounds", descr = "end the game at this round number")
 
-  val serial: ScallopOption[Boolean] = opt[Boolean](descr="play serial - if left blank, runs multithreaded - faster!")
+  val serial: ScallopOption[Boolean] = opt[Boolean](descr="play serial - if left blank, runs multi-threaded - faster!")
 
   val hide: ScallopOption[Boolean] = opt[Boolean](descr="hides default output")
 

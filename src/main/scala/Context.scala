@@ -14,13 +14,10 @@ class Context(conf: Conf) {
   private val loggerContext: LoggerContext = LoggerFactory.getILoggerFactory.asInstanceOf[LoggerContext]
 
   val logger:Logger  = loggerContext.getLogger("root") // Logger("simulation_logger") // gets root logger - could also get it from loggerContext via loggerContext.getLogger("ROOT")
-  logger.info("starting simulation")
-
-
 
   sys.addShutdownHook(
     {
-      logger.info("stopping simulation")
+      logger.info("done")
       // val loggerContext: LoggerContext = LoggerFactory.getILoggerFactory().asInstanceOf[LoggerContext]
       loggerContext.stop()
       if (this.show) println("goodbye - i hoped you enjoyed this simulation") //}
@@ -38,8 +35,8 @@ class Context(conf: Conf) {
   val beep: Boolean = !conf.nobeep()
   var gamesToPlay: Int = conf.gamesToPlay()
   val generateWeightsGamesToPlay: Int = conf.weightGenerator()
-  //noinspection VarCouldBeVal
-  var maxSimulations: Int = conf.maxSimulations()
+  val generatingWeights:Boolean = generateWeightsGamesToPlay > 0
+
   var stopGameAtRound: Int = conf.roundsToPlay()
   //noinspection VarCouldBeVal
   var parallel: Boolean = !conf.serial()
@@ -78,7 +75,10 @@ class Context(conf: Conf) {
     replayGame = true
     internalReplayListIterator = plcList.toIterator
   }
+
   def takeReplayPiecesForRound: Iterator[PieceLocCleared] = internalReplayListIterator.take(GamePieces.numPiecesInRound)
+
+  var simulationSelfTest:Boolean = false
 
 }
 

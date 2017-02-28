@@ -10,7 +10,7 @@ class TestPiece extends FlatSpec {
   behavior of "A Piece"
 
 
-  it must "have a grid that matches the colorGrid in size" in {
+  it must "must have a point value consistent with the number of occupied positions in the piece" in {
 
     // validate all the pieces we create
     val pieces = new GamePieces(seed=0).pieceList

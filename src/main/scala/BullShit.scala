@@ -8,6 +8,10 @@ class BullShit(val rounds: Counter, gameTimer: GameTimer) extends Iterable[Strin
   private val showForSeconds = 10
   private var showForRounds = showForSeconds
 
+  // for some reason when debugging tests, Bullshit.size is called - i don't know why but it goes into an infinite loop
+  // providing a useless implementation here as a hack.  maybe someday i will learn why this is happening
+  override def size = 0
+
   private def setShowForRounds() = {
     // how many rounds should we show this bullshit?
     val roundsPerSecond = math.floor(rounds.value / gameTimer.elapsedSeconds).toInt
