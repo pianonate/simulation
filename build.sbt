@@ -1,8 +1,7 @@
 scalaVersion := "2.12.1"
-// scalaSource in Compile := baseDirectory.value / "src"
 scalacOptions ++= Seq("-opt:_", "-target:jvm-1.8")
-javaOptions in run += "-Xmx2048M"
-javaOptions in run += "-Xms2048M"
+javaOptions in run += "-Xmx4096M"
+javaOptions in run += "-Xms4096M"
 
 // testing
 libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.1" % "test"
@@ -27,4 +26,8 @@ cancelable in Global := true
 * following requires you to add to project/plugins.sbt
 * addSbtPlugin("org.xerial.sbt" % "sbt-pack" % "0.8.2")  // for sbt-0.13.x or higher
  */
-packAutoSettings
+//packAutoSettings
+packSettings
+packMain := Map("simulation" -> "simulate")
+packJvmOpts := Map("simulation" -> Seq("-Xmx4G -Xms4G -XX:+UseConcMarkSweepGC"))
+
