@@ -29,5 +29,6 @@ cancelable in Global := true
 //packAutoSettings
 packSettings
 packMain := Map("simulation" -> "simulate")
-packJvmOpts := Map("simulation" -> Seq("-Xmx4G -Xms4G -XX:+UseConcMarkSweepGC"))
+//packJvmOpts := Map("simulation" -> Seq("-Xmx4G -Xms4G -XX:+UseConcMarkSweepGC"))
+packJvmOpts := Map("simulation" -> Seq("-Xmx4G -Xms4G -XX:+UseG1GC -XX:MaxGCPauseMillis=500"))
 
