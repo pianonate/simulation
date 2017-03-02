@@ -31,5 +31,5 @@ packSettings
 packMain := Map("simulation" -> "simulate")
 //packJvmOpts := Map("simulation" -> Seq("-Xmx4G -Xms4G -XX:+UseConcMarkSweepGC"))
 //packJvmOpts := Map("simulation" -> Seq("-Xmx4G -Xms4G -XX:+UseG1GC -XX:MaxGCPauseMillis=500"))
-packJvmOpts := Map("simulation" -> Seq("-Xmx6G -Xms6G"))
+packJvmOpts := Map("simulation" -> Seq("-Xmx2G -Xms2G"))
 

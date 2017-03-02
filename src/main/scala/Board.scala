@@ -20,7 +20,7 @@ case class ClearedLines(rows: Int, cols: Int)
 class Board(
   final val name:          String,
   final val color:         String,
-  final val prime:         Int = 0,
+  final val prime:         Int                  = 0,
   final val grid:          OccupancyGrid,
   final val colorGrid:     Array[Array[String]],
   final val specification: Specification

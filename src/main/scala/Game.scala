@@ -8,7 +8,6 @@
  */
 
 import scala.collection.GenSeq
-import scala.sys.process._
 import scala.language.postfixOps
 import Implicits._
 
@@ -26,8 +25,8 @@ case class GameResults(
 case class SelfTestResults(
   legalPositions:        scala.collection.mutable.ListBuffer[Long],
   simulatedPositions:    scala.collection.mutable.ListBuffer[Long],
-  linesClearedPositions: scala.collection.mutable.ListBuffer[Long]
-
+  linesClearedPositions: scala.collection.mutable.ListBuffer[Long],
+  pieces:                   List[Piece]
 )
 
 // this constructor is used in testing to pass in a pre-constructed board state
@@ -63,11 +62,17 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
   private[this] val legalPositionsSelfTest = scala.collection.mutable.ListBuffer[Long]()
   private[this] val simulatedPositionsSelfTest = scala.collection.mutable.ListBuffer[Long]()
   private[this] val clearedLinesPositionsSelfTest = scala.collection.mutable.ListBuffer[Long]()
+  private var piecesSelfTest:List[Piece] = List()
 
-  def getSelfTestResults: SelfTestResults = SelfTestResults(legalPositionsSelfTest, simulatedPositionsSelfTest, clearedLinesPositionsSelfTest)
+  def getSelfTestResults: SelfTestResults = SelfTestResults(
+    legalPositionsSelfTest,
+    simulatedPositionsSelfTest,
+    clearedLinesPositionsSelfTest,
+    piecesSelfTest
+  )
 
   // used in testing only
-  private var lastRoundJSON:String = ""
+  private var lastRoundJSON: String = ""
   def getLastRoundJSON = lastRoundJSON
 
   def run: GameResults = {
@@ -254,14 +259,9 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
     }
 
     def clearScreen(): Unit = {
-      "clear".!
+      println(StringFormats.ESCAPE + "[2J")
+      println(StringFormats.ESCAPE + "[0;0H")
     }
-
-    /*   def moveCursorTopLeft: Unit = {
-      //"clear" !
-      "tput cup 10 4" !
-      // "printf \u001B[2J" !
-    }*/
 
     val replayPieces = getReplayPieces
 
@@ -331,6 +331,10 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
   }
 
   private def getSimulationResults(pieces: List[Piece]): List[SimulationInfo] = {
+
+    if (context.simulationSelfTest)
+      this.piecesSelfTest = pieces
+
     // set up a test of running through all orderings of piece placement (permutations)
     // and for each ordering, try all combinations of legal locations
     // the best score as defined by Simulations.compare after trying all legal locations is chosen
@@ -360,6 +364,8 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
       .zipWithIndex
       .map(pieces => simulatePermutation(pieces._1, pieces._2, paraperms.length))
       .toList
+
+
 
     val elapsedMs = duration.elapsedMillisecondsFloor
 
@@ -437,9 +443,11 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
         // the final piece of the simulation count self test is to account
         // for cleared lines that force a calculation even on a thread
-        // that is not responsible for this permuation
-        if (linesCleared && !mustUpdateForThisPermutation) {
-          synchronized { clearedLinesPositionsSelfTest += locPieceHash }
+        // that is not responsible for this permutation
+        if (context.simulationSelfTest) {
+          if (linesCleared && !mustUpdateForThisPermutation) {
+            synchronized { clearedLinesPositionsSelfTest += locPieceHash }
+          }
         }
 
         // we have to count this one if it clears lines as this can happen on any permutation
@@ -449,9 +457,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
       def updateBest(simulation: Simulation): Unit = {
 
         def simulationIsBetterThanBest: Boolean = {
-          /* val oldWay = simulation < best.get */
           val newWay = best.get.weightedSum < simulation.weightedSum
-          /* assert(oldWay==newWay)*/
           newWay
 
         }
@@ -879,10 +885,12 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
   }
 
-  private def logRound(results: List[SimulationInfo],
-    best: Simulation,
+  private def logRound(
+    results:          List[SimulationInfo],
+    best:             Simulation,
     pieceHandlerInfo: List[PieceHandlerInfo],
-    colorGridBitMask: BigInt): Unit = {
+    colorGridBitMask: BigInt
+  ): Unit = {
 
     // log pieces - format is in ./src/main/resources/sample.json
     // only log if asked to do so via command line parameter -j, --logjson
@@ -956,7 +964,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
         "selectedPieces".jsonNameValuePair(selectedPieces.squareBracket) +
         "endOfRoundScores".jsonNameValuePair(endOfRoundScores.squareBracket) +
         "permutations".jsonNameValuePairLast(permutations.squareBracket)
-        ).curlyBraces
+      ).curlyBraces
 
       this.lastRoundJSON = s
 

@@ -167,6 +167,9 @@ class TestGame extends FlatSpec {
   it must "simulate all legal positions for all permutations" in {
     new GameInfoFixture {
 
+      //todo - hash scheme doesn't work when there are duplicate (or triplicate) pieces generated
+      // only when they are all different.  Discuss.
+
       // this test will use 3 different pieces each time it runs
       // which is just an added boost of randomness to make sure everything is good
       context.stopGameAtRound = 1
@@ -189,6 +192,10 @@ class TestGame extends FlatSpec {
       private val missingLegal = simulatedPositionsSet.diff(legalPositionsSet)
 
       private val expectedSimulationCount = legalPositionsSet.size + linesClearedPositions.size
+
+     // if (selfTestResults.simulatedPositions.size != expectedSimulationCount) {
+        selfTestResults.pieces.foreach(piece => println(piece.name))
+     // }
 
       assert(missingSimulations.isEmpty, "there are legal positions that are unsimulated")
       assert(missingLegal.isEmpty, "there are simulations that didn't have an associated legal position")
