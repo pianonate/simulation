@@ -131,6 +131,15 @@ case class Specification(spec: ListMap[String, OptimizationFactor]) {
       .mkString(" -")
   }
 
+
+  def getWeightsJSON:String = {
+    val weights = this.optimizationFactors.map(factor =>
+      factor.label.jsonNameValuePairLast(factor.weight)
+    ).mkString(JSONFormats.delimiter)
+
+     ("type".jsonNameValuePair("Weights".doubleQuote) + weights).curlyBraces
+  }
+
 }
 
 case class OptimizationFactor(
@@ -207,6 +216,8 @@ object Specification {
 
   private val totalPositions = math.pow(Board.BOARD_SIZE, 2).toInt
 
+  // todo - add ability to score the sum of all scores for a round.  encourage multi-line clearing
+  // todo - all things being equal, favor a position closer to the upper left (just add Loc Row and Col) - this will allow seeded games to repeat themselves I believe
   // todo - OptimizationFactor of all combinations of 3x3 1x5 and 5x1 - this is actually a lookahead.  dive into machine learning, m'lad
 
   // the following code can be paste in by running weightGenerator command line option

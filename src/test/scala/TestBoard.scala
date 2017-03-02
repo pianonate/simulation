@@ -7,7 +7,7 @@ import org.scalatest.{FlatSpec, _}
 trait BoardFixture {
   val boardSize = Board.BOARD_SIZE
   val board = new Board(boardSize, Specification())
-  val pieces = new GamePieces(seed=new scala.util.Random().nextInt)
+  val pieces = new GamePieces(seed = new scala.util.Random().nextInt)
   val initialOccupied: Int = board.grid.popCount
   val initialOpenLines: Int = board.grid.openLineCount
 
@@ -43,9 +43,9 @@ class TestBoard extends FlatSpec {
 
   it must "count 2 neighbors correctly" in {
     new BoardFixture {
-      board.place(GamePieces.singleton, Loc(0,0),updateColor = true)
+      board.place(GamePieces.singleton, Loc(0, 0), updateColor = true)
       val score = board.boardScore.twoNeighborsScore.intValue
-      assert(score==5, "placing a singleton at the upper left should result in a two neighbor count of 5")
+      assert(score == 5, "placing a singleton at the upper left should result in a two neighbor count of 5")
     }
   }
 
@@ -54,11 +54,11 @@ class TestBoard extends FlatSpec {
     val combo3 = hashCodes.combinations(3).toSet // guarantees uniqueness
     val mappedCombo3 = combo3.map(_.sum)
     // after mapping to a new set by summing the hashCodes, if they weren't unique then the sizes would be different
-    assert(combo3.size===mappedCombo3.size)
+    assert(combo3.size === mappedCombo3.size)
 
     val combo2 = hashCodes.combinations(2).toSet
     val mappedCombo2 = combo2.map(_.sum)
-    assert(combo2.size===mappedCombo2.size)
+    assert(combo2.size === mappedCombo2.size)
 
     // this test ensures that the routine will work that allows us to skip
     // simulations when permutations generate the same
@@ -240,7 +240,7 @@ class TestBoard extends FlatSpec {
       (boardSize - piece.rows + 1) * (boardSize - piece.cols + 1)
     }
 
-    val pieces = new GamePieces(seed=0)
+    val pieces = new GamePieces(seed = 0)
     for {
       piece <- pieces.pieceList
       board = new Board(Board.BOARD_SIZE, Specification())

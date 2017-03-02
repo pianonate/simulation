@@ -32,7 +32,7 @@ class Context(conf: Conf) {
   }
 
   // vars so you can change test specifications - consider other mechanisms if you wish
-  val beep: Boolean = !conf.nobeep()
+  val beep: Boolean = conf.beep()
   var gamesToPlay: Int = conf.gamesToPlay()
   val generateWeightsGamesToPlay: Int = conf.weightGenerator()
   val generatingWeights:Boolean = generateWeightsGamesToPlay > 0
@@ -40,7 +40,7 @@ class Context(conf: Conf) {
   var stopGameAtRound: Int = conf.roundsToPlay()
   //noinspection VarCouldBeVal
   var parallel: Boolean = !conf.serial()
-  val logJSON: Boolean = conf.logJSON()
+  var logJSON: Boolean = conf.logJSON()
   var show: Boolean = !conf.hide()
   //noinspection VarCouldBeVal
   var showRoundResultsOnly: Boolean = conf.showRoundResultsOnly()

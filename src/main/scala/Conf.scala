@@ -79,14 +79,14 @@ class Conf(arguments: Seq[String]) extends ScallopConf(arguments) {
   val gameSeed: ScallopOption[Int] = opt[Int](default = Some(0), descr = "provide a seed to cause every game to play with the same pieces, if you don't specify then the pieces will be random")
   val gameSeedAllGames: ScallopOption[Int] = opt[Int](default = Some(0), descr = "provide a seed to play a series of games with the same seed value, replaying each game within the session with the same seed value - if you don't specify then the entire series will be random")
 
-  val nobeep: ScallopOption[Boolean] = opt[Boolean](descr="silences end of game beeping")
+  val beep: ScallopOption[Boolean] = opt[Boolean](descr="turn on beeping at the end of each game")
 
   // the following are non-game arguments that will result in a no game being played
   val printPieces: ScallopOption[Boolean] = opt[Boolean](descr="print out the game pieces ")
   val weightGenerator: ScallopOption[Int] = opt[Int](default = Some(0), validate = (i) => i >= 0, descr = "default(0): generate the weights for each optimization factor based on how well they play - the integer value is how many games to play for each optFactor.  If the value is 0, it skips this")
 
 
-  mainOptions = Seq(gamesToPlay, roundsToPlay, logJSON, hide, nobeep, serial)
+  mainOptions = Seq(gamesToPlay, roundsToPlay, logJSON, hide, beep, serial)
 
   verify()
 

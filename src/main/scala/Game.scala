@@ -24,9 +24,9 @@ case class GameResults(
 )
 
 case class SelfTestResults(
-                            legalPositions:        scala.collection.mutable.ListBuffer[Long],
-                            simulatedPositions:    scala.collection.mutable.ListBuffer[Long],
-                            linesClearedPositions: scala.collection.mutable.ListBuffer[Long]
+  legalPositions:        scala.collection.mutable.ListBuffer[Long],
+  simulatedPositions:    scala.collection.mutable.ListBuffer[Long],
+  linesClearedPositions: scala.collection.mutable.ListBuffer[Long]
 
 )
 
@@ -65,6 +65,10 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
   private[this] val clearedLinesPositionsSelfTest = scala.collection.mutable.ListBuffer[Long]()
 
   def getSelfTestResults: SelfTestResults = SelfTestResults(legalPositionsSelfTest, simulatedPositionsSelfTest, clearedLinesPositionsSelfTest)
+
+  // used in testing only
+  private var lastRoundJSON:String = ""
+  def getLastRoundJSON = lastRoundJSON
 
   def run: GameResults = {
 
@@ -856,7 +860,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
     }
   }
 
-  private val delimiter = ","
+  val delimiter = ","
 
   private def getNameVal(name: String, value: Any): String = {
     getNameVal(name, value, delimited = true)
@@ -869,19 +873,16 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
   private def logWeights(): Unit = {
 
     if (context.logJSON) {
-
-      val weights = context.specification.optimizationFactors.map(factor => getNameVal(factor.label, factor.weight, delimited = false)).mkString(delimiter)
-
-      val s = "{" +
-        getNameVal("type", "Weights".doubleQuote) +
-        weights + "}"
-
-      context.jsonLogger.info(s)
+      val weightJSON = context.specification.getWeightsJSON
+      context.jsonLogger.info(weightJSON)
     }
 
   }
 
-  private def logRound(results: List[SimulationInfo], best: Simulation, pieceHandlerInfo: List[PieceHandlerInfo], colorGridBitMask: BigInt): Unit = {
+  private def logRound(results: List[SimulationInfo],
+    best: Simulation,
+    pieceHandlerInfo: List[PieceHandlerInfo],
+    colorGridBitMask: BigInt): Unit = {
 
     // log pieces - format is in ./src/main/resources/sample.json
     // only log if asked to do so via command line parameter -j, --logjson
@@ -890,23 +891,32 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
       def getScores(scores: Array[ScoreComponent]): String = {
         scores.map { scoreComponent =>
-          "{" + getNameVal("type", "Feature".doubleQuote) +
-            getNameVal("name", scoreComponent.label.doubleQuote) + getNameVal("intVal", scoreComponent.intValue) +
-            getNameVal("normalizedVal", scoreComponent.normalizedValue) +
-            getNameVal("weightedVal", scoreComponent.weightedValue, delimited = false) + "}"
-        }.mkString(delimiter)
+
+          (
+            "type".jsonNameValuePair("Feature".doubleQuote) +
+            "name".jsonNameValuePair(scoreComponent.label.doubleQuote) +
+            "intVal".jsonNameValuePair(scoreComponent.intValue) +
+            "normalizedVal".jsonNameValuePair(scoreComponent.normalizedValue) +
+            "weightedVal".jsonNameValuePairLast(scoreComponent.weightedValue)
+
+          ).curlyBraces
+
+        }.mkString(JSONFormats.delimiter)
       }
 
       val selectedPieces = pieceHandlerInfo.map { info =>
-        "{" +
-          getNameVal("type", "PieceLoc".doubleQuote) +
-          getNameVal("name", info.piece.name.doubleQuote) +
-          getNameVal("row", info.loc.row) +
-          getNameVal("col", info.loc.col) +
-          getNameVal("rowsCleared", info.rowsCleared) +
-          getNameVal("colsCleared", info.colsCleared, delimited = false) +
-          "}"
-      }.mkString(delimiter)
+
+        (
+          "type".jsonNameValuePair("PieceLoc".doubleQuote) +
+          "name".jsonNameValuePair(info.piece.name.doubleQuote) +
+          "row".jsonNameValuePair(info.loc.row) +
+          "col".jsonNameValuePair(info.loc.col) +
+          "rowsCleared".jsonNameValuePair(info.rowsCleared) +
+          "colsCleared".jsonNameValuePairLast(info.colsCleared)
+
+        ).curlyBraces
+
+      }.mkString(JSONFormats.delimiter)
 
       val endOfRoundScores = getScores(this.board.boardScore.scores)
 
@@ -915,29 +925,40 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
           val winner = p.best == best
 
-          val pType = getNameVal("type", "Permutation".doubleQuote)
-          val index = getNameVal("index", i + 1) // add 1 because permutations are not 0 based in the _real_ world
-          val winnerString = getNameVal("winner", if (winner) "true" else "false")
+          val pType = "type".jsonNameValuePair("Permutation".doubleQuote)
+          val index = "index".jsonNameValuePair(i + 1) // add 1 because permutations are not 0 based in the _real_ world
+          val winnerString = "winner".jsonNameValuePair(if (winner) "true" else "false")
 
-          val pieces = p.pieces.reverse.map(piece => "{" + getNameVal("type", "Piece".doubleQuote) + getNameVal("name", piece.name.doubleQuote, delimited = false) + "}").mkString(delimiter)
-          val pieceArrayString = getNameVal("pieces", pieces.squareBracket, delimited = false)
+          val pieces = p.pieces.reverse.map(piece =>
+
+            (
+              "type".jsonNameValuePair("Piece".doubleQuote) +
+              "name".jsonNameValuePairLast(piece.name.doubleQuote)
+            ).curlyBraces).mkString(JSONFormats.delimiter)
+
+          val pieceArrayString = "pieces".jsonNameValuePair(pieces.squareBracket)
 
           val scores = getScores(p.best.board.boardScore.scores)
-          val permutationScores = getNameVal("permutationScores", scores.squareBracket, delimited = false)
-          "{" + pType + index + winnerString + pieceArrayString + "," + permutationScores + "}"
-      }.mkString(delimiter)
+          val permutationScores = "permutationScores".jsonNameValuePairLast(scores.squareBracket)
 
-      val s = "{" +
-        getNameVal("type", "Game".doubleQuote) +
-        getNameVal("round", rounds.value) +
-        getNameVal("score", score.value) +
-        getNameVal("linesCleared", rowsCleared.value + colsCleared.value) +
-        getNameVal("gamePieceSeed", gameSeed) +
-        getNameVal("beginOfRoundColorGridBitMask", colorGridBitMask) +
-        getNameVal("endOfRoundBitMask", this.board.grid.asBigInt) +
-        getNameVal("selectedPieces", selectedPieces.squareBracket) +
-        getNameVal("endOfRoundScores", endOfRoundScores.squareBracket) +
-        getNameVal("permutations", permutations.squareBracket, delimited = false) + "}"
+          (pType + index + winnerString + pieceArrayString + permutationScores).curlyBraces
+
+      }.mkString(JSONFormats.delimiter)
+
+      val s = (
+        "type".jsonNameValuePair("Game".doubleQuote) +
+        "round".jsonNameValuePair(rounds.value) +
+        "score".jsonNameValuePair(score.value) +
+        "linesCleared".jsonNameValuePair(rowsCleared.value + colsCleared.value) +
+        "gamePieceSeed".jsonNameValuePair(gameSeed) +
+        "beginOfRoundColorGridBitMask".jsonNameValuePair(colorGridBitMask) +
+        "endOfRoundBitMask".jsonNameValuePair(this.board.grid.asBigInt) +
+        "selectedPieces".jsonNameValuePair(selectedPieces.squareBracket) +
+        "endOfRoundScores".jsonNameValuePair(endOfRoundScores.squareBracket) +
+        "permutations".jsonNameValuePairLast(permutations.squareBracket)
+        ).curlyBraces
+
+      this.lastRoundJSON = s
 
       context.jsonLogger.info(s)
     }
@@ -947,6 +968,8 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 }
 
 object Game {
+
+  // provides the score for clearing 1 to 6 (max possible) lines at once
   private val lineClearingScore: Array[Int] = {
     val r = 1 to 6
     // Array(0,10,30,60,100,150,210)

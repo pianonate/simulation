@@ -3,6 +3,7 @@
  * game tests
  */
 import org.scalatest.FlatSpec
+import scala.util.parsing.json.JSON
 
 trait GameInfoFixture {
   val multiGameStats = MultiGameStats(0, 0, 0, 1, new GameTimer)
@@ -12,10 +13,156 @@ trait GameInfoFixture {
 
 }
 
-// todo - using standard scala json library, validate that both weights and game json are valid
 class TestGame extends FlatSpec {
 
   behavior of "A game"
+
+  it must "generate valid json weights for logging" in {
+    new GameInfoFixture {
+
+      val json = context.specification.getWeightsJSON
+      val result = JSON.parseFull(json)
+
+      // you get some map value back if it parsed, otherwise it's going to fail so make sure it doesn't say fail
+      assert(result.getOrElse("fail")!="fail")
+
+    }
+  }
+
+  it must "generate valid end of round results json for logging" in {
+    new GameInfoFixture {
+
+
+      context.stopGameAtRound = 1
+      context.logJSON = true
+      val game = new Game(context,multiGameStats)
+      game.run
+      val json = game.getLastRoundJSON
+      val result = JSON.parseFull(json)
+
+      // you get some map value back if it parsed, otherwise it's going to fail so make sure it doesn't say fail
+      assert(result.getOrElse("fail")!="fail")
+
+    }
+  }
+
+  it must "score all combinations of cleared lines correctly" in {
+    new GameInfoFixture {
+
+      def runAndAssert(plc:List[PieceLocCleared], expectedScore:Int) = {
+
+        context.setReplayList(plc)
+        context.ignoreSimulation = true
+
+        val game = new Game(context,multiGameStats)
+        val results = game.run
+        assert(results.score===expectedScore, "20 is expected from clearing one line")
+
+      }
+
+      private val plcList1 = List(
+        PieceLocCleared(GamePieces.h4Line, Loc(0, 0), clearedLines = false),
+        PieceLocCleared(GamePieces.h5Line, Loc(0, 4), clearedLines = false),
+        PieceLocCleared(GamePieces.singleton, Loc(0, 9), clearedLines = false)
+      )
+
+      // 10 points for 1
+      runAndAssert(plcList1,20)
+
+      private val plcList2 = List(
+        PieceLocCleared(GamePieces.h4Line, Loc(0, 0), clearedLines = false),
+        PieceLocCleared(GamePieces.h5Line, Loc(0, 4), clearedLines = false),
+        PieceLocCleared(GamePieces.h4Line, Loc(1, 0), clearedLines = false),
+        PieceLocCleared(GamePieces.h5Line, Loc(1, 4), clearedLines = false),
+        PieceLocCleared(GamePieces.singleton, Loc(2, 9), clearedLines = false),
+        PieceLocCleared(GamePieces.v2Line, Loc(0, 9), clearedLines = false)
+      )
+
+      // 30 points for 2
+      runAndAssert(plcList2,51)
+
+      private val plcList3 = List(
+        PieceLocCleared(GamePieces.h4Line, Loc(0, 0), clearedLines = false),
+        PieceLocCleared(GamePieces.h5Line, Loc(0, 4), clearedLines = false),
+        PieceLocCleared(GamePieces.h4Line, Loc(1, 0), clearedLines = false),
+        PieceLocCleared(GamePieces.h5Line, Loc(1, 4), clearedLines = false),
+        PieceLocCleared(GamePieces.h4Line, Loc(2, 0), clearedLines = false),
+        PieceLocCleared(GamePieces.h5Line, Loc(2, 4), clearedLines = false),
+        PieceLocCleared(GamePieces.v3Line, Loc(0, 9), clearedLines = false),
+        PieceLocCleared(GamePieces.singleton, Loc(9, 9), clearedLines = false),
+        PieceLocCleared(GamePieces.singleton, Loc(9, 8), clearedLines = false)
+
+      )
+
+      // 60 points for 3
+      runAndAssert(plcList3,92)
+
+      private val plcList4 = List(
+        PieceLocCleared(GamePieces.h4Line, Loc(0, 0), clearedLines = false),
+        PieceLocCleared(GamePieces.h5Line, Loc(0, 4), clearedLines = false),
+        PieceLocCleared(GamePieces.h4Line, Loc(1, 0), clearedLines = false),
+        PieceLocCleared(GamePieces.h5Line, Loc(1, 4), clearedLines = false),
+        PieceLocCleared(GamePieces.h4Line, Loc(2, 0), clearedLines = false),
+        PieceLocCleared(GamePieces.h5Line, Loc(2, 4), clearedLines = false),
+        PieceLocCleared(GamePieces.h4Line, Loc(3, 0), clearedLines = false),
+        PieceLocCleared(GamePieces.h5Line, Loc(3, 4), clearedLines = false),
+        PieceLocCleared(GamePieces.v4Line, Loc(0, 9), clearedLines = false),
+        PieceLocCleared(GamePieces.singleton, Loc(9, 9), clearedLines = false),
+        PieceLocCleared(GamePieces.singleton, Loc(9, 8), clearedLines = false),
+        PieceLocCleared(GamePieces.singleton, Loc(9, 7), clearedLines = false)
+      )
+
+      // 100 points for 4
+      runAndAssert(plcList4,143)
+
+      private val plcList5 = List(
+        PieceLocCleared(GamePieces.h4Line, Loc(0, 0), clearedLines = false),
+        PieceLocCleared(GamePieces.h5Line, Loc(0, 4), clearedLines = false),
+        PieceLocCleared(GamePieces.h4Line, Loc(1, 0), clearedLines = false),
+        PieceLocCleared(GamePieces.h5Line, Loc(1, 4), clearedLines = false),
+        PieceLocCleared(GamePieces.h4Line, Loc(2, 0), clearedLines = false),
+        PieceLocCleared(GamePieces.h5Line, Loc(2, 4), clearedLines = false),
+        PieceLocCleared(GamePieces.h4Line, Loc(3, 0), clearedLines = false),
+        PieceLocCleared(GamePieces.h5Line, Loc(3, 4), clearedLines = false),
+        PieceLocCleared(GamePieces.h4Line, Loc(4, 0), clearedLines = false),
+        PieceLocCleared(GamePieces.h5Line, Loc(4, 4), clearedLines = false),
+        PieceLocCleared(GamePieces.v5Line, Loc(0, 9), clearedLines = false),
+        PieceLocCleared(GamePieces.singleton, Loc(9, 9), clearedLines = false)
+      )
+
+      // 150 points for 5
+      runAndAssert(plcList5,201)
+
+      private val plcList6 = List(
+        PieceLocCleared(GamePieces.h4Line, Loc(0, 0), clearedLines = false),
+        PieceLocCleared(GamePieces.h3Line, Loc(0, 4), clearedLines = false),
+        PieceLocCleared(GamePieces.h4Line, Loc(1, 0), clearedLines = false),
+
+        PieceLocCleared(GamePieces.h3Line, Loc(1, 4), clearedLines = false),
+        PieceLocCleared(GamePieces.h4Line, Loc(2, 0), clearedLines = false),
+        PieceLocCleared(GamePieces.h3Line, Loc(2, 4), clearedLines = false),
+
+        PieceLocCleared(GamePieces.v3Line, Loc(3, 7), clearedLines = false),
+        PieceLocCleared(GamePieces.v4Line, Loc(6, 7), clearedLines = false),
+        PieceLocCleared(GamePieces.v3Line, Loc(3, 8), clearedLines = false),
+
+        PieceLocCleared(GamePieces.v4Line, Loc(6, 8), clearedLines = false),
+        PieceLocCleared(GamePieces.v3Line, Loc(3, 9), clearedLines = false),
+        PieceLocCleared(GamePieces.v4Line, Loc(6, 9), clearedLines = false),
+
+        PieceLocCleared(GamePieces.bigBox, Loc(0, 7), clearedLines = false),
+        PieceLocCleared(GamePieces.singleton, Loc(9, 0), clearedLines = false),
+        PieceLocCleared(GamePieces.singleton, Loc(9, 1), clearedLines = false)
+
+      )
+
+      // 210 points for 6
+      runAndAssert(plcList6,263)
+
+      // 7 is impossible
+
+    }
+  }
 
   it must "simulate all legal positions for all permutations" in {
     new GameInfoFixture {
@@ -25,10 +172,11 @@ class TestGame extends FlatSpec {
       context.stopGameAtRound = 1
       context.simulationSelfTest = true
 
-      context.parallel = false
+      // context.parallel = true
 
       private val game = new Game(context, multiGameStats)
-      private val gameResults: GameResults = game.run
+      game.run
+
       private val selfTestResults: SelfTestResults = game.getSelfTestResults
 
       private val simulatedPositions = selfTestResults.simulatedPositions
@@ -68,9 +216,6 @@ class TestGame extends FlatSpec {
 
     }
   }
-
-  // todo - set up all line clearing scoring combinations and test them for lines cleared of 1 to 6
-  // todo - update brendan doc with line clearing scoring algo Array(10,30,60,100,150,210)
 
   it must "result in the correct score after clearing a row and a column simultaneously" in {
     new GameInfoFixture {

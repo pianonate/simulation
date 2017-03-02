@@ -32,6 +32,8 @@ object Implicits {
 
   implicit def string2StringFormats(s: String): StringFormats = new StringFormats(s)
 
+  implicit def string2JSONFormats(s:String): JSONFormats = new JSONFormats(s)
+
 }
 
 class CounterFormats(val counter: Counter) {
@@ -148,6 +150,23 @@ class LongFormats(val l: Long) {
   def msLabel(length: Int): String = " in " + ("%," + length.toString + "d").format(l) + "ms"
 }
 
+class JSONFormats(val s:String) {
+
+  // json name value pair
+  def jsonNameValuePair(value: Any): String = {
+    jsonNameValuePair(value, delimited = true)
+  }
+
+  def jsonNameValuePairLast(value: Any): String = {
+    jsonNameValuePair(value, delimited=false)
+  }
+
+  private def jsonNameValuePair(value: Any, delimited: Boolean) = {
+    "\"" + s + "\":" + value.toString + (if (delimited) JSONFormats.delimiter else "")
+  }
+
+}
+
 class StringFormats(val s: String) {
   private def getHeaderString(color: String): String = {
 
@@ -159,6 +178,7 @@ class StringFormats(val s: String) {
   }
 
   def appendColon:String = s + ": "
+  def curlyBraces:String = "{" + s + "}"
   def doubleQuote: String = "\"" + s + "\""
   def elapsedLabel: String = elapsedFormat.format(s)
   def green:String = GREEN + s + SANE
@@ -204,6 +224,10 @@ class StringFormats(val s: String) {
     wrapped.mkString("\n")
 
   }
+}
+
+object JSONFormats {
+  val delimiter =","
 }
 
 object StringFormats {
