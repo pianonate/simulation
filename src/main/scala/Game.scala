@@ -954,7 +954,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
       }.mkString(JSONFormats.delimiter)
 
       val s = (
-        "type".jsonNameValuePair("Game".doubleQuote) +
+        "type".jsonNameValuePair("Round".doubleQuote) +
         "round".jsonNameValuePair(rounds.value) +
         "score".jsonNameValuePair(score.value) +
         "linesCleared".jsonNameValuePair(rowsCleared.value + colsCleared.value) +
