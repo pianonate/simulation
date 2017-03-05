@@ -34,7 +34,7 @@ class Context(conf: Conf) {
   // vars so you can change test specifications - consider other mechanisms if you wish
   val beep: Boolean = conf.beep()
   var gamesToPlay: Int = conf.gamesToPlay()
-  val generateWeightsGamesToPlay: Int = conf.weightGenerator()
+  val generateWeightsGamesToPlay: Int = conf.weightGenerator1().max(conf.weightGenerator2())
   val generatingWeights:Boolean = generateWeightsGamesToPlay > 0
 
   var stopGameAtRound: Int = conf.roundsToPlay()

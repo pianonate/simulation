@@ -10,9 +10,13 @@ import java.io.PrintWriter
 
 object GameRunner {
 
-  def generateWeights(context: Context): Unit = {
+  def generateWeights(context: Context, randomize: Boolean): Unit = {
 
-    context.logger.info("generating weights")
+
+    randomize match {
+      case true  => context.logger.info("generating weights with all weight randomized")
+      case false => context.logger.info("generating weights by playing each optimization factor individually")
+    }
 
     val allGamesTimer = new GameTimer
 
@@ -28,6 +32,39 @@ object GameRunner {
     // play the same game for each
     val randomizer = new scala.util.Random(1)
 
+    val seeds = Array.fill[Int](iterations)(randomizer.nextInt.abs)
+
+    def playOneGame(gameIndex:Int, optFactor:Option[OptimizationFactor], factorIndex:Option[Int]) = {
+
+      val singleGameTimer = new GameTimer
+
+      // each factor will play the same game to see how each performs against the same set of pieces
+      context.setGameSeed(seeds(gameIndex))
+
+      // play a game and get its score back - this seems a little obscure in terms of how to get the score...
+      // could you be more clear?
+      val score = play(context, gameIndex)(0)
+
+      val completed: Int = (factorIndex.get * iterations) + (gameIndex + 1)
+
+      val result = optFactor.get.key.rightAlignedPadded(longestKeyLength) + " - score: " + score.label(6).green +
+        " - done in " + singleGameTimer.elapsedLabel.trim.leftAlignedPadded(6).green +
+        "- game: " + completed.label(4).green + " out of " + totalGames.toString.green +
+        " (" + ((completed.toDouble / totalGames) * 100).label(1).trim.green + "%".green + ")" +
+        " game seed: " + context.getGameSeed.label(9).green +
+        " elapsed: " + allGamesTimer.elapsedLabelMs.trim.green
+
+      // output to screen and to main log file
+      println(result)
+      context.logger.info(result)
+
+      score
+
+    }
+
+
+
+
     /*     
      todo - ask kevin
      i thought of an optimization to store previously generated weights in a file
@@ -42,7 +79,6 @@ object GameRunner {
      check with Kevin or Brendan on this as maybe it doesn't make a difference 
      */
 
-    val seeds = Array.fill[Int](iterations)(randomizer.nextInt.abs)
 
     val scores = specification.spec.zipWithIndex.map {
       case ((key, optFactor), factorIndex) =>
@@ -50,29 +86,9 @@ object GameRunner {
         context.specification = Specification(optFactor)
 
         val gameScore: Seq[Int] = for (gameIndex <- 0 until iterations) yield {
-          val singleGameTimer = new GameTimer
 
-          // each factor will play the same game to see how each performs against the same set of pieces
-          context.setGameSeed(seeds(gameIndex))
+          playOneGame(gameIndex, Some(optFactor), Some(factorIndex))
 
-          // play a game and get its score back - this seems a little obscure in terms of how to get the score...
-          // could you be more clear?
-          val score = play(context, gameIndex)(0)
-
-          val completed: Int = (factorIndex * iterations) + (gameIndex + 1)
-
-          val result = optFactor.key.rightAlignedPadded(longestKeyLength) + " - score: " + score.label(6).green +
-            " - done in " + singleGameTimer.elapsedLabel.trim.leftAlignedPadded(6).green +
-            "- game: " + completed.label(4).green + " out of " + totalGames.toString.green +
-            " (" + ((completed.toDouble / totalGames) * 100).label(1).trim.green + "%".green + ")" +
-            " game seed: " + context.getGameSeed.label(9).green +
-            " elapsed: " + allGamesTimer.elapsedLabelMs.trim.green
-
-          // output to screen and to main log file
-          println(result)
-          context.logger.info(result)
-
-          score
         }
 
         (key, gameScore.toArray)
@@ -148,16 +164,16 @@ object GameRunner {
 
       if (!context.generatingWeights) {
 
-        val roundsPerSecond = (results.rounds / results.gameTimer.elapsedSeconds).toDouble.label(2)
+        val roundsPerSecond: Double = (results.rounds / results.gameTimer.elapsedSeconds).toDouble
 
         context.logger.info("game " + gameCount.label(4).green
           + " - score: " + results.score.label(7).green
           + " average: " + scores.avg.toInt.label(7).green
           + " high score: " + scores.max.label(7).green
           + " rounds: " + results.rounds.label(7).green
-          + " rounds/s: " + roundsPerSecond.green
+          + " rounds/s: " + roundsPerSecond.label(2, 2).green
           + " duration: " + results.gameTimer.elapsedLabel.green
-          + " game seed: " + context.getGameSeed)
+          + " game seed: " + context.getGameSeed.rightAligned(10).green)
       }
     }
 

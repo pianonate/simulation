@@ -48,6 +48,11 @@ class CounterFormats(val counter: Counter) {
 
 class DoubleFormats(val d:Double) {
   def label(length:Int):String = ("%1." + length + "f").format(d)
+
+  def label(integerPartLength:Int, fractionalPartLength:Int):String = {
+    ("%" + (integerPartLength + 1 + fractionalPartLength) + "." + fractionalPartLength + "f").format(d)
+  }
+
   def weightLabel:String = label(StringFormats.weightFormatLength)
   def rightAlignedPadded(length:Int):String = d.toString.rightAlignedPadded(length)
 
@@ -100,6 +105,7 @@ class IntFormats(val i: Int) {
   def optFactorLabel: String = optFactorResultFormat.format(i)
   def perSecondLabel: String = label + "/s"
   def redLabel: String = RED + optFactorLabel + SANE
+  def rightAligned(length:Int):String = ("%" + length + "d").format(i)
   def scoreLabel: String = GREEN + label + SANE
   def shortLabel: String = numberFormatShort.format(i)
   def yellowPerSecondLabel: String = YELLOW + perSecondLabel + SANE

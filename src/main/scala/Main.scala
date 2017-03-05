@@ -24,9 +24,10 @@ object simulate {
 
     conf match {
 
-      case c if c.weightGenerator() > 0 => GameRunner.generateWeights(context)
-      case c if c.printPieces()         => new GamePieces(seed = 0).printPossiblePieces(context)
-      case _                            => GameRunner.play(context)
+      case c if c.weightGenerator1() > 0 => GameRunner.generateWeights(context, false)
+      case c if c.weightGenerator2() > 0 => GameRunner.generateWeights(context, true)
+      case c if c.printPieces()          => new GamePieces(seed = 0).printPossiblePieces(context)
+      case _                             => GameRunner.play(context)
 
     }
 
