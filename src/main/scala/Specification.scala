@@ -19,6 +19,17 @@ import Implicits._
 import Specification._
 import scala.collection.immutable.{Iterable, ListMap}
 
+case class OptimizationFactor(
+  enabled:     Boolean,
+  key:         String,
+  minimize:    Boolean,
+  weight:      Double,
+  minVal:      Int,
+  maxVal:      Int,
+  label:       String,
+  explanation: String
+)
+
 case class Specification(spec: ListMap[String, OptimizationFactor]) {
 
   val length: Int = spec.size
@@ -49,6 +60,7 @@ case class Specification(spec: ListMap[String, OptimizationFactor]) {
   val maximizerOptFactor: OptimizationFactor = getOptimizationFactor(Specification.maximizerKey)
   val occupiedOptFactor: OptimizationFactor = getOptimizationFactor(Specification.occupiedKey)
   val openLinesOptFactor: OptimizationFactor = getOptimizationFactor(Specification.openLinesKey)
+  val roundScoreOptFactor: OptimizationFactor = getOptimizationFactor(Specification.roundScoreKey)
   val threeNeighborOptFactor: OptimizationFactor = getOptimizationFactor(Specification.neighborsThreeKey)
   val twoNeighborsOptFactor: OptimizationFactor = getOptimizationFactor(Specification.neighborsTwoKey)
 
@@ -97,8 +109,8 @@ case class Specification(spec: ListMap[String, OptimizationFactor]) {
 
         optScores.map(score =>
           " " + score.intValue.optFactorLabel.rightAlignedPadded(columnPadding) +
-          score.normalizedValue.label(2).rightAlignedPadded(columnPadding + 3)
-          + weightBuffer + score.weightedValue.weightLabel)
+            score.normalizedValue.label(2).rightAlignedPadded(columnPadding + 3)
+            + weightBuffer + score.weightedValue.weightLabel)
 
         .mkString(" " + StringFormats.VERTICAL_LINE)).mkString(" " + StringFormats.VERTICAL_LINE + "\n") + spaceAndVertical + "\n"
 
@@ -116,7 +128,7 @@ case class Specification(spec: ListMap[String, OptimizationFactor]) {
 
       }.mkString(spaceAndVertical) + spaceAndVertical
 
-    piecesHeader  + horizontal + scoreHeader + horizontal + scoreString  + horizontal + weightedSumString
+    piecesHeader + horizontal + scoreHeader + horizontal + scoreString + horizontal + weightedSumString
   }
 
   def getBoardResultString(boardResult: Array[Int]): String = {
@@ -131,26 +143,14 @@ case class Specification(spec: ListMap[String, OptimizationFactor]) {
       .mkString(" -")
   }
 
-  def getWeightsJSON:String = {
+  def getWeightsJSON: String = {
     val weights = this.optimizationFactors.map(factor =>
-      factor.label.jsonNameValuePairLast(factor.weight)
-    ).mkString(JSONFormats.delimiter)
+      factor.label.jsonNameValuePairLast(factor.weight)).mkString(JSONFormats.delimiter)
 
-     ("type".jsonNameValuePair("Weights".doubleQuote) + weights).curlyBraces
+    ("type".jsonNameValuePair("Weights".doubleQuote) + weights).curlyBraces
   }
 
 }
-
-case class OptimizationFactor(
-  enabled:     Boolean,
-  key:         String,
-  minimize:    Boolean,
-  weight:      Double,
-  minVal:      Int,
-  maxVal:      Int,
-  label:       String,
-  explanation: String
-)
 
 object Specification {
 
@@ -212,6 +212,7 @@ object Specification {
   val occupiedKey = "occupiedKey"
   val openLinesKey = "openLinesKey"
   val neighborsTwoKey = "neighborsTwoKey"
+  val roundScoreKey = "roundScoreKey"
 
   private val totalPositions = math.pow(Board.BOARD_SIZE, 2).toInt
 
@@ -221,7 +222,7 @@ object Specification {
 
   // the following code can be paste in by running weightGenerator command line option
   // make sure that if you change any of the key names above, that you change them here as well
-/*  private val weightMap = Map(
+  /*  private val weightMap = Map(
 
     "maximizerKey" -> 0.5611371262121603,
     "avoidMiddleKey" -> 0.14843110504774898,
@@ -236,7 +237,7 @@ object Specification {
   )*/
 
   // from a 390 run
-/*  private val weightMap = Map(
+  /*  private val weightMap = Map(
 
     "maximizerKey" -> 0.5272891017383388,
     "avoidMiddleKey" -> 0.199174613082093,
@@ -251,7 +252,7 @@ object Specification {
   )*/
 
   // from the 300 run post bug fix 2/14/2017
- /* private val weightMap = Map(
+  /* private val weightMap = Map(
 
     "maximizerKey" -> 0.5550520731085657,
     "avoidMiddleKey" -> 0.2087456921937354,
@@ -265,7 +266,7 @@ object Specification {
 
   )*/
 
-/*  // after changing the value of clearing open lines to their "real" values
+  /*  // after changing the value of clearing open lines to their "real" values
   // 2/25/17
   private val weightMap = Map(
 
@@ -281,7 +282,7 @@ object Specification {
 
   )*/
 
-  // after fixing the bug where simulations weren't getting scored for all location/piece combinations
+  /*  // after fixing the bug where simulations weren't getting scored for all location/piece combinations
   // and also not always when lines were clearing
   private val weightMap = Map(
 
@@ -295,8 +296,27 @@ object Specification {
     "neighborsThreeKey" -> 0.018033335297438363,
     "neighborsTwoKey" -> 0.0069762159552488
 
+  )*/
+
+  // providing made up value for initial roundScoreKey feature
+  private val weightMap = Map(
+
+    "maximizerKey" -> 0.622593416953521,
+    "avoidMiddleKey" -> 0.1628650146642616,
+    "occupiedKey" -> 0.051514039866263454,
+    "openLinesKey" -> 0.043463901967082864,
+    "maxContiguousKey" -> 0.041670072171356126,
+    "lineContiguousUnoccupiedKey" -> 0.03385277575559437,
+    "neighborsFourKey" -> 0.01903122736923337,
+    "neighborsThreeKey" -> 0.018033335297438363,
+    "neighborsTwoKey" -> 0.0069762159552488,
+    "roundScoreKey" -> 0.001
+
   )
 
+  // this is pretty theoretical as to the max - it may be possible to get higher than this but I think it's pretty unlikely
+  // this problem goes away if we implement z-score
+  private val maxRoundScore = Game.lineClearingScore(Game.lineClearingScore.length - 1) + (maximizer3x3.pointValue * 3) + Game.lineClearingScore(3)
 
   private val allOptimizationFactors = ListMap(
 
@@ -314,7 +334,8 @@ object Specification {
     // but i couldn't find another solution that was better
     neighborsTwoKey -> OptimizationFactor(enabled = true, neighborsTwoKey, minimize, weightMap(neighborsTwoKey), 0, (totalPositions * .6).toInt, "2 neighbors", "number of positions surrounded on 2 of 4 sides"),
     occupiedKey -> OptimizationFactor(enabled = true, occupiedKey, minimize, weightMap(occupiedKey), 0, totalPositions, "occupied", "occupied positions"),
-    openLinesKey -> OptimizationFactor(enabled = true, openLinesKey, maximize, weightMap(openLinesKey), 0, Board.BOARD_SIZE + Board.BOARD_SIZE, "open rows + cols", "count of open rows plus open columns")
+    openLinesKey -> OptimizationFactor(enabled = true, openLinesKey, maximize, weightMap(openLinesKey), 0, Board.BOARD_SIZE + Board.BOARD_SIZE, "open rows + cols", "count of open rows plus open columns"),
+    roundScoreKey -> OptimizationFactor(enabled = true, roundScoreKey, maximize, weightMap(roundScoreKey), GamePieces.numPiecesInRound, maxRoundScore, "round score", "total score for the round")
 
   )
 

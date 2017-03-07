@@ -63,12 +63,12 @@ object GameRunner {
 
     }
 
-    val result = prefix + "score: " + score.label(6).green +
-      " - done in " + singleGameTimer.elapsedLabel.trim.leftAlignedPadded(6).green +
-      "- game: " + completed.label(4).green + " out of " + weightContext.totalGames.toString.green +
+    val result = prefix + "score: " + score.label(9).green +
+      " - done in " + singleGameTimer.elapsedLabel.trim.rightAlignedPadded(11).green +
+      " - game: " + completed.label(4).green + " out of " + weightContext.totalGames.toString.green +
       " (" + ((completed.toDouble / weightContext.totalGames) * 100).label(3,2).green + "%".green + ")" +
       " game seed: " + weightContext.context.getGameSeed.rightAligned(10).green +
-      " elapsed: " + allGamesTimer.elapsedLabelMs.trim.green
+      " elapsed: " + allGamesTimer.elapsedLabel.trim.green
 
     // output to screen and to main log file
     println(result)
@@ -87,10 +87,9 @@ object GameRunner {
 
     val weightContext = WeightContext(v1=false, context)
 
-    // todo - why yield?
-    for (gameIndex <- 0 until weightContext.iterations) yield {
+    (0 until weightContext.iterations) foreach {
       context.specification = weightContext.specification
-      playOneGame(weightContext, gameIndex, 0, None)
+      playOneGame(weightContext, _, 0, None)
     }
   }
 

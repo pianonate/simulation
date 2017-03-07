@@ -61,6 +61,7 @@ case class BoardScore(
   val maximizerScore: ScoreComponent = getScore(specification.maximizerOptFactor, board.maximizerCount)
   val occupiedScore: ScoreComponent = getScore(specification.occupiedOptFactor, board.grid.popCount)
   val openLinesScore: ScoreComponent = getScore(specification.openLinesOptFactor, board.grid.openLineCount)
+  val roundScore: ScoreComponent = getScore(specification.roundScoreOptFactor, board.roundScore)
   val threeNeighborsScore: ScoreComponent = getScore(specification.threeNeighborOptFactor, neighbors(3))
   val twoNeighborsScore: ScoreComponent = getScore(specification.twoNeighborsOptFactor, neighbors(2))
 
@@ -77,6 +78,7 @@ case class BoardScore(
         case Specification.maxContiguousKey            => maxContiguousLinesScore
         case Specification.maximizerKey                => maximizerScore
         case Specification.openLinesKey                => openLinesScore
+        case Specification.roundScoreKey               => roundScore
         case Specification.neighborsThreeKey           => threeNeighborsScore
         case Specification.neighborsTwoKey             => twoNeighborsScore
         case _ =>

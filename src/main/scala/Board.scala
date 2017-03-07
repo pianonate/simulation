@@ -38,6 +38,8 @@ class Board(
     )
   }
 
+
+
   // def so a new one is created every time boardScore is called
   def boardScore: BoardScore = BoardScore(this, specification)
 
@@ -72,6 +74,8 @@ class Board(
     }
     sum
   }
+
+  var roundScore = 0
 
   // changed to not use a rotated copy of the board
   // slight increase in LOC but definite decrease in % of code execution time

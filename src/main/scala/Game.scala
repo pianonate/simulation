@@ -4,7 +4,7 @@
  *
  * todo - hook this up to ifttt maker channel http://www.makeuseof.com/tag/ifttt-connect-anything-maker-channel/
  * todo for Richard Kim - check to see if it's windows and output cls rather than clear
- *
+ * todo - specify log file name on command line so that you can have a separate log file for running in the IDE
  */
 
 import scala.collection.GenSeq
@@ -189,6 +189,9 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
     def placePieces(chosenList: List[PieceLocCleared]): List[PieceHandlerInfo] = {
 
+      // reset roundScore for this round
+      this.board.roundScore = 0
+
       // zip the piece location cleared list it's index so we don't have to keep a
       // global track of placed pieces
       chosenList.zipWithIndex.map {
@@ -199,7 +202,6 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
             index + 1
           )
       }
-
     }
 
     def getPlacePiecesResultsString(pieceHandlerInfoList: List[PieceHandlerInfo]): String = {
@@ -289,6 +291,8 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
       // as a side effect of placing, returns a string representing board states
       // is there a better way to do this?
       val placePiecesInfo = placePieces(chosenList)
+
+     // board.setRoundScore(score.value, rounds.value)
 
       val placePiecesString = getPlacePiecesResultsString(placePiecesInfo)
 
@@ -411,21 +415,25 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
     // provided by getLegal below
     var best: Option[Simulation] = None
 
-    case class BoardPieceLocCleared(board: Board, plc: PieceLocCleared)
+    case class BoardScorePLCList(board: Board, score: Int, plc: PieceLocCleared)
 
     //return the board copy and the number of lines cleared
-    def placeMe(piece: Piece, theBoard: Board, loc: Loc): BoardPieceLocCleared = {
+    def placeMe(piece: Piece, theBoard: Board, loc: Loc): BoardScorePLCList = {
+
       val boardCopy = Board.copy("simulationBoard", theBoard)
       boardCopy.place(piece, loc, updateColor = false)
       val cleared = boardCopy.clearLines
-      val isCleared = (cleared.rows + cleared.cols) > 0
+      val totalCleared = cleared.rows + cleared.cols
+      val isCleared = totalCleared > 0
+
+      val score = piece.pointValue + Game.lineClearingScore(totalCleared)
 
       // return the board with an instance of a PieceLocCleared class
-      BoardPieceLocCleared(boardCopy, PieceLocCleared(piece, loc, isCleared))
+      BoardScorePLCList(boardCopy, score, PieceLocCleared(piece, loc, isCleared))
 
     }
 
-    def createSimulations(board: Board, pieces: List[Piece], linesClearedAcc: Boolean, plcAcc: List[PieceLocCleared], locPieceHashAcc: Long): Unit = {
+    def createSimulations(board: Board, pieces: List[Piece], linesClearedAcc: Boolean, plcAcc: List[PieceLocCleared], scoreAcc: Int, locPieceHashAcc: Long): Unit = {
 
       def isUpdatable(locPieceHash: Long, linesCleared: Boolean): Boolean = {
 
@@ -533,6 +541,8 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
         val plcList = plc :: plcAcc
 
+        val score = result.score + scoreAcc
+
         // recurse
         // if we have already cleared lines then propagate that so we don't pay the freight
         // in "isUpdatable" where it's an expensive calculation
@@ -540,7 +550,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
         if (pieces.tail.nonEmpty) {
 
-          createSimulations(boardCopy, pieces.tail, linesCleared, plcList, locPieceHash)
+          createSimulations(boardCopy, pieces.tail, linesCleared, plcList, score, locPieceHash)
 
         } else {
 
@@ -559,11 +569,14 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
             if (context.simulationSelfTest)
               synchronized { this.simulatedPositionsSelfTest += locPieceHash }
 
+            // this is the one score that happens outside
+            boardCopy.roundScore = score
+
             updateSimulation(plcList, boardCopy)
+
           } else {
             unsimulatedCount.inc()
           }
-
         }
       }
 
@@ -579,7 +592,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
       }
     }
 
-    createSimulations(board, pieces, linesClearedAcc = false, List(), 0)
+    createSimulations(board, pieces, linesClearedAcc = false, List(), 0, 0)
 
     def emptySimulation: Simulation = Simulation(List(), this.board, 0)
 
@@ -627,25 +640,23 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
     piece.usage.inc()
 
     // score me baby
-    score.inc(piece.pointValue)
+   // score.inc(piece.pointValue)
 
     val unclearedBoard = Board.copy("unclearedBoard", this.board)
 
     val linesClearedResult = board.clearLines
-    val linesCleared = linesClearedResult.rows > 0 || linesClearedResult.cols > 0
 
-    if (linesCleared) {
+    rowsCleared.inc(linesClearedResult.rows)
+    colsCleared.inc(linesClearedResult.cols)
+    val total = linesClearedResult.rows + linesClearedResult.cols
 
-      rowsCleared.inc(linesClearedResult.rows)
-      colsCleared.inc(linesClearedResult.cols)
-      // score.inc(linesClearedResult.rows * Board.BOARD_SIZE + linesClearedResult.cols * Board.BOARD_SIZE - linesClearedResult.rows * linesClearedResult.cols)
-      val total = linesClearedResult.rows + linesClearedResult.cols
-
-      score.inc(Game.lineClearingScore(total))
-
-    }
+    val pieceScore = piece.pointValue + Game.lineClearingScore(total)
+    score.inc(pieceScore)
 
     val clearedBoard = Board.copy("clearedBoard", this.board)
+
+    this.board.roundScore += pieceScore
+    clearedBoard.roundScore = this.board.roundScore
 
     PieceHandlerInfo(
       piece,
@@ -966,7 +977,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
           "endOfRoundScores".jsonNameValuePairLast(endOfRoundScores.squareBracket)
         else {
           "endOfRoundScores".jsonNameValuePair(endOfRoundScores.squareBracket) +
-          "permutations".jsonNameValuePairLast(permutations.squareBracket)
+            "permutations".jsonNameValuePairLast(permutations.squareBracket)
         })
       ).curlyBraces
 
@@ -982,7 +993,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 object Game {
 
   // provides the score for clearing 1 to 6 (max possible) lines at once
-  private val lineClearingScore: Array[Int] = {
+  val lineClearingScore: Array[Int] = {
     val r = 1 to 6
     // Array(0,10,30,60,100,150,210)
     r.scanLeft(0)(_ + _ * 10).toArray

@@ -194,7 +194,7 @@ class TestGame extends FlatSpec {
       private val expectedSimulationCount = legalPositionsSet.size + linesClearedPositions.size
 
      // if (selfTestResults.simulatedPositions.size != expectedSimulationCount) {
-        selfTestResults.pieces.foreach(piece => println(piece.name))
+       // selfTestResults.pieces.foreach(piece => println(piece.name))
      // }
 
       assert(missingSimulations.isEmpty, "there are legal positions that are unsimulated")
