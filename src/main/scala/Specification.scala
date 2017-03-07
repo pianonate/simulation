@@ -131,7 +131,6 @@ case class Specification(spec: ListMap[String, OptimizationFactor]) {
       .mkString(" -")
   }
 
-
   def getWeightsJSON:String = {
     val weights = this.optimizationFactors.map(factor =>
       factor.label.jsonNameValuePairLast(factor.weight)
@@ -297,7 +296,6 @@ object Specification {
     "neighborsTwoKey" -> 0.0069762159552488
 
   )
-
 
 
   private val allOptimizationFactors = ListMap(

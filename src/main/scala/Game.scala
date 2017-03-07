@@ -26,7 +26,7 @@ case class SelfTestResults(
   legalPositions:        scala.collection.mutable.ListBuffer[Long],
   simulatedPositions:    scala.collection.mutable.ListBuffer[Long],
   linesClearedPositions: scala.collection.mutable.ListBuffer[Long],
-  pieces:                   List[Piece]
+  pieces:                List[Piece]
 )
 
 // this constructor is used in testing to pass in a pre-constructed board state
@@ -62,7 +62,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
   private[this] val legalPositionsSelfTest = scala.collection.mutable.ListBuffer[Long]()
   private[this] val simulatedPositionsSelfTest = scala.collection.mutable.ListBuffer[Long]()
   private[this] val clearedLinesPositionsSelfTest = scala.collection.mutable.ListBuffer[Long]()
-  private var piecesSelfTest:List[Piece] = List()
+  private var piecesSelfTest: List[Piece] = List()
 
   def getSelfTestResults: SelfTestResults = SelfTestResults(
     legalPositionsSelfTest,
@@ -364,8 +364,6 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
       .zipWithIndex
       .map(pieces => simulatePermutation(pieces._1, pieces._2, paraperms.length))
       .toList
-
-
 
     val elapsedMs = duration.elapsedMillisecondsFloor
 
@@ -928,30 +926,32 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
       val endOfRoundScores = getScores(this.board.boardScore.scores)
 
-      val permutations = results.zipWithIndex.map {
-        case (p, i) =>
+      val permutations = if (context.generatingWeights) "" // don't include permutations when generating weights
+      else
+        results.zipWithIndex.map {
+          case (p, i) =>
 
-          val winner = p.best == best
+            val winner = p.best == best
 
-          val pType = "type".jsonNameValuePair("Permutation".doubleQuote)
-          val index = "index".jsonNameValuePair(i + 1) // add 1 because permutations are not 0 based in the _real_ world
-          val winnerString = "winner".jsonNameValuePair(if (winner) "true" else "false")
+            val pType = "type".jsonNameValuePair("Permutation".doubleQuote)
+            val index = "index".jsonNameValuePair(i + 1) // add 1 because permutations are not 0 based in the _real_ world
+            val winnerString = "winner".jsonNameValuePair(if (winner) "true" else "false")
 
-          val pieces = p.pieces.reverse.map(piece =>
+            val pieces = p.pieces.reverse.map(piece =>
 
-            (
-              "type".jsonNameValuePair("Piece".doubleQuote) +
-              "name".jsonNameValuePairLast(piece.name.doubleQuote)
-            ).curlyBraces).mkString(JSONFormats.delimiter)
+              (
+                "type".jsonNameValuePair("Piece".doubleQuote) +
+                "name".jsonNameValuePairLast(piece.name.doubleQuote)
+              ).curlyBraces).mkString(JSONFormats.delimiter)
 
-          val pieceArrayString = "pieces".jsonNameValuePair(pieces.squareBracket)
+            val pieceArrayString = "pieces".jsonNameValuePair(pieces.squareBracket)
 
-          val scores = getScores(p.best.board.boardScore.scores)
-          val permutationScores = "permutationScores".jsonNameValuePairLast(scores.squareBracket)
+            val scores = getScores(p.best.board.boardScore.scores)
+            val permutationScores = "permutationScores".jsonNameValuePairLast(scores.squareBracket)
 
-          (pType + index + winnerString + pieceArrayString + permutationScores).curlyBraces
+            (pType + index + winnerString + pieceArrayString + permutationScores).curlyBraces
 
-      }.mkString(JSONFormats.delimiter)
+        }.mkString(JSONFormats.delimiter)
 
       val s = (
         "type".jsonNameValuePair("Round".doubleQuote) +
@@ -962,8 +962,12 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
         "beginOfRoundColorGridBitMask".jsonNameValuePair(colorGridBitMask) +
         "endOfRoundBitMask".jsonNameValuePair(this.board.grid.asBigInt) +
         "selectedPieces".jsonNameValuePair(selectedPieces.squareBracket) +
-        "endOfRoundScores".jsonNameValuePair(endOfRoundScores.squareBracket) +
-        "permutations".jsonNameValuePairLast(permutations.squareBracket)
+        (if (context.generatingWeights) // only include permutations for normal output
+          "endOfRoundScores".jsonNameValuePairLast(endOfRoundScores.squareBracket)
+        else {
+          "endOfRoundScores".jsonNameValuePair(endOfRoundScores.squareBracket) +
+          "permutations".jsonNameValuePairLast(permutations.squareBracket)
+        })
       ).curlyBraces
 
       this.lastRoundJSON = s

@@ -5,6 +5,7 @@
 
 import org.slf4j.LoggerFactory
 import org.slf4j.MDC
+import scala.language.reflectiveCalls
 
 
 import ch.qos.logback.classic.{ Logger,  LoggerContext }
@@ -34,13 +35,14 @@ class Context(conf: Conf) {
   // vars so you can change test specifications - consider other mechanisms if you wish
   val beep: Boolean = conf.beep()
   var gamesToPlay: Int = conf.gamesToPlay()
-  val generateWeightsGamesToPlay: Int = conf.weightGenerator1().max(conf.weightGenerator2())
+  val generateWeightsGamesToPlay: Int = conf.weights.v1Games.getOrElse(0).max(conf.weights.v2Games.getOrElse(0))
   val generatingWeights:Boolean = generateWeightsGamesToPlay > 0
 
   var stopGameAtRound: Int = conf.roundsToPlay()
   //noinspection VarCouldBeVal
   var parallel: Boolean = !conf.serial()
   var logJSON: Boolean = conf.logJSON()
+
   var show: Boolean = !conf.hide()
   //noinspection VarCouldBeVal
   var showRoundResultsOnly: Boolean = conf.showRoundResultsOnly()

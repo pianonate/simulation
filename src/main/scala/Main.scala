@@ -13,6 +13,8 @@
  * todo - think about a new name for simulation class
  */
 
+import scala.language.reflectiveCalls
+
 //noinspection ScalaFileName
 
 object simulate {
@@ -24,10 +26,10 @@ object simulate {
 
     conf match {
 
-      case c if c.weightGenerator1() > 0 => GameRunner.generateWeights(context, false)
-      case c if c.weightGenerator2() > 0 => GameRunner.generateWeights(context, true)
-      case c if c.printPieces()          => new GamePieces(seed = 0).printPossiblePieces(context)
-      case _                             => GameRunner.play(context)
+      case c if c.weights.v1Games.getOrElse(0) > 0 => GameRunner.generateWeightsV1(context)
+      case c if c.weights.v2Games.getOrElse(0) > 0 => GameRunner.generateWeightsV2(context)
+      case c if c.printPieces()                    => new GamePieces(seed = 0).printPossiblePieces(context)
+      case _                                       => GameRunner.play(context)
 
     }
 

@@ -10,59 +10,95 @@ import java.io.PrintWriter
 
 object GameRunner {
 
-  def generateWeights(context: Context, randomize: Boolean): Unit = {
-
-
-    randomize match {
-      case true  => context.logger.info("generating weights with all weight randomized")
-      case false => context.logger.info("generating weights by playing each optimization factor individually")
-    }
-
-    val allGamesTimer = new GameTimer
-
-    def gamesPerMinute(games: Int) = math.floor(games / allGamesTimer.elapsedMinutes).toInt
+  case class WeightContext(v1:Boolean, context:Context) {
 
     context.gamesToPlay = 1
 
-    val specification = Specification(filtered = false)
-    val iterations = context.generateWeightsGamesToPlay
-    val totalGames = iterations * specification.length
-    val longestKeyLength = specification.spec.keys.map(_.length).max
+    private val v1Spec = Specification(filtered=false)
 
-    // play the same game for each
-    val randomizer = new scala.util.Random(1)
+    def specification = {
+      if (v1)
+        v1Spec
+      else {
+        val doubleRandomizer = new scala.util.Random()
 
-    val seeds = Array.fill[Int](iterations)(randomizer.nextInt.abs)
-
-    def playOneGame(gameIndex:Int, optFactor:Option[OptimizationFactor], factorIndex:Option[Int]) = {
-
-      val singleGameTimer = new GameTimer
-
-      // each factor will play the same game to see how each performs against the same set of pieces
-      context.setGameSeed(seeds(gameIndex))
-
-      // play a game and get its score back - this seems a little obscure in terms of how to get the score...
-      // could you be more clear?
-      val score = play(context, gameIndex)(0)
-
-      val completed: Int = (factorIndex.get * iterations) + (gameIndex + 1)
-
-      val result = optFactor.get.key.rightAlignedPadded(longestKeyLength) + " - score: " + score.label(6).green +
-        " - done in " + singleGameTimer.elapsedLabel.trim.leftAlignedPadded(6).green +
-        "- game: " + completed.label(4).green + " out of " + totalGames.toString.green +
-        " (" + ((completed.toDouble / totalGames) * 100).label(1).trim.green + "%".green + ")" +
-        " game seed: " + context.getGameSeed.label(9).green +
-        " elapsed: " + allGamesTimer.elapsedLabelMs.trim.green
-
-      // output to screen and to main log file
-      println(result)
-      context.logger.info(result)
-
-      score
-
+        // copy the current specification into a random specification
+        val randomSpec = v1Spec.spec.map{ case(key,opt) =>
+          (key, OptimizationFactor(opt.enabled, opt.key, opt.minimize, doubleRandomizer.nextDouble /* random! */, opt.minVal, opt.maxVal, opt.label, opt.explanation))
+        }
+        Specification(filtered=false,randomSpec)
+      }
     }
 
 
+    val longestKeyLength = v1Spec.spec.keys.map(_.length).max
+    val iterations = context.generateWeightsGamesToPlay
+    val totalGames = if (v1) iterations * v1Spec.length else iterations
+    private val randomizer = new scala.util.Random(1)
+    val seeds = Array.fill[Int](iterations)(randomizer.nextInt.abs)
+
+  }
+
+  private val allGamesTimer = new GameTimer
+
+  private def  gamesPerMinute(games: Int) = math.floor(games / allGamesTimer.elapsedMinutes).toInt
+
+  private def playOneGame(weightContext:WeightContext, gameIndex:Int, factorIndex:Int, optFactor:Option[OptimizationFactor]): Int = {
+
+    val singleGameTimer = new GameTimer
+
+    // each factor will play the same game to see how each performs against the same set of pieces
+    weightContext.context.setGameSeed(weightContext.seeds(gameIndex))
+
+    // play a game and get its score back - this seems a little obscure in terms of how to get the score...
+    // could you be more clear?
+    val score = play(weightContext.context, gameIndex)(0)
+
+    val completed: Int = (factorIndex * weightContext.iterations) + (gameIndex + 1)
+
+    val prefix = optFactor match {
+
+      case Some(_) => optFactor.get.key.rightAlignedPadded(weightContext.longestKeyLength) +  " - " // v1
+      case None => "" // v2
+
+    }
+
+    val result = prefix + "score: " + score.label(6).green +
+      " - done in " + singleGameTimer.elapsedLabel.trim.leftAlignedPadded(6).green +
+      "- game: " + completed.label(4).green + " out of " + weightContext.totalGames.toString.green +
+      " (" + ((completed.toDouble / weightContext.totalGames) * 100).label(3,2).green + "%".green + ")" +
+      " game seed: " + weightContext.context.getGameSeed.rightAligned(10).green +
+      " elapsed: " + allGamesTimer.elapsedLabelMs.trim.green
+
+    // output to screen and to main log file
+    println(result)
+    weightContext.context.logger.info(result)
+
+    score
+
+  }
+
+
+  def generateWeightsV2(context:Context):Unit = {
+    context.logger.info("generating weights with all weight randomized")
+    context.logger.info("enabling json - 1 file per game")
+
+    context.logJSON = true
+
+    val weightContext = WeightContext(v1=false, context)
+
+    // todo - why yield?
+    for (gameIndex <- 0 until weightContext.iterations) yield {
+      context.specification = weightContext.specification
+      playOneGame(weightContext, gameIndex, 0, None)
+    }
+  }
+
+  def generateWeightsV1(context: Context): Unit = {
+
+    context.logger.info("generating weights by playing each optimization factor individually")
+
+    val weightContext = WeightContext(v1=true, context)
 
 
     /*     
@@ -79,15 +115,14 @@ object GameRunner {
      check with Kevin or Brendan on this as maybe it doesn't make a difference 
      */
 
-
-    val scores = specification.spec.zipWithIndex.map {
+    val scores = weightContext.specification.spec.zipWithIndex.map {
       case ((key, optFactor), factorIndex) =>
 
         context.specification = Specification(optFactor)
 
-        val gameScore: Seq[Int] = for (gameIndex <- 0 until iterations) yield {
+        val gameScore: Seq[Int] = for (gameIndex <- 0 until weightContext.iterations) yield {
 
-          playOneGame(gameIndex, Some(optFactor), Some(factorIndex))
+          playOneGame(weightContext, gameIndex, factorIndex, Some(optFactor))
 
         }
 
@@ -98,14 +133,14 @@ object GameRunner {
 
     val sumOfAllGames = scores.values.map(game => game.sum).sum
 
-    println("factors".label + specification.length.shortLabel)
-    println("games per factor".label + iterations.shortLabel)
-    println("games played".label + totalGames.shortLabel + " in " + allGamesTimer.elapsedLabel.trim)
-    val endGamesPerMinute = gamesPerMinute(totalGames)
+    println("factors".label + weightContext.specification.length.shortLabel)
+    println("games per factor".label + weightContext.iterations.shortLabel)
+    println("games played".label + weightContext.totalGames.shortLabel + " in " + allGamesTimer.elapsedLabel.trim)
+    val endGamesPerMinute = gamesPerMinute(weightContext.totalGames)
 
     println("games/minute".label + endGamesPerMinute)
-    println("set iterations to: " + (endGamesPerMinute * 10 / specification.length) + " for 10 minutes of calculating")
-    println("set iterations to: " + (endGamesPerMinute * 60 / specification.length) + " for 1 hour of calculating")
+    println("set iterations to: " + (endGamesPerMinute * 10 / weightContext.specification.length) + " for 10 minutes of calculating")
+    println("set iterations to: " + (endGamesPerMinute * 60 / weightContext.specification.length) + " for 1 hour of calculating")
 
     println
     scores.toSeq.sortBy(a => a._2.sum * -1).foreach {
@@ -118,7 +153,6 @@ object GameRunner {
 
     println
 
-    // todo - right now this is a bug waiting to happen (the 4 in repeat and label) - it needs to be based on the total number of games and what will be output because of that
     val header = "game" + scores.keys.toArray.map(key => " ".repeat(4) + key.rightAlignedPadded(Specification.maxOptFactorKeyLength)).mkString(" ") + "\n"
 
     val s = scores.values.transpose.zipWithIndex.map(game =>
@@ -158,7 +192,6 @@ object GameRunner {
     val rounds = new ListBuffer[Int]
     val simulationsPerSecond = new ListBuffer[Int]
     val gameCount = Counter(startGameCount)
-    val totalTime = new GameTimer
 
     def logGame(results: GameResults) {
 
@@ -188,7 +221,7 @@ object GameRunner {
 
       gameCount.inc()
 
-      val gameInfo = MultiGameStats(average, sessionHighScore, machineHighScore, gameCount.value, totalTime)
+      val gameInfo = MultiGameStats(average, sessionHighScore, machineHighScore, gameCount.value, allGamesTimer)
 
       val game = new Game(context, gameInfo)
 
@@ -211,7 +244,7 @@ object GameRunner {
         "all time high score".label + allTimeHighScore.scoreLabel + "\n" +
         "most rounds".label + mostRounds.label + "\n" +
         "most simulations/s".label + bestPerSecond.label + "\n" +
-        "total elapsed time".label + totalTime.elapsedLabel + "\n\n"
+        "total elapsed time".label + allGamesTimer.elapsedLabel + "\n\n"
 
       if (context.show)
         print(endGameString)

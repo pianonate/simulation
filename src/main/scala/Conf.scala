@@ -1,4 +1,4 @@
-import org.rogach.scallop._
+import org.rogach.scallop.{ ScallopOption, _ }
 
 /**
  * Created by nathan on 1/23/17.
@@ -85,17 +85,12 @@ class Conf(arguments: Seq[String]) extends ScallopConf(arguments) {
   val printPieces: ScallopOption[Boolean] = opt[Boolean](descr="print out the game pieces ")
 
 
-  val weightGenerator = new Subcommand("weights") {
-    val v1: ScallopOption[Boolean] = opt[Boolean](descr = "v1")
-    val v2: ScallopOption[Boolean] = opt[Boolean](descr = "v2")
+  val weights = new Subcommand("weights") {
+    val v1Games: ScallopOption[Int] = opt[Int](validate = (i) => i > 0, short='v', descr = "generate the weights for each optimization factor based on how well they play - the integer value is how many games to play for each optFactor.")
+    val v2Games: ScallopOption[Int] = opt[Int](validate = (i) => i > 0, short='w', descr = "like weight generator 1, except this one doesn't play each factor individually, it plays them simultaneously with randomized starting weights each game")
   }
 
-  addSubcommand(weightGenerator)
-
-    // generate weights must be a boolean and have sub commands for the various types that must have actual integer values
-  val weightGenerator1: ScallopOption[Int] = opt[Int](default = Some(0), validate = (i) => i >= 0, descr = "default(0): generate the weights for each optimization factor based on how well they play - the integer value is how many games to play for each optFactor.")
-  val weightGenerator2: ScallopOption[Int] = opt[Int](default = Some(0), short='x', validate = (i) => i >= 0, descr = "default(0): like weight generator 1, except this one doesn't play each factor individually, it plays them simultaneously with randomized starting weights each game")
-
+  addSubcommand(weights)
 
   mainOptions = Seq(gamesToPlay, roundsToPlay, logJSON, hide, beep, serial)
 
