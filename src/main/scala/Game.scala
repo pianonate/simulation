@@ -5,6 +5,12 @@
  * todo - hook this up to ifttt maker channel http://www.makeuseof.com/tag/ifttt-connect-anything-maker-channel/
  * todo for Richard Kim - check to see if it's windows and output cls rather than clear
  * todo - specify log file name on command line so that you can have a separate log file for running in the IDE
+ * todo - remove v2weights and weights subcommand and associated code - just use built in functionality to play random weighted or fixed weight games
+ * todo - abridged vs. detailed logging - for outputting to brendan vs .ux
+ * todo - command line configurable board size!
+ * todo - allowed combinations optimization could work even with cleared lines - use the specified combinations but if you clear lines, have a 2 combo legal and if you clear another line, then all positions are legal
+ * todo - create a blog series
+ * todo - automatically output the weights from a highscore game to a file that can be copied over the fixed weightmap - code generation
  */
 
 import scala.collection.GenSeq
@@ -910,7 +916,6 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
         scores.map { scoreComponent =>
 
           (
-            "type".jsonNameValuePair("Feature".doubleQuote) +
             "name".jsonNameValuePair(scoreComponent.label.doubleQuote) +
             "intVal".jsonNameValuePair(scoreComponent.intValue) +
             "normalizedVal".jsonNameValuePair(scoreComponent.normalizedValue) +
@@ -924,7 +929,6 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
       val selectedPieces = pieceHandlerInfo.map { info =>
 
         (
-          "type".jsonNameValuePair("PieceLoc".doubleQuote) +
           "name".jsonNameValuePair(info.piece.name.doubleQuote) +
           "row".jsonNameValuePair(info.loc.row) +
           "col".jsonNameValuePair(info.loc.col) +
@@ -944,7 +948,6 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
             val winner = p.best == best
 
-            val pType = "type".jsonNameValuePair("Permutation".doubleQuote)
             val index = "index".jsonNameValuePair(i + 1) // add 1 because permutations are not 0 based in the _real_ world
             val winnerString = "winner".jsonNameValuePair(if (winner) "true" else "false")
 
@@ -960,7 +963,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
             val scores = getScores(p.best.board.boardScore.scores)
             val permutationScores = "permutationScores".jsonNameValuePairLast(scores.squareBracket)
 
-            (pType + index + winnerString + pieceArrayString + permutationScores).curlyBraces
+            (index + winnerString + pieceArrayString + permutationScores).curlyBraces
 
         }.mkString(JSONFormats.delimiter)
 
@@ -969,7 +972,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
         "round".jsonNameValuePair(rounds.value) +
         "score".jsonNameValuePair(score.value) +
         "linesCleared".jsonNameValuePair(rowsCleared.value + colsCleared.value) +
-        "gamePieceSeed".jsonNameValuePair(gameSeed) +
+        /* "gamePieceSeed".jsonNameValuePair(gameSeed) + */  // you can get this from the file name
         "beginOfRoundColorGridBitMask".jsonNameValuePair(colorGridBitMask) +
         "endOfRoundBitMask".jsonNameValuePair(this.board.grid.asBigInt) +
         "selectedPieces".jsonNameValuePair(selectedPieces.squareBracket) +
@@ -998,4 +1001,5 @@ object Game {
     // Array(0,10,30,60,100,150,210)
     r.scanLeft(0)(_ + _ * 10).toArray
   }
+
 }

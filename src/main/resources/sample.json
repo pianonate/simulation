@@ -1,616 +1,573 @@
-/*{
-  "type": "Weights",
-  "maximizer": 0.6225934169535211,
-  "avoid middle": 0.16286501466426162,
-  "occupied": 0.05151403986626346,
-  "open rows + cols": 0.04346390196708283,
-  "connected open": 0.04167007217135613,
-  "spaces on a line": 0.03385277575559438,
-  "4 neighbors": 0.019031227369233374,
-  "3 neighbors": 0.018033335297438367,
-  "2 neighbors": 0.006976215955248801
-}*/
 {
-  "type": "Game",
+  "type": "Round",
   "round": 1,
   "score": 11,
   "linesCleared": 0,
-  "gamePieceSeed": 1612580294,
   "beginOfRoundColorGridBitMask": 0,
-  "endOfRoundBitMask": 807143361,
+  "endOfRoundBitMask": 3715030225421423575797071903,
   "selectedPieces": [
     {
-      "type": "PieceLoc",
-      "name": "HLine4",
-      "row": 0,
-      "col": 6,
-      "rowsCleared": 0,
-      "colsCleared": 0
-    },
-    {
-      "type": "PieceLoc",
-      "name": "VLine3",
+      "name": "HLine5",
       "row": 0,
       "col": 0,
       "rowsCleared": 0,
       "colsCleared": 0
     },
     {
-      "type": "PieceLoc",
-      "name": "Box",
-      "row": 1,
-      "col": 8,
+      "name": "VLine5",
+      "row": 5,
+      "col": 0,
+      "rowsCleared": 0,
+      "colsCleared": 0
+    },
+    {
+      "name": "Singleton",
+      "row": 9,
+      "col": 1,
       "rowsCleared": 0,
       "colsCleared": 0
     }
   ],
   "endOfRoundScores": [
     {
-      "type": "Feature",
       "name": "maximizer",
       "intVal": 53,
       "normalizedVal": 0.828125,
-      "weightedVal": 0.5155851734146346
+      "weightedVal": 0.5150701033113233
     },
     {
-      "type": "Feature",
       "name": "avoid middle",
-      "intVal": 45,
-      "normalizedVal": 0.9841772151898734,
-      "weightedVal": 0.1602880365841309
+      "intVal": 33,
+      "normalizedVal": 0.9883966244725738,
+      "weightedVal": 0.16081441632250992
     },
     {
-      "type": "Feature",
       "name": "occupied",
       "intVal": 11,
       "normalizedVal": 0.89,
-      "weightedVal": 0.045847495480974484
+      "weightedVal": 0.04580169378718729
     },
     {
-      "type": "Feature",
       "name": "open rows + cols",
-      "intVal": 12,
-      "normalizedVal": 0.6,
-      "weightedVal": 0.0260783411802497
+      "intVal": 9,
+      "normalizedVal": 0.45,
+      "weightedVal": 0.019539216668518773
     },
     {
-      "type": "Feature",
       "name": "connected open",
-      "intVal": 7,
-      "normalizedVal": 0.7,
-      "weightedVal": 0.02916905051994929
+      "intVal": 5,
+      "normalizedVal": 0.5,
+      "weightedVal": 0.02081422186381425
     },
     {
-      "type": "Feature",
       "name": "spaces on a line",
       "intVal": 20,
       "normalizedVal": 1.0,
-      "weightedVal": 0.03385277575559438
+      "weightedVal": 0.03381895679879558
     },
     {
-      "type": "Feature",
       "name": "4 neighbors",
       "intVal": 0,
       "normalizedVal": 1.0,
-      "weightedVal": 0.019031227369233374
+      "weightedVal": 0.019012215154079293
     },
     {
-      "type": "Feature",
       "name": "3 neighbors",
       "intVal": 0,
       "normalizedVal": 1.0,
-      "weightedVal": 0.018033335297438367
+      "weightedVal": 0.018015319977460906
     },
     {
-      "type": "Feature",
       "name": "2 neighbors",
       "intVal": 7,
       "normalizedVal": 0.8833333333333333,
-      "weightedVal": 0.006162324093803107
+      "weightedVal": 0.00615616792587723
+    },
+    {
+      "name": "round score",
+      "intVal": 11,
+      "normalizedVal": 0.027210884353741496,
+      "weightedVal": 2.7183700653087487E-5
     }
   ],
   "permutations": [
     {
-      "type": "Permutation",
       "index": 1,
       "winner": true,
       "pieces": [
         {
           "type": "Piece",
-          "name": "Box"
+          "name": "Singleton"
         },
         {
           "type": "Piece",
-          "name": "VLine3"
+          "name": "VLine5"
         },
         {
           "type": "Piece",
-          "name": "HLine4"
+          "name": "HLine5"
         }
       ],
       "permutationScores": [
         {
-          "type": "Feature",
           "name": "maximizer",
           "intVal": 53,
           "normalizedVal": 0.828125,
-          "weightedVal": 0.5155851734146346
+          "weightedVal": 0.5150701033113233
         },
         {
-          "type": "Feature",
           "name": "avoid middle",
-          "intVal": 45,
-          "normalizedVal": 0.9841772151898734,
-          "weightedVal": 0.1602880365841309
+          "intVal": 33,
+          "normalizedVal": 0.9883966244725738,
+          "weightedVal": 0.16081441632250992
         },
         {
-          "type": "Feature",
           "name": "occupied",
           "intVal": 11,
           "normalizedVal": 0.89,
-          "weightedVal": 0.045847495480974484
+          "weightedVal": 0.04580169378718729
         },
         {
-          "type": "Feature",
           "name": "open rows + cols",
-          "intVal": 12,
-          "normalizedVal": 0.6,
-          "weightedVal": 0.0260783411802497
+          "intVal": 9,
+          "normalizedVal": 0.45,
+          "weightedVal": 0.019539216668518773
         },
         {
-          "type": "Feature",
           "name": "connected open",
-          "intVal": 7,
-          "normalizedVal": 0.7,
-          "weightedVal": 0.02916905051994929
+          "intVal": 5,
+          "normalizedVal": 0.5,
+          "weightedVal": 0.02081422186381425
         },
         {
-          "type": "Feature",
           "name": "spaces on a line",
           "intVal": 20,
           "normalizedVal": 1.0,
-          "weightedVal": 0.03385277575559438
+          "weightedVal": 0.03381895679879558
         },
         {
-          "type": "Feature",
           "name": "4 neighbors",
           "intVal": 0,
           "normalizedVal": 1.0,
-          "weightedVal": 0.019031227369233374
+          "weightedVal": 0.019012215154079293
         },
         {
-          "type": "Feature",
           "name": "3 neighbors",
           "intVal": 0,
           "normalizedVal": 1.0,
-          "weightedVal": 0.018033335297438367
+          "weightedVal": 0.018015319977460906
         },
         {
-          "type": "Feature",
           "name": "2 neighbors",
           "intVal": 7,
           "normalizedVal": 0.8833333333333333,
-          "weightedVal": 0.006162324093803107
+          "weightedVal": 0.00615616792587723
+        },
+        {
+          "name": "round score",
+          "intVal": 11,
+          "normalizedVal": 0.027210884353741496,
+          "weightedVal": 2.7183700653087487E-5
         }
       ]
     },
     {
-      "type": "Permutation",
       "index": 2,
       "winner": false,
       "pieces": [
         {
           "type": "Piece",
-          "name": "VLine3"
+          "name": "VLine5"
         },
         {
           "type": "Piece",
-          "name": "Box"
+          "name": "Singleton"
         },
         {
           "type": "Piece",
-          "name": "HLine4"
+          "name": "HLine5"
         }
       ],
       "permutationScores": [
         {
-          "type": "Feature",
           "name": "maximizer",
           "intVal": 53,
           "normalizedVal": 0.828125,
-          "weightedVal": 0.5155851734146346
+          "weightedVal": 0.5150701033113233
         },
         {
-          "type": "Feature",
           "name": "avoid middle",
-          "intVal": 75,
-          "normalizedVal": 0.9736286919831224,
-          "weightedVal": 0.1585700511973771
+          "intVal": 33,
+          "normalizedVal": 0.9883966244725738,
+          "weightedVal": 0.16081441632250992
         },
         {
-          "type": "Feature",
           "name": "occupied",
           "intVal": 11,
           "normalizedVal": 0.89,
-          "weightedVal": 0.045847495480974484
+          "weightedVal": 0.04580169378718729
         },
         {
-          "type": "Feature",
           "name": "open rows + cols",
-          "intVal": 12,
-          "normalizedVal": 0.6,
-          "weightedVal": 0.0260783411802497
+          "intVal": 8,
+          "normalizedVal": 0.4,
+          "weightedVal": 0.01736819259423891
         },
         {
-          "type": "Feature",
           "name": "connected open",
-          "intVal": 7,
-          "normalizedVal": 0.7,
-          "weightedVal": 0.02916905051994929
+          "intVal": 5,
+          "normalizedVal": 0.5,
+          "weightedVal": 0.02081422186381425
         },
         {
-          "type": "Feature",
           "name": "spaces on a line",
           "intVal": 20,
           "normalizedVal": 1.0,
-          "weightedVal": 0.03385277575559438
+          "weightedVal": 0.03381895679879558
         },
         {
-          "type": "Feature",
           "name": "4 neighbors",
           "intVal": 0,
           "normalizedVal": 1.0,
-          "weightedVal": 0.019031227369233374
+          "weightedVal": 0.019012215154079293
         },
         {
-          "type": "Feature",
           "name": "3 neighbors",
           "intVal": 0,
           "normalizedVal": 1.0,
-          "weightedVal": 0.018033335297438367
+          "weightedVal": 0.018015319977460906
         },
         {
-          "type": "Feature",
           "name": "2 neighbors",
           "intVal": 6,
           "normalizedVal": 0.9,
-          "weightedVal": 0.006278594359723921
+          "weightedVal": 0.006272322037686235
+        },
+        {
+          "name": "round score",
+          "intVal": 11,
+          "normalizedVal": 0.027210884353741496,
+          "weightedVal": 2.7183700653087487E-5
         }
       ]
     },
     {
-      "type": "Permutation",
       "index": 3,
       "winner": false,
       "pieces": [
         {
           "type": "Piece",
-          "name": "Box"
+          "name": "Singleton"
         },
         {
           "type": "Piece",
-          "name": "HLine4"
+          "name": "HLine5"
         },
         {
           "type": "Piece",
-          "name": "VLine3"
+          "name": "VLine5"
         }
       ],
       "permutationScores": [
         {
-          "type": "Feature",
           "name": "maximizer",
           "intVal": 53,
           "normalizedVal": 0.828125,
-          "weightedVal": 0.5155851734146346
+          "weightedVal": 0.5150701033113233
         },
         {
-          "type": "Feature",
           "name": "avoid middle",
           "intVal": 39,
           "normalizedVal": 0.9862869198312236,
-          "weightedVal": 0.16063163366148167
+          "weightedVal": 0.1604711624989827
         },
         {
-          "type": "Feature",
           "name": "occupied",
           "intVal": 11,
           "normalizedVal": 0.89,
-          "weightedVal": 0.045847495480974484
+          "weightedVal": 0.04580169378718729
         },
         {
-          "type": "Feature",
           "name": "open rows + cols",
-          "intVal": 10,
-          "normalizedVal": 0.5,
-          "weightedVal": 0.021731950983541415
+          "intVal": 9,
+          "normalizedVal": 0.45,
+          "weightedVal": 0.019539216668518773
         },
         {
-          "type": "Feature",
           "name": "connected open",
-          "intVal": 7,
-          "normalizedVal": 0.7,
-          "weightedVal": 0.02916905051994929
+          "intVal": 5,
+          "normalizedVal": 0.5,
+          "weightedVal": 0.02081422186381425
         },
         {
-          "type": "Feature",
           "name": "spaces on a line",
           "intVal": 20,
           "normalizedVal": 1.0,
-          "weightedVal": 0.03385277575559438
+          "weightedVal": 0.03381895679879558
         },
         {
-          "type": "Feature",
           "name": "4 neighbors",
           "intVal": 0,
           "normalizedVal": 1.0,
-          "weightedVal": 0.019031227369233374
+          "weightedVal": 0.019012215154079293
         },
         {
-          "type": "Feature",
           "name": "3 neighbors",
           "intVal": 0,
           "normalizedVal": 1.0,
-          "weightedVal": 0.018033335297438367
+          "weightedVal": 0.018015319977460906
         },
         {
-          "type": "Feature",
           "name": "2 neighbors",
           "intVal": 7,
           "normalizedVal": 0.8833333333333333,
-          "weightedVal": 0.006162324093803107
+          "weightedVal": 0.00615616792587723
+        },
+        {
+          "name": "round score",
+          "intVal": 11,
+          "normalizedVal": 0.027210884353741496,
+          "weightedVal": 2.7183700653087487E-5
         }
       ]
     },
     {
-      "type": "Permutation",
       "index": 4,
       "winner": false,
       "pieces": [
         {
           "type": "Piece",
-          "name": "HLine4"
+          "name": "HLine5"
         },
         {
           "type": "Piece",
-          "name": "Box"
+          "name": "Singleton"
         },
         {
           "type": "Piece",
-          "name": "VLine3"
+          "name": "VLine5"
         }
       ],
       "permutationScores": [
         {
-          "type": "Feature",
           "name": "maximizer",
           "intVal": 53,
           "normalizedVal": 0.828125,
-          "weightedVal": 0.5155851734146346
+          "weightedVal": 0.5150701033113233
         },
         {
-          "type": "Feature",
           "name": "avoid middle",
-          "intVal": 75,
-          "normalizedVal": 0.9736286919831224,
-          "weightedVal": 0.1585700511973771
+          "intVal": 33,
+          "normalizedVal": 0.9883966244725738,
+          "weightedVal": 0.16081441632250992
         },
         {
-          "type": "Feature",
           "name": "occupied",
           "intVal": 11,
           "normalizedVal": 0.89,
-          "weightedVal": 0.045847495480974484
+          "weightedVal": 0.04580169378718729
         },
         {
-          "type": "Feature",
           "name": "open rows + cols",
-          "intVal": 12,
-          "normalizedVal": 0.6,
-          "weightedVal": 0.0260783411802497
+          "intVal": 9,
+          "normalizedVal": 0.45,
+          "weightedVal": 0.019539216668518773
         },
         {
-          "type": "Feature",
           "name": "connected open",
-          "intVal": 7,
-          "normalizedVal": 0.7,
-          "weightedVal": 0.02916905051994929
+          "intVal": 5,
+          "normalizedVal": 0.5,
+          "weightedVal": 0.02081422186381425
         },
         {
-          "type": "Feature",
           "name": "spaces on a line",
           "intVal": 20,
           "normalizedVal": 1.0,
-          "weightedVal": 0.03385277575559438
+          "weightedVal": 0.03381895679879558
         },
         {
-          "type": "Feature",
           "name": "4 neighbors",
           "intVal": 0,
           "normalizedVal": 1.0,
-          "weightedVal": 0.019031227369233374
+          "weightedVal": 0.019012215154079293
         },
         {
-          "type": "Feature",
           "name": "3 neighbors",
           "intVal": 0,
           "normalizedVal": 1.0,
-          "weightedVal": 0.018033335297438367
+          "weightedVal": 0.018015319977460906
         },
         {
-          "type": "Feature",
           "name": "2 neighbors",
-          "intVal": 6,
-          "normalizedVal": 0.9,
-          "weightedVal": 0.006278594359723921
+          "intVal": 7,
+          "normalizedVal": 0.8833333333333333,
+          "weightedVal": 0.00615616792587723
+        },
+        {
+          "name": "round score",
+          "intVal": 11,
+          "normalizedVal": 0.027210884353741496,
+          "weightedVal": 2.7183700653087487E-5
         }
       ]
     },
     {
-      "type": "Permutation",
       "index": 5,
       "winner": false,
       "pieces": [
         {
           "type": "Piece",
-          "name": "VLine3"
+          "name": "VLine5"
         },
         {
           "type": "Piece",
-          "name": "HLine4"
+          "name": "HLine5"
         },
         {
           "type": "Piece",
-          "name": "Box"
+          "name": "Singleton"
         }
       ],
       "permutationScores": [
         {
-          "type": "Feature",
           "name": "maximizer",
           "intVal": 53,
           "normalizedVal": 0.828125,
-          "weightedVal": 0.5155851734146346
+          "weightedVal": 0.5150701033113233
         },
         {
-          "type": "Feature",
           "name": "avoid middle",
-          "intVal": 45,
-          "normalizedVal": 0.9841772151898734,
-          "weightedVal": 0.1602880365841309
+          "intVal": 33,
+          "normalizedVal": 0.9883966244725738,
+          "weightedVal": 0.16081441632250992
         },
         {
-          "type": "Feature",
           "name": "occupied",
           "intVal": 11,
           "normalizedVal": 0.89,
-          "weightedVal": 0.045847495480974484
+          "weightedVal": 0.04580169378718729
         },
         {
-          "type": "Feature",
           "name": "open rows + cols",
-          "intVal": 12,
-          "normalizedVal": 0.6,
-          "weightedVal": 0.0260783411802497
+          "intVal": 9,
+          "normalizedVal": 0.45,
+          "weightedVal": 0.019539216668518773
         },
         {
-          "type": "Feature",
           "name": "connected open",
-          "intVal": 7,
-          "normalizedVal": 0.7,
-          "weightedVal": 0.02916905051994929
+          "intVal": 5,
+          "normalizedVal": 0.5,
+          "weightedVal": 0.02081422186381425
         },
         {
-          "type": "Feature",
           "name": "spaces on a line",
           "intVal": 20,
           "normalizedVal": 1.0,
-          "weightedVal": 0.03385277575559438
+          "weightedVal": 0.03381895679879558
         },
         {
-          "type": "Feature",
           "name": "4 neighbors",
           "intVal": 0,
           "normalizedVal": 1.0,
-          "weightedVal": 0.019031227369233374
+          "weightedVal": 0.019012215154079293
         },
         {
-          "type": "Feature",
           "name": "3 neighbors",
           "intVal": 0,
           "normalizedVal": 1.0,
-          "weightedVal": 0.018033335297438367
+          "weightedVal": 0.018015319977460906
         },
         {
-          "type": "Feature",
           "name": "2 neighbors",
           "intVal": 7,
           "normalizedVal": 0.8833333333333333,
-          "weightedVal": 0.006162324093803107
+          "weightedVal": 0.00615616792587723
+        },
+        {
+          "name": "round score",
+          "intVal": 11,
+          "normalizedVal": 0.027210884353741496,
+          "weightedVal": 2.7183700653087487E-5
         }
       ]
     },
     {
-      "type": "Permutation",
       "index": 6,
       "winner": false,
       "pieces": [
         {
           "type": "Piece",
-          "name": "HLine4"
+          "name": "HLine5"
         },
         {
           "type": "Piece",
-          "name": "VLine3"
+          "name": "VLine5"
         },
         {
           "type": "Piece",
-          "name": "Box"
+          "name": "Singleton"
         }
       ],
       "permutationScores": [
         {
-          "type": "Feature",
           "name": "maximizer",
           "intVal": 53,
           "normalizedVal": 0.828125,
-          "weightedVal": 0.5155851734146346
+          "weightedVal": 0.5150701033113233
         },
         {
-          "type": "Feature",
           "name": "avoid middle",
-          "intVal": 45,
-          "normalizedVal": 0.9841772151898734,
-          "weightedVal": 0.1602880365841309
+          "intVal": 33,
+          "normalizedVal": 0.9883966244725738,
+          "weightedVal": 0.16081441632250992
         },
         {
-          "type": "Feature",
           "name": "occupied",
           "intVal": 11,
           "normalizedVal": 0.89,
-          "weightedVal": 0.045847495480974484
+          "weightedVal": 0.04580169378718729
         },
         {
-          "type": "Feature",
           "name": "open rows + cols",
-          "intVal": 12,
-          "normalizedVal": 0.6,
-          "weightedVal": 0.0260783411802497
+          "intVal": 9,
+          "normalizedVal": 0.45,
+          "weightedVal": 0.019539216668518773
         },
         {
-          "type": "Feature",
           "name": "connected open",
-          "intVal": 7,
-          "normalizedVal": 0.7,
-          "weightedVal": 0.02916905051994929
+          "intVal": 5,
+          "normalizedVal": 0.5,
+          "weightedVal": 0.02081422186381425
         },
         {
-          "type": "Feature",
           "name": "spaces on a line",
           "intVal": 20,
           "normalizedVal": 1.0,
-          "weightedVal": 0.03385277575559438
+          "weightedVal": 0.03381895679879558
         },
         {
-          "type": "Feature",
           "name": "4 neighbors",
           "intVal": 0,
           "normalizedVal": 1.0,
-          "weightedVal": 0.019031227369233374
+          "weightedVal": 0.019012215154079293
         },
         {
-          "type": "Feature",
           "name": "3 neighbors",
           "intVal": 0,
           "normalizedVal": 1.0,
-          "weightedVal": 0.018033335297438367
+          "weightedVal": 0.018015319977460906
         },
         {
-          "type": "Feature",
           "name": "2 neighbors",
           "intVal": 7,
           "normalizedVal": 0.8833333333333333,
-          "weightedVal": 0.006162324093803107
+          "weightedVal": 0.00615616792587723
+        },
+        {
+          "name": "round score",
+          "intVal": 11,
+          "normalizedVal": 0.027210884353741496,
+          "weightedVal": 2.7183700653087487E-5
         }
       ]
     }

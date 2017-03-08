@@ -10,38 +10,20 @@ import java.io.PrintWriter
 
 object GameRunner {
 
-  case class WeightContext(v1:Boolean, context:Context) {
+  private val allGamesTimer = new GameTimer
+
+
+  case class WeightContext(context:Context) {
 
     context.gamesToPlay = 1
-
-    private val v1Spec = Specification(filtered=false)
-
-    def specification = {
-      if (v1)
-        v1Spec
-      else {
-        val doubleRandomizer = new scala.util.Random()
-
-        // copy the current specification into a random specification
-        val randomSpec = v1Spec.spec.map{ case(key,opt) =>
-          (key, OptimizationFactor(opt.enabled, opt.key, opt.minimize, doubleRandomizer.nextDouble /* random! */, opt.minVal, opt.maxVal, opt.label, opt.explanation))
-        }
-        Specification(filtered=false,randomSpec)
-      }
-    }
-
-
-    val longestKeyLength = v1Spec.spec.keys.map(_.length).max
+    val specification = Specification(filtered=false)
+    val longestKeyLength = specification.spec.keys.map(_.length).max
     val iterations = context.generateWeightsGamesToPlay
-    val totalGames = if (v1) iterations * v1Spec.length else iterations
+    val totalGames = iterations * specification.length
     private val randomizer = new scala.util.Random(1)
     val seeds = Array.fill[Int](iterations)(randomizer.nextInt.abs)
 
   }
-
-  private val allGamesTimer = new GameTimer
-
-  private def  gamesPerMinute(games: Int) = math.floor(games / allGamesTimer.elapsedMinutes).toInt
 
   private def playOneGame(weightContext:WeightContext, gameIndex:Int, factorIndex:Int, optFactor:Option[OptimizationFactor]): Int = {
 
@@ -79,40 +61,14 @@ object GameRunner {
   }
 
 
-  def generateWeightsV2(context:Context):Unit = {
-    context.logger.info("generating weights with all weight randomized")
-    context.logger.info("enabling json - 1 file per game")
-
-    context.logJSON = true
-
-    val weightContext = WeightContext(v1=false, context)
-
-    (0 until weightContext.iterations) foreach {
-      context.specification = weightContext.specification
-      playOneGame(weightContext, _, 0, None)
-    }
-  }
-
   def generateWeightsV1(context: Context): Unit = {
+
+    def  gamesPerMinute(games: Int) = math.floor(games / allGamesTimer.elapsedMinutes).toInt
 
     context.logger.info("generating weights by playing each optimization factor individually")
 
-    val weightContext = WeightContext(v1=true, context)
-
-
-    /*     
-     todo - ask kevin
-     i thought of an optimization to store previously generated weights in a file
-     given that the randomization is always seeded with the same value (above)
-     however because the game plays multi-threaded, it may be that a particular set
-     of locs are chosen for a round that is different each time hou run it
-     this is because different locations will result in the same weight value
-     even if one is obviously better than another - they're not different when it comes to
-     that one weight value
-     do it doesn't seem legitimate to choose one result vs. another by simply
-     favoring the run that you wrote to disk.
-     check with Kevin or Brendan on this as maybe it doesn't make a difference 
-     */
+    // not so necessary any more
+    val weightContext = WeightContext(context)
 
     val scores = weightContext.specification.spec.zipWithIndex.map {
       case ((key, optFactor), factorIndex) =>
@@ -221,6 +177,9 @@ object GameRunner {
       gameCount.inc()
 
       val gameInfo = MultiGameStats(average, sessionHighScore, machineHighScore, gameCount.value, allGamesTimer)
+
+      if (!context.fixedWeights)
+        context.specification = Specification(filtered=false, random=true)
 
       val game = new Game(context, gameInfo)
 

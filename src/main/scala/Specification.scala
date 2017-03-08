@@ -314,6 +314,21 @@ object Specification {
 
   )
 
+  // magic
+  /*
+  {"type":"Weights",
+  "maximizer":0.19974355898611665,
+  "avoid middle":0.18347596377558661,
+  "spaces on a line":0.16154182283466706,
+  "4 neighbors":0.11850099681586584,
+  "3 neighbors":0.11184045788599091,
+  "connected open":0.10014732501776767,
+  "occupied":0.06129258525854067,
+  "open rows + cols":0.04983397323751548,
+  "2 neighbors":0.013623316187948986}
+
+   */
+
   // this is pretty theoretical as to the max - it may be possible to get higher than this but I think it's pretty unlikely
   // this problem goes away if we implement z-score
   private val maxRoundScore = Game.lineClearingScore(Game.lineClearingScore.length - 1) + (maximizer3x3.pointValue * 3) + Game.lineClearingScore(3)
@@ -375,6 +390,24 @@ object Specification {
 
     val sortedWeights = ListMap(weighted.toSeq.sortBy(-_._2.weight): _*)
     sortedWeights
+  }
+
+  // todo - determine if filtered is even necessary for game play anymore
+  def apply(filtered: Boolean, random: Boolean): Specification = {
+
+    if (random) {
+
+      val doubleRandomizer = new scala.util.Random()
+
+      // copy the current specification into a random specification
+      val randomSpec = Specification().spec.map {
+        case (key, opt) =>
+          (key, OptimizationFactor(opt.enabled, opt.key, opt.minimize, doubleRandomizer.nextDouble /* random! */ , opt.minVal, opt.maxVal, opt.label, opt.explanation))
+      }
+      Specification(filtered = false, randomSpec)
+    }
+    else
+      Specification(filtered)
   }
 
   def apply(filtered: Boolean, optFactors: ListMap[String, OptimizationFactor]): Specification = {

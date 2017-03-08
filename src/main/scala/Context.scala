@@ -34,8 +34,10 @@ class Context(conf: Conf) {
 
   // vars so you can change test specifications - consider other mechanisms if you wish
   val beep: Boolean = conf.beep()
+  val fixedWeights:Boolean = conf.fixedWeights()
+
   var gamesToPlay: Int = conf.gamesToPlay()
-  val generateWeightsGamesToPlay: Int = conf.weights.v1Games.getOrElse(0).max(conf.weights.v2Games.getOrElse(0))
+  val generateWeightsGamesToPlay: Int = conf.weights.v1Games.getOrElse(0)
   val generatingWeights:Boolean = generateWeightsGamesToPlay > 0
 
   var stopGameAtRound: Int = conf.roundsToPlay()
@@ -49,7 +51,7 @@ class Context(conf: Conf) {
 
   val stopAtNewHighScore: Boolean = !conf.continueAtNewHighScore()
 
-  private val multiGameSeed = conf.gameSeedAllGames()
+  private val multiGameSeed = conf.sessionSeed()
   // either we will generate a new series of games from scratch, or take the provided multi game seed to redo a previously generated series
   private val randomizer = if (multiGameSeed == 0) new scala.util.Random() else new scala.util.Random(multiGameSeed)
 
