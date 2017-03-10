@@ -5,9 +5,7 @@
  * todo - hook this up to ifttt maker channel http://www.makeuseof.com/tag/ifttt-connect-anything-maker-channel/
  * todo for Richard Kim - check to see if it's windows and output cls rather than clear
  * todo - specify log file name on command line so that you can have a separate log file for running in the IDE
- * todo - remove v2weights and weights subcommand and associated code - just use built in functionality to play random weighted or fixed weight games
  * todo - abridged vs. detailed logging - for outputting to brendan vs .ux
- * todo - command line configurable board size!
  * todo - allowed combinations optimization could work even with cleared lines - use the specified combinations but if you clear lines, have a 2 combo legal and if you clear another line, then all positions are legal
  * todo - create a blog series
  * todo - automatically output the weights from a highscore game to a file that can be copied over the fixed weightmap - code generation
@@ -298,7 +296,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
       // is there a better way to do this?
       val placePiecesInfo = placePieces(chosenList)
 
-     // board.setRoundScore(score.value, rounds.value)
+      // board.setRoundScore(score.value, rounds.value)
 
       val placePiecesString = getPlacePiecesResultsString(placePiecesInfo)
 
@@ -441,7 +439,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
     def createSimulations(board: Board, pieces: List[Piece], linesClearedAcc: Boolean, plcAcc: List[PieceLocCleared], scoreAcc: Int, locPieceHashAcc: Long): Unit = {
 
-      def isUpdatable(locPieceHash: Long, linesCleared: Boolean): Boolean = {
+      def isUpdatable(plcList: List[PieceLocCleared], locPieceHash: Long, linesCleared: Boolean): Boolean = {
 
         /* locHash is the sum of all locHashes (accumulated on updatableAccumulator
            this permutation is only responsible for it's proportion of these locHashes
@@ -450,7 +448,54 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
            on all permutations
            */
         def mustUpdateForThisPermutation: Boolean = {
-          (locPieceHash % totalPermutations) == permutationIndex
+
+          /*// val candidate = */  (locPieceHash % totalPermutations) == permutationIndex
+          // even if this permutation is the only one that handles this set of pieces in the three positions
+          // indicated - anytime there are 2 or 3 of the same pieces in this single permutation, we can
+          // eliminate redundant calculations by the following algrithm
+          /*
+           the first piece can be any position from 0 to positions - 2
+           the second piece can be the first piece position + 1 up to positions - 1
+               if a lines is cleared after the first piece then the second piece can be 0 to positions - 1
+           the third piece, can be the second position + 1 up to positions
+                if a line is cleared after the second piece then thd third number can be any position
+           */
+
+          //todo - i believe this can run faster than the locPieceHash method
+          // as this one will also eliminate duplicates when there are pieces that are the same in a list
+          // which happens often
+          // to make this work, stop using List[PieceLocCleared] and start using an Array[PieceLocCleared]
+          // then indexing and getting length and all of that BS will go faster.
+
+          /*val plc1 = plcList(0)
+          val plc2 = plcList(1)
+          val plc3 = plcList(2)
+
+          // whoah - this was complicated to find
+          // a piece can be placed at the same legal position as a number piece if it fits around it
+          // i.e., an upperLeftEl can be at 0,0 and a bigLowerRightEl can also be at 0,0 because
+          // they don't overlap on occupied positions
+          // so to make this algo work, add the offset to the first On Position in the first row
+          // so we can validate that pos1 comes before pos2 comes before pos3, barring line clearings
+          val pos1 = plc1.loc.row * Board.BOARD_SIZE + plc1.loc.col + plc1.piece.offSetToFirstOnPosition
+          val pos2 = plc2.loc.row * Board.BOARD_SIZE + plc2.loc.col + plc2.piece.offSetToFirstOnPosition
+          val pos3 = plc3.loc.row * Board.BOARD_SIZE + plc3.loc.col + plc3.piece.offSetToFirstOnPosition
+
+          val start2 = if (plc1.clearedLines)
+            0
+          else
+            pos1 + 1
+
+          val start3 = if (plc2.clearedLines)
+            0
+          else
+            pos2 + 1
+
+          if (pos1==pos2 || pos2==pos3 || pos3==pos1)
+            println
+
+          (pos1 <= Board.BOARD_POSITIONS - 2) && (pos2 >= start2 && pos2 < Board.BOARD_POSITIONS - 1) && (pos3 >= start3)*/
+       
         }
 
         // the final piece of the simulation count self test is to account
@@ -563,12 +608,12 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
           // following is for testing that we are simulating all possible simulations
           // this records legal positions
           // it's okay to keep pumping legalPositions in on all threads
-          // as the set will guarantee the right count
+          // as this will be turned into a set that highlights the unique positions tested
           if (context.simulationSelfTest)
             synchronized { this.legalPositionsSelfTest += locPieceHash }
 
           // only add simulation when we've reached the last legal location on this path
-          if (isUpdatable(locPieceHash, linesCleared)) {
+          if (isUpdatable(plcList, locPieceHash, linesCleared)) {
 
             // this completes the test of validating we are simulating all legal positions
             // this records all simulations
@@ -646,7 +691,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
     piece.usage.inc()
 
     // score me baby
-   // score.inc(piece.pointValue)
+    // score.inc(piece.pointValue)
 
     val unclearedBoard = Board.copy("unclearedBoard", this.board)
 
@@ -716,12 +761,6 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
       .map(_ => " ".repeat(labelWidth + valuesWidth + boardSpacer.length + 2)).toArray
 
     val newResults: Array[String] = newScore ++ newBoardResultsString ++ remainingScoreLines
-
-    // leave this assert here in case you add a new optimization factor that causes the list of factors to exceed
-    // the length of the board - in which case you'll need to modify the code to allow for a buffer at the end of the
-    // board as well as the current situation which allows for a buffer at the end of the score and optimization factors
-    // aka remainingLines
-    // assert(newResults.length == Board.BOARD_SIZE, "new results don't equal board size:" + newResults.length)
 
     val appendToBoard = "\n" + (Board.BOARD_SIZE until totalHeight)
       .map(_ => " ".repeat(Board.BOARD_SIZE * 2 - 1 + boardSpacer.length) + "\n").mkString
@@ -972,11 +1011,11 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
         "round".jsonNameValuePair(rounds.value) +
         "score".jsonNameValuePair(score.value) +
         "linesCleared".jsonNameValuePair(rowsCleared.value + colsCleared.value) +
-        /* "gamePieceSeed".jsonNameValuePair(gameSeed) + */  // you can get this from the file name
+        /* "gamePieceSeed".jsonNameValuePair(gameSeed) + */ // you can get this from the file name
         "beginOfRoundColorGridBitMask".jsonNameValuePair(colorGridBitMask) +
         "endOfRoundBitMask".jsonNameValuePair(this.board.grid.asBigInt) +
         "selectedPieces".jsonNameValuePair(selectedPieces.squareBracket) +
-        (if (context.generatingWeights) // only include permutations for normal output
+        (if (context.abridgedLogs) // only include permutations when not abridged
           "endOfRoundScores".jsonNameValuePairLast(endOfRoundScores.squareBracket)
         else {
           "endOfRoundScores".jsonNameValuePair(endOfRoundScores.squareBracket) +
@@ -999,7 +1038,22 @@ object Game {
   val lineClearingScore: Array[Int] = {
     val r = 1 to 6
     // Array(0,10,30,60,100,150,210)
-    r.scanLeft(0)(_ + _ * 10).toArray
+    r.scanLeft(0)(_ + _ * Board.BOARD_SIZE).toArray
   }
+
+  /* val positions = 0 until Board.BOARD_SIZE * Board.BOARD_SIZE
+  val positions = 0 until 10
+  val combinations = positions.combinations(3).toArray
+  val validOnes = combinations.map(_(0)).toSet
+  val validTwos = combinations.groupBy(_(0)).map{case(key,a)=>key->a.map(_.tail(0)).toSet}
+  val validThrees = combinations.map(_.tail).groupBy(_(0)).map{case(key,a)=>key->a.map(_.tail(0)).toSet}*/
+
+  /*
+    if you are on the first piece, it can be any position from 0 to positions - 2
+    if you are on the second piece, then it can be the first piece position + 1 up to positions - 1
+        if a lines is cleared after the first number then the second piece can be 0 to positions - 1
+    if you are on the third piece, then it can be the second position + 1 up to positions
+        if a line is cleared after the second piece then thd third number can be any position
+   */
 
 }

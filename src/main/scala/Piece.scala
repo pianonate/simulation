@@ -27,6 +27,7 @@ abstract class Piece {
    * recalculate it each time
    */
   final lazy val pointValue: Int = grid.popCount
+  final lazy val offSetToFirstOnPosition:Int = cachedOccupancyGrid(0).zipWithIndex.filter(_._1==true)(0)._2
 
   override def toString: String = this.name // for the debugger
 
@@ -88,7 +89,6 @@ object Piece {
 
     sieve(Stream.from(2)).toIterator
 
-    // primes.take(Board.BOARD_SIZE * Board.BOARD_SIZE + (new GamePieces(seed=0).pieceList.length)).toArray.map(_.toLong)
 
   }
 

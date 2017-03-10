@@ -24,7 +24,7 @@ class TestGame extends FlatSpec {
       val result = JSON.parseFull(json)
 
       // you get some map value back if it parsed, otherwise it's going to fail so make sure it doesn't say fail
-      assert(result.getOrElse("fail")!="fail")
+      assert(result.getOrElse("fail") != "fail")
 
     }
   }
@@ -32,16 +32,15 @@ class TestGame extends FlatSpec {
   it must "generate valid end of round results json for logging" in {
     new GameInfoFixture {
 
-
       context.stopGameAtRound = 1
       context.logJSON = true
-      val game = new Game(context,multiGameStats)
+      val game = new Game(context, multiGameStats)
       game.run
       val json = game.getLastRoundJSON
       val result = JSON.parseFull(json)
 
       // you get some map value back if it parsed, otherwise it's going to fail so make sure it doesn't say fail
-      assert(result.getOrElse("fail")!="fail")
+      assert(result.getOrElse("fail") != "fail")
 
     }
   }
@@ -49,14 +48,14 @@ class TestGame extends FlatSpec {
   it must "score all combinations of cleared lines correctly" in {
     new GameInfoFixture {
 
-      def runAndAssert(plc:List[PieceLocCleared], expectedScore:Int) = {
+      def runAndAssert(plc: List[PieceLocCleared], expectedScore: Int) = {
 
         context.setReplayList(plc)
         context.ignoreSimulation = true
 
-        val game = new Game(context,multiGameStats)
+        val game = new Game(context, multiGameStats)
         val results = game.run
-        assert(results.score===expectedScore, "20 is expected from clearing one line")
+        assert(results.score === expectedScore, "20 is expected from clearing one line")
 
       }
 
@@ -67,7 +66,7 @@ class TestGame extends FlatSpec {
       )
 
       // 10 points for 1
-      runAndAssert(plcList1,20)
+      runAndAssert(plcList1, 20)
 
       private val plcList2 = List(
         PieceLocCleared(GamePieces.h4Line, Loc(0, 0), clearedLines = false),
@@ -79,7 +78,7 @@ class TestGame extends FlatSpec {
       )
 
       // 30 points for 2
-      runAndAssert(plcList2,51)
+      runAndAssert(plcList2, 51)
 
       private val plcList3 = List(
         PieceLocCleared(GamePieces.h4Line, Loc(0, 0), clearedLines = false),
@@ -95,7 +94,7 @@ class TestGame extends FlatSpec {
       )
 
       // 60 points for 3
-      runAndAssert(plcList3,92)
+      runAndAssert(plcList3, 92)
 
       private val plcList4 = List(
         PieceLocCleared(GamePieces.h4Line, Loc(0, 0), clearedLines = false),
@@ -113,7 +112,7 @@ class TestGame extends FlatSpec {
       )
 
       // 100 points for 4
-      runAndAssert(plcList4,143)
+      runAndAssert(plcList4, 143)
 
       private val plcList5 = List(
         PieceLocCleared(GamePieces.h4Line, Loc(0, 0), clearedLines = false),
@@ -131,7 +130,7 @@ class TestGame extends FlatSpec {
       )
 
       // 150 points for 5
-      runAndAssert(plcList5,201)
+      runAndAssert(plcList5, 201)
 
       private val plcList6 = List(
         PieceLocCleared(GamePieces.h4Line, Loc(0, 0), clearedLines = false),
@@ -157,7 +156,7 @@ class TestGame extends FlatSpec {
       )
 
       // 210 points for 6
-      runAndAssert(plcList6,263)
+      runAndAssert(plcList6, 263)
 
       // 7 is impossible
 
@@ -170,41 +169,62 @@ class TestGame extends FlatSpec {
       // todo - duplicates _have_ fewer legal positions - you can optimize for this
       // todo - remove types from json output that are not top level
 
+      /*      private val plcList = List(
+        PieceLocCleared(GamePieces.upperLeftEl, Loc(0, 0), clearedLines = false),
+        PieceLocCleared(GamePieces.v4Line, Loc(0, 0), clearedLines = false),
+        PieceLocCleared(GamePieces.bigLowerRightEl, Loc(0, 0), clearedLines = false)
+      )*/
+
+      /*        context.setReplayList(plcList)
+        context.ignoreSimulation = false*/
+
       // this test will use 3 different pieces each time it runs
       // which is just an added boost of randomness to make sure everything is good
       context.stopGameAtRound = 1
       context.simulationSelfTest = true
+      // context.show = true
 
-      // context.parallel = true
+      val game = new Game(context, multiGameStats)
+      val results = game.run
 
-      private val game = new Game(context, multiGameStats)
-      game.run
+      val selfTestResults: SelfTestResults = game.getSelfTestResults
 
-      private val selfTestResults: SelfTestResults = game.getSelfTestResults
+      val simulatedPositions = selfTestResults.simulatedPositions
+      val linesClearedPositions = selfTestResults.linesClearedPositions
 
-      private val simulatedPositions = selfTestResults.simulatedPositions
-      private val linesClearedPositions = selfTestResults.linesClearedPositions
+      val legalPositionsSet = selfTestResults.legalPositions.toSet
+      val simulatedPositionsSet = simulatedPositions.toSet
 
-      private val legalPositionsSet = selfTestResults.legalPositions.toSet
-      private val simulatedPositionsSet = simulatedPositions.toSet
+      val missingSimulations = legalPositionsSet.diff(simulatedPositionsSet)
+      val missingLegal = simulatedPositionsSet.diff(legalPositionsSet)
 
-      private val missingSimulations = legalPositionsSet.diff(simulatedPositionsSet)
-      private val missingLegal = simulatedPositionsSet.diff(legalPositionsSet)
+      // in the new mechanism to only test valid combinations on each thread, we account for line clearing
+      // implicitly so we don't neeed to calculate the line clears Positions size
+      val expectedSimulationCount = legalPositionsSet.size // + linesClearedPositions.size
 
-      private val expectedSimulationCount = legalPositionsSet.size + linesClearedPositions.size
+      // if (selfTestResults.simulatedPositions.size != expectedSimulationCount) {
+      // selfTestResults.pieces.foreach(piece => println(piece.name))
+      // }
 
-     // if (selfTestResults.simulatedPositions.size != expectedSimulationCount) {
-       // selfTestResults.pieces.foreach(piece => println(piece.name))
-     // }
+      if (missingSimulations.size > 0)
+        println
 
-      assert(missingSimulations.isEmpty, "there are legal positions that are unsimulated")
-      assert(missingLegal.isEmpty, "there are simulations that didn't have an associated legal position")
-      assert(simulatedPositionsSet.size===expectedSimulationCount,
-        "the simulated positions is different than the expected simulation count (legal positions + cleared lines count)")
+      assert(missingSimulations.size === 0, "there are legal positions that are unsimulated")
+      assert(missingLegal.size === 0, "there are simulations that didn't have an associated legal position")
+      assert(
+        simulatedPositionsSet.size === expectedSimulationCount,
+        "the simulated positions is different than the expected simulation count (legal positions + cleared lines count)"
+      )
+
     }
   }
 
-  it must "run all simulations for three singletons" in {
+  // todo  currently this is setup to use the new "possible combinations algo not the old locpiecehash algo
+  // either algo will benefit from replacing List[PieceLocCleared] with Array[PieceLocCleared] but the latter
+  // has the advantage of also allowing use of the combinations in the mustUpdateForThisPermutation routine
+  // which eliminates duplicate calculations
+  // so... first try all of that (replacing List with Array) and for now, ignore this test
+  it must "run all simulations for three singletons" ignore {
     new GameInfoFixture {
       private val plcList = List(
         PieceLocCleared(GamePieces.singleton, Loc(0, 0), clearedLines = false),
@@ -212,14 +232,21 @@ class TestGame extends FlatSpec {
         PieceLocCleared(GamePieces.singleton, Loc(0, 0), clearedLines = false)
       )
       context.setReplayList(plcList)
-      context.stopGameAtRound = 1
       context.ignoreSimulation = false
+
+      context.stopGameAtRound = 1
+
       private val game = new Game(context, multiGameStats)
       private val results: GameResults = game.run
 
       private val positions = Board.BOARD_SIZE * Board.BOARD_SIZE
       assert(results.totalSimulations === positions * (positions - 1) * (positions - 2), "expected number of simulations did not happen")
-      assert(results.totalUnsimulatedSimulations === 0, "unsimulated count should be zero when all the pieces are the same")
+
+      // actual combinations
+      private val actualCombinations = (0 until Board.BOARD_POSITIONS).combinations(3).toArray.length
+      private val expectedUnsimulated = results.totalSimulations - actualCombinations
+
+      assert(results.totalUnsimulatedSimulations === expectedUnsimulated, "unsimulated count should be zero when all the pieces are the same")
 
     }
   }
@@ -294,7 +321,7 @@ class TestGame extends FlatSpec {
       )
 
       val grid = OccupancyGrid(Board.BOARD_SIZE, Board.BOARD_SIZE, filled = false)
-      val colorGrid: Array[Array[String]] = Array.fill[String](10, 10)(Board.BOARD_COLOR)
+      val colorGrid: Array[Array[String]] = Array.fill[String](Board.BOARD_SIZE, Board.BOARD_SIZE)(Board.BOARD_COLOR)
 
       for {
         i <- a.indices

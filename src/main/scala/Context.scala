@@ -32,12 +32,15 @@ class Context(conf: Conf) {
     MDC.put("gameInfo", "game_" + gameNumber.toString + "_seed_" + gameSeed.toString)
   }
 
+  val abridgedLogs:Boolean = conf.abridgedLogs()
+
   // vars so you can change test specifications - consider other mechanisms if you wish
   val beep: Boolean = conf.beep()
+  //val boardSize:Int = conf.dimensions.getOrElse(10) // default board size is 10
   val fixedWeights:Boolean = conf.fixedWeights()
 
   var gamesToPlay: Int = conf.gamesToPlay()
-  val generateWeightsGamesToPlay: Int = conf.weights.v1Games.getOrElse(0)
+  val generateWeightsGamesToPlay: Int = conf.weights.getOrElse(0)
   val generatingWeights:Boolean = generateWeightsGamesToPlay > 0
 
   var stopGameAtRound: Int = conf.roundsToPlay()

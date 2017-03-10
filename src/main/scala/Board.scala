@@ -319,7 +319,11 @@ class Board(
 
 object Board {
 
+  // todo - command line configurable board size!
+  //   the only way you can make BOARD_SIZE command line configurable is if you make Specification object
+  //   not dependent on BOARD_SIZE (and any other object that currently depends on board size) - including this one (below)
   val BOARD_SIZE = 10
+  val BOARD_POSITIONS = BOARD_SIZE * BOARD_SIZE
   val BOARD_COLOR = StringFormats.BRIGHT_BLACK
 
   val BOX_CHAR: String = /*"\u25A0"*/ "\u25A9" + StringFormats.SANE
@@ -376,7 +380,7 @@ object Board {
   // this is useful because each permutation will generate most of the same locations and we only need to calculate one of them
   // so we mod by the total permutation count and see if it matches this permutation index and that is the one that is responsible
   val allLocationHashes: Array[Long] = {
-    (0 until BOARD_SIZE * BOARD_SIZE).map(x => (math.sin(x).abs * math.pow(10, 11)).toLong).toArray
+    (0 until BOARD_POSITIONS).map(x => (math.sin(x).abs * math.pow(10, 11)).toLong).toArray
   }
 
   def copy(newName: String, boardToCopy: Board): Board = {

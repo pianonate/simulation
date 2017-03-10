@@ -23,12 +23,13 @@ object simulate {
 
     val conf = new Conf(args)
     val context = new Context(conf)
+    //Board.ctx = Some(context)
 
     conf match {
 
-      case c if c.weights.v1Games.getOrElse(0) > 0 => GameRunner.generateWeightsV1(context)
-      case c if c.printPieces()                    => new GamePieces(seed = 0).printPossiblePieces(context)
-      case _                                       => GameRunner.play(context)
+      case c if c.weights.getOrElse(0) > 0 => GameRunner.generateWeightsV1(context)
+      case c if c.printPieces()            => new GamePieces(seed = 0).printPossiblePieces(context)
+      case _                               => GameRunner.play(context)
 
     }
 

@@ -363,11 +363,11 @@ object OccupancyGrid {
 
   private val fillerup = (size: Int) => math.pow(2, size).toLong - 1
   private val zero = 0
-  private val boardSizeFullLineValue = fillerup(Board.BOARD_SIZE) // math.pow(2, Board.BOARD_SIZE).toLong - 1
+  private val boardSizeFullLineValue = fillerup(Board.BOARD_SIZE)
 
   private val popTable: Array[Int] = {
 
-    // all possible combination of on bits in a 10 (BOARD_SIZE) position row:
+    // all possible combination of on bits in a context.boardSize position row:
     // todo - refactor (theInt >> x) &1
     val countBits = (theInt: Int) => (0 until Board.BOARD_SIZE).map(x => (theInt >> x) & 1).count(_ == 1)
     (0 to 1023).map(countBits).toArray

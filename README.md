@@ -42,7 +42,7 @@ install sbt via instructions here: http://www.scala-sbt.org/download.html
 
 again the brew way
 ```
-$ brew isntall sbt
+$ brew install sbt
 ```
 
 i don't recall if sbt does a dependency check for scala when installing via brew. if it does
@@ -90,6 +90,6 @@ once you've cloned the repository, any time you want to pick up the latest and g
 ```
 $ git pull
 ```
-from the same location you originally did the `git clone`
+from the same directory you originally did the `git clone`
 
 enjoy the fun!

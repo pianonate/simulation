@@ -216,87 +216,11 @@ object Specification {
 
   private val totalPositions = math.pow(Board.BOARD_SIZE, 2).toInt
 
-  // todo - add ability to score the sum of all scores for a round.  encourage multi-line clearing
   // todo - all things being equal, favor a position closer to the upper left (just add Loc Row and Col) - this will allow seeded games to repeat themselves I believe
   // todo - OptimizationFactor of all combinations of 3x3 1x5 and 5x1 - this is actually a lookahead.  dive into machine learning, m'lad
 
   // the following code can be paste in by running weightGenerator command line option
   // make sure that if you change any of the key names above, that you change them here as well
-  /*  private val weightMap = Map(
-
-    "maximizerKey" -> 0.5611371262121603,
-    "avoidMiddleKey" -> 0.14843110504774898,
-    "occupiedKey" -> 0.07852955274510527,
-    "openLinesKey" -> 0.05588289517348181,
-    "maxContiguousKey" -> 0.051686884701891526,
-    "lineContiguousUnoccupiedKey" -> 0.04175362265403193,
-    "neighborsThreeKey" -> 0.03181298624681981,
-    "neighborsFourKey" -> 0.020589211312267246,
-    "neighborsTwoKey" -> 0.0101766159064931
-
-  )*/
-
-  // from a 390 run
-  /*  private val weightMap = Map(
-
-    "maximizerKey" -> 0.5272891017383388,
-    "avoidMiddleKey" -> 0.199174613082093,
-    "occupiedKey" -> 0.06484840894775809,
-    "openLinesKey" -> 0.06024112321467259,
-    "maxContiguousKey" -> 0.051175395306053494,
-    "lineContiguousUnoccupiedKey" -> 0.041165707917707094,
-    "neighborsThreeKey" -> 0.02362527320075932,
-    "neighborsFourKey" -> 0.02297247114126007,
-    "neighborsTwoKey" -> 0.0095079054513576
-
-  )*/
-
-  // from the 300 run post bug fix 2/14/2017
-  /* private val weightMap = Map(
-
-    "maximizerKey" -> 0.5550520731085657,
-    "avoidMiddleKey" -> 0.2087456921937354,
-    "occupiedKey" -> 0.052000315094685126,
-    "openLinesKey" -> 0.049271694104100025,
-    "maxContiguousKey" -> 0.04629870976150137,
-    "lineContiguousUnoccupiedKey" -> 0.03894821889017383,
-    "neighborsThreeKey" -> 0.021272603094526756,
-    "neighborsFourKey" -> 0.01955009923008016,
-    "neighborsTwoKey" -> 0.0088605945226315
-
-  )*/
-
-  /*  // after changing the value of clearing open lines to their "real" values
-  // 2/25/17
-  private val weightMap = Map(
-
-    "maximizerKey" -> 0.5554697757320329,
-    "avoidMiddleKey" -> 0.20171785215960134,
-    "occupiedKey" -> 0.053321424756901936,
-    "openLinesKey" -> 0.05154500862465995,
-    "maxContiguousKey" -> 0.04485865044162731,
-    "lineContiguousUnoccupiedKey" -> 0.04118256087725565,
-    "neighborsThreeKey" -> 0.022789013540085522,
-    "neighborsFourKey" -> 0.020162469328094176,
-    "neighborsTwoKey" -> 0.0089532445397412
-
-  )*/
-
-  /*  // after fixing the bug where simulations weren't getting scored for all location/piece combinations
-  // and also not always when lines were clearing
-  private val weightMap = Map(
-
-    "maximizerKey" -> 0.622593416953521,
-    "avoidMiddleKey" -> 0.1628650146642616,
-    "occupiedKey" -> 0.051514039866263454,
-    "openLinesKey" -> 0.043463901967082864,
-    "maxContiguousKey" -> 0.041670072171356126,
-    "lineContiguousUnoccupiedKey" -> 0.03385277575559437,
-    "neighborsFourKey" -> 0.01903122736923337,
-    "neighborsThreeKey" -> 0.018033335297438363,
-    "neighborsTwoKey" -> 0.0069762159552488
-
-  )*/
 
   // providing made up value for initial roundScoreKey feature
   private val weightMap = Map(
@@ -314,7 +238,7 @@ object Specification {
 
   )
 
-  // magic
+  // magic - 5.1MM high score weights!
   /*
   {"type":"Weights",
   "maximizer":0.19974355898611665,
@@ -340,7 +264,7 @@ object Specification {
     // this one needs to run a subsequent simulation - not yet easy to do
     //allMaximizersCountName -> OptimizationFactor(enabled = true, allMaximizersKey, maximize, weightMap(allMaximizersKey), 0.0, maximizerArray.length, "all maximizers", "count of boards that can fit all combinations (with repeats) of 3x3, 5x1 and 1x5 pieces  - if each piece was placed on the board"),
     avoidMiddleKey -> OptimizationFactor(enabled = true, avoidMiddleKey, minimize, weightMap(avoidMiddleKey), 0, avoidMiddleArraySum, "avoid middle", "unoccupied positions in the middle are bad so score them with a high score"),
-    lineContiguousUnoccupiedKey -> OptimizationFactor(enabled = true, lineContiguousUnoccupiedKey, minimize, weightMap(lineContiguousUnoccupiedKey), 20, totalPositions / 2, "spaces on a line", "number of separate spaces on a given line - indicator of how many pieces needed to clear"),
+    lineContiguousUnoccupiedKey -> OptimizationFactor(enabled = true, lineContiguousUnoccupiedKey, minimize, weightMap(lineContiguousUnoccupiedKey), Board.BOARD_SIZE * 2, totalPositions / 2, "spaces on a line", "number of separate spaces on a given line - indicator of how many pieces needed to clear"),
     maxContiguousKey -> OptimizationFactor(enabled = true, maxContiguousKey, maximize, weightMap(maxContiguousKey), 0, Board.BOARD_SIZE, "connected open", "number of lines (either horizontal or vertical) that are open and contiguous"),
     maximizerKey -> OptimizationFactor(enabled = true, maximizerKey, maximize, weightMap(maximizerKey), 0, math.pow(Board.BOARD_SIZE - maximizer3x3.cols + 1, 2).toInt, "maximizer", "positions in which a 3x3 piece can fit"),
     neighborsFourKey -> OptimizationFactor(enabled = true, neighborsFourKey, minimize, weightMap(neighborsFourKey), 0, totalPositions / 2, "4 neighbors", "number of positions surrounded on all 4 sides"),
