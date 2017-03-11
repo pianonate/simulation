@@ -56,7 +56,22 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
   private[this] val colsCleared = Counter()
   private[this] val rounds = Counter()
   private[this] val gameTimer = new GameTimer
-  private[this] val nonSimulationTimer = new GameTimer()
+  private[this] val nonSimulationTimer = new GameTimer
+
+  private[this] val postTimer = new GameTimer
+  postTimer.pause
+
+  private[this] val timerGetPlacePiecesResultsString = new GameTimer
+  private[this] val timerGetRoundResultsString = new GameTimer
+  private[this] val timerSimulationResultsString = new GameTimer
+  private[this] val timerPrintHeader = new GameTimer
+  private[this] val timerPrintRoundResults = new GameTimer
+
+  timerGetPlacePiecesResultsString.pause
+  timerGetRoundResultsString.pause
+  timerSimulationResultsString.pause
+  timerPrintHeader.pause
+  timerPrintRoundResults.pause
 
   private[this] val bullShit = new BullShit(rounds, gameTimer)
 
@@ -158,7 +173,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
     def getTheChosenOne(results: List[SimulationInfo], replayPieces: List[PieceLocCleared]): Simulation = {
       if (context.replayGame && context.ignoreSimulation)
-        Simulation(replayPieces, this.board, 0)
+        Simulation(replayPieces, this.board, 0, replayPieces.length)
       else {
         // take the best result form each simulation, sort it and select the top
         // in some rounds, you will get an infeasible solution so be sure to ensure the
@@ -223,10 +238,12 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
     def getUnplacedPiecesString(bestSimulation: Simulation): String = {
 
-      val s = (bestSimulation.pieceCount until 3).map({ index =>
-        "\nDammit!  Couldn't place piece " + (index + 1) + "\n"
-      }).mkString("\n")
-
+      val s = if (bestSimulation.pieceCount < 3) {
+        (bestSimulation.pieceCount until 3).map({ index =>
+          "\nDammit!  Couldn't place piece " + (index + 1) + "\n"
+        }).mkString("\n")
+      } else
+        ""
       s
     }
 
@@ -264,11 +281,6 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
       big
     }
 
-    def clearScreen(): Unit = {
-      println(StringFormats.ESCAPE + "[2J")
-      println(StringFormats.ESCAPE + "[0;0H")
-    }
-
     val replayPieces = getReplayPieces
 
     // get either three random pieces, or the replayPieces passed in
@@ -281,6 +293,8 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
     val results = getResults(pieces)
 
     nonSimulationTimer.resume()
+
+    postTimer.resume
 
     val bestSimulation = getTheChosenOne(results, replayPieces)
 
@@ -296,26 +310,40 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
       // is there a better way to do this?
       val placePiecesInfo = placePieces(chosenList)
 
-      // board.setRoundScore(score.value, rounds.value)
-
-      val placePiecesString = getPlacePiecesResultsString(placePiecesInfo)
-
       if (context.show) {
-        clearScreen()
-
-        val endOfRoundResultsString = getRoundResultsString
 
         if (!context.showRoundResultsOnly) {
-          val simulationResultsString = getSimulationResultsString(results, bestSimulation)
-          val unplacedPiecesString = getUnplacedPiecesString(bestSimulation)
-          print(
-            simulationResultsString +
-              placePiecesString +
-              unplacedPiecesString
-          )
-        }
 
-        print(endOfRoundResultsString)
+          timerGetPlacePiecesResultsString.resume()
+          val placePiecesString = getPlacePiecesResultsString(placePiecesInfo)
+          timerGetPlacePiecesResultsString.pause()
+
+          timerSimulationResultsString.resume()
+          val simulationResultsString = getSimulationResultsString(results, bestSimulation)
+          timerSimulationResultsString.pause()
+
+          val unplacedPiecesString = getUnplacedPiecesString(bestSimulation)
+
+
+          timerPrintHeader.resume()
+          val sb = new StringBuilder
+          sb ++= StringFormats.CLEAR_SCREEN
+          sb ++= simulationResultsString
+          sb ++= placePiecesString
+          sb ++= unplacedPiecesString
+
+          print(sb.toString)
+
+          timerPrintHeader.pause()
+        }
+        timerPrintRoundResults.resume()
+
+        if (context.showRoundResultsOnly)
+          print(StringFormats.CLEAR_SCREEN)
+
+        print(getRoundResultsString)
+        timerPrintRoundResults.pause()
+
       }
 
       logRound(results, bestSimulation, placePiecesInfo, colorGridBitMask)
@@ -324,6 +352,8 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
     if (bestSimulation.pieceCount < GamePieces.numPiecesInRound || (rounds.value == context.stopGameAtRound)) {
       gameOver
     }
+
+    postTimer.pause
 
   }
 
@@ -437,7 +467,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
     }
 
-    def createSimulations(board: Board, pieces: List[Piece], linesClearedAcc: Boolean, plcAcc: List[PieceLocCleared], scoreAcc: Int, locPieceHashAcc: Long): Unit = {
+    def createSimulations(board: Board, pieces: List[Piece], linesClearedAcc: Boolean, plcAcc: List[PieceLocCleared], scoreAcc: Int, locPieceHashAcc: Long, pieceCountAcc: Int): Unit = {
 
       def isUpdatable(plcList: List[PieceLocCleared], locPieceHash: Long, linesCleared: Boolean): Boolean = {
 
@@ -449,7 +479,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
            */
         def mustUpdateForThisPermutation: Boolean = {
 
-          /*// val candidate = */  (locPieceHash % totalPermutations) == permutationIndex
+          // (locPieceHash % totalPermutations) == permutationIndex
           // even if this permutation is the only one that handles this set of pieces in the three positions
           // indicated - anytime there are 2 or 3 of the same pieces in this single permutation, we can
           // eliminate redundant calculations by the following algrithm
@@ -467,9 +497,10 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
           // to make this work, stop using List[PieceLocCleared] and start using an Array[PieceLocCleared]
           // then indexing and getting length and all of that BS will go faster.
 
-          /*val plc1 = plcList(0)
-          val plc2 = plcList(1)
-          val plc3 = plcList(2)
+          val plArray = plcList.toArray
+          val plc1 = plArray(0)
+          val plc2 = plArray(1)
+          val plc3 = plArray(2)
 
           // whoah - this was complicated to find
           // a piece can be placed at the same legal position as a number piece if it fits around it
@@ -491,11 +522,11 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
           else
             pos2 + 1
 
-          if (pos1==pos2 || pos2==pos3 || pos3==pos1)
+          if (pos1 == pos2 || pos2 == pos3 || pos3 == pos1)
             println
 
-          (pos1 <= Board.BOARD_POSITIONS - 2) && (pos2 >= start2 && pos2 < Board.BOARD_POSITIONS - 1) && (pos3 >= start3)*/
-       
+          (pos1 <= Board.BOARD_POSITIONS - 2) && (pos2 >= start2 && pos2 < Board.BOARD_POSITIONS - 1) && (pos3 >= start3)
+
         }
 
         // the final piece of the simulation count self test is to account
@@ -557,9 +588,9 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
         }
       }
 
-      def updateSimulation(plcList: List[PieceLocCleared], board: Board): Unit = {
+      def updateSimulation(plcList: List[PieceLocCleared], board: Board, pieceCount: Int): Unit = {
         val id = simulationCount.inc()
-        val simulation = Simulation(plcList /*.reverse*/ , board, id)
+        val simulation = Simulation(plcList /*.reverse*/ , board, id, pieceCount)
         updateBest(simulation)
       }
 
@@ -587,12 +618,13 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
         // fixed a bug that you need to take piece into account.  multiplying it times the pieces prime number
         // (generated at construction) to generate unique values for piece/loc combos
-        val locIndex = loc.row * Board.BOARD_SIZE + loc.col
-        val locPieceHash = Board.allLocationHashes(locIndex) * piece.prime + locPieceHashAcc
+        val locIndex = if (context.simulationSelfTest) loc.row * Board.BOARD_SIZE + loc.col else 0
+        val locPieceHash = if (context.simulationSelfTest) Board.allLocationHashes(locIndex) * piece.prime + locPieceHashAcc else 0
 
         val plcList = plc :: plcAcc
 
         val score = result.score + scoreAcc
+        val pieceCount = 1 + pieceCountAcc
 
         // recurse
         // if we have already cleared lines then propagate that so we don't pay the freight
@@ -601,7 +633,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
         if (pieces.tail.nonEmpty) {
 
-          createSimulations(boardCopy, pieces.tail, linesCleared, plcList, score, locPieceHash)
+          createSimulations(boardCopy, pieces.tail, linesCleared, plcList, score, locPieceHash, pieceCount)
 
         } else {
 
@@ -623,7 +655,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
             // this is the one score that happens outside
             boardCopy.roundScore = score
 
-            updateSimulation(plcList, boardCopy)
+            updateSimulation(plcList, boardCopy, pieceCount)
 
           } else {
             unsimulatedCount.inc()
@@ -639,13 +671,13 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
         // this allows showing the final pieces placed on the board at the end of the game
         // this particular unfinished simulation will not be chosen as long as another
         // simulation is available that has finished for all 3 pieces
-        updateSimulation(plcAcc, board)
+        updateSimulation(plcAcc, board, pieceCountAcc)
       }
     }
 
-    createSimulations(board, pieces, linesClearedAcc = false, List(), 0, 0)
+    createSimulations(board, pieces, linesClearedAcc = false, List(), 0, 0, 0)
 
-    def emptySimulation: Simulation = Simulation(List(), this.board, 0)
+    def emptySimulation: Simulation = Simulation(List(), this.board, 0, 0)
 
     // now we know how long this one took - don't need to include the time to show or return it
     val elapsedMs = simulationDuration.elapsedMillisecondsFloor.toInt
@@ -802,13 +834,27 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
       def getGameTimeInfo: Array[String] = {
 
         val gameElapsedNanoseconds = gameTimer.elapsedNanoseconds.toFloat
+        timerSimulationResultsString.resume()
+        timerPrintHeader.resume()
+        timerGetPlacePiecesResultsString.resume()
+        timerPrintRoundResults.pause()
         val standardTimingsString = Array(
           "",
           ("game " + multiGameStats.gameNumber.shortLabel + " round " + rounds.shortLabel + " results").header,
           // duration info
           "game elapsed time".label + gameTimer.elapsedLabel,
-          "non simulation time".label + nonSimulationTimer.elapsedLabelMs + (nonSimulationTimer.elapsedNanoseconds / gameElapsedNanoseconds).percentLabel
+          "non simulation time".label + nonSimulationTimer.elapsedLabelMs + (nonSimulationTimer.elapsedNanoseconds / gameElapsedNanoseconds).percentLabel,
+          "post simulation time".label + postTimer.elapsedLabelMs + (postTimer.elapsedNanoseconds / gameElapsedNanoseconds).percentLabel,
+          "place pieces results".label + timerGetPlacePiecesResultsString.elapsedLabelMs + (timerGetPlacePiecesResultsString.elapsedNanoseconds / gameElapsedNanoseconds).percentLabel,
+          //"get round results".label + timerGetRoundResultsString.elapsedLabelMs + (timerGetRoundResultsString.elapsedNanoseconds / gameElapsedNanoseconds).percentLabel,
+          "simulation results".label + timerSimulationResultsString.elapsedLabelMs + (timerSimulationResultsString.elapsedNanoseconds / gameElapsedNanoseconds).percentLabel,
+          "print header".label + timerPrintHeader.elapsedLabelMs + (timerPrintHeader.elapsedNanoseconds / gameElapsedNanoseconds).percentLabel,
+          "print round results".label + timerPrintRoundResults.elapsedLabelMs + (timerPrintRoundResults.elapsedNanoseconds / gameElapsedNanoseconds).percentLabel
         )
+        timerSimulationResultsString.pause()
+        timerPrintHeader.pause()
+        timerGetPlacePiecesResultsString.pause()
+        timerPrintRoundResults.resume()
 
         // optional so we add an empty array when not showing this
         val totalElapsedTimeAcrossGamesString = if (multiGameStats.gameNumber > 1) Array("total elapsed time".label + multiGameStats.totalTime.elapsedLabel) else Array[String]()

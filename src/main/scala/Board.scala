@@ -293,11 +293,11 @@ class Board(
 
     }
 
-    def countAllLocationNeighbors() = {
+    def countAllLocationNeighbors(): Unit = {
       var i = 0
       while (i < locLength) {
         val loc = locs(i)
-        if (cachedOccupancyGrid(loc.row)(loc.col))
+        if (cachedOccupancyGrid(loc.row)(loc.col)) // don't count occupied
           ()
         else {
 

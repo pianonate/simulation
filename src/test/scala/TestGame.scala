@@ -36,6 +36,7 @@ class TestGame extends FlatSpec {
       context.logJSON = true
       val game = new Game(context, multiGameStats)
       game.run
+      // this seems hackish - but it's only for testing so we'll live with it
       val json = game.getLastRoundJSON
       val result = JSON.parseFull(json)
 
@@ -163,58 +164,87 @@ class TestGame extends FlatSpec {
     }
   }
 
-  it must "simulate all legal positions for all permutations" in {
+  private def runSelfTest(context: Context, multiGameStats: MultiGameStats): Unit = {
+    // context.show = true
+    context.stopGameAtRound = 1
+    context.simulationSelfTest = true
+
+    val game = new Game(context, multiGameStats)
+    val results = game.run
+
+    val selfTestResults: SelfTestResults = game.getSelfTestResults
+
+    val simulatedPositions = selfTestResults.simulatedPositions
+    val linesClearedPositions = selfTestResults.linesClearedPositions
+
+    val legalPositionsSet = selfTestResults.legalPositions.toSet
+    val simulatedPositionsSet = simulatedPositions.toSet
+
+    val missingSimulations = legalPositionsSet.diff(simulatedPositionsSet)
+    val missingLegal = simulatedPositionsSet.diff(legalPositionsSet)
+
+    // in the new mechanism to only test valid combinations on each thread, we account for line clearing
+    // implicitly so we don't neeed to calculate the line clears Positions size
+    val expectedSimulationCount = legalPositionsSet.size // + linesClearedPositions.size
+
+    // if (selfTestResults.simulatedPositions.size != expectedSimulationCount) {
+    // selfTestResults.pieces.foreach(piece => println(piece.name))
+    // }
+
+    if (missingSimulations.size > 0)
+      println
+
+    assert(missingSimulations.size === 0, "there are legal positions that are unsimulated")
+    assert(missingLegal.size === 0, "there are simulations that didn't have an associated legal position")
+    assert(
+      simulatedPositionsSet.size === expectedSimulationCount,
+      "the simulated positions is different than the expected simulation count (legal positions + cleared lines count)"
+    )
+  }
+
+  it must "simulate all legal positions when pieces overlap" in {
     new GameInfoFixture {
 
-      // todo - duplicates _have_ fewer legal positions - you can optimize for this
-      // todo - remove types from json output that are not top level
-
-      /*      private val plcList = List(
+      // this one was tricky to find - it happens
+      // when a piece such as upperLeftEl can fit "inside" the whole of another piece
+      // such as bigLowerRightEl.
+      // added an offset to pieces to indicate what is the first occupied position
+      // which is then used by the mustUpdateForThisPermutation method
+      private val overlappingPieces = List(
         PieceLocCleared(GamePieces.upperLeftEl, Loc(0, 0), clearedLines = false),
         PieceLocCleared(GamePieces.v4Line, Loc(0, 0), clearedLines = false),
         PieceLocCleared(GamePieces.bigLowerRightEl, Loc(0, 0), clearedLines = false)
-      )*/
-
-      /*        context.setReplayList(plcList)
-        context.ignoreSimulation = false*/
-
-      // this test will use 3 different pieces each time it runs
-      // which is just an added boost of randomness to make sure everything is good
-      context.stopGameAtRound = 1
-      context.simulationSelfTest = true
-      // context.show = true
-
-      val game = new Game(context, multiGameStats)
-      val results = game.run
-
-      val selfTestResults: SelfTestResults = game.getSelfTestResults
-
-      val simulatedPositions = selfTestResults.simulatedPositions
-      val linesClearedPositions = selfTestResults.linesClearedPositions
-
-      val legalPositionsSet = selfTestResults.legalPositions.toSet
-      val simulatedPositionsSet = simulatedPositions.toSet
-
-      val missingSimulations = legalPositionsSet.diff(simulatedPositionsSet)
-      val missingLegal = simulatedPositionsSet.diff(legalPositionsSet)
-
-      // in the new mechanism to only test valid combinations on each thread, we account for line clearing
-      // implicitly so we don't neeed to calculate the line clears Positions size
-      val expectedSimulationCount = legalPositionsSet.size // + linesClearedPositions.size
-
-      // if (selfTestResults.simulatedPositions.size != expectedSimulationCount) {
-      // selfTestResults.pieces.foreach(piece => println(piece.name))
-      // }
-
-      if (missingSimulations.size > 0)
-        println
-
-      assert(missingSimulations.size === 0, "there are legal positions that are unsimulated")
-      assert(missingLegal.size === 0, "there are simulations that didn't have an associated legal position")
-      assert(
-        simulatedPositionsSet.size === expectedSimulationCount,
-        "the simulated positions is different than the expected simulation count (legal positions + cleared lines count)"
       )
+
+      context.setReplayList(overlappingPieces)
+      context.ignoreSimulation = false
+      runSelfTest(context, multiGameStats)
+    }
+  }
+
+  it must "simulate all legal positions when pieces clear lines" in {
+    new GameInfoFixture {
+
+      // make sure line clearing still generates the correct count of simulations
+      private val lineClearingPieces = List(
+        PieceLocCleared(GamePieces.h5Line, Loc(0, 0), clearedLines = false),
+        PieceLocCleared(GamePieces.h5Line, Loc(0, 0), clearedLines = false),
+        PieceLocCleared(GamePieces.h5Line, Loc(0, 0), clearedLines = false)
+      )
+
+      context.setReplayList(lineClearingPieces)
+      context.ignoreSimulation = false
+      runSelfTest(context, multiGameStats)
+    }
+  }
+
+  it must "simulate all legal positions for all permutations" in {
+    new GameInfoFixture {
+
+      // this one is left in so that random pieces will be chosen
+      // each time tests are run
+      // and the self-test still functions
+      runSelfTest(context, multiGameStats)
 
     }
   }
@@ -224,7 +254,7 @@ class TestGame extends FlatSpec {
   // has the advantage of also allowing use of the combinations in the mustUpdateForThisPermutation routine
   // which eliminates duplicate calculations
   // so... first try all of that (replacing List with Array) and for now, ignore this test
-  it must "run all simulations for three singletons" ignore {
+  it must "run all simulations for three singletons" in {
     new GameInfoFixture {
       private val plcList = List(
         PieceLocCleared(GamePieces.singleton, Loc(0, 0), clearedLines = false),
@@ -305,8 +335,6 @@ class TestGame extends FlatSpec {
       // this board was an end of game scenario where sometimes
       // under thread race conditions, the wrong board would be chosen
       // when the plcList length was 2 when there was a 3 option available
-      // add an additional else clause in Simulation.compare to account for this
-      // the following ensures we don't regress
       val a = Array(
         Array(0, 0, 0, 0, 0, 0, 1, 1, 1, 0), //0
         Array(0, 0, 1, 1, 0, 0, 0, 0, 1, 1), //1

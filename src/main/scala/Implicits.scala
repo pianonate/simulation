@@ -306,6 +306,8 @@ object StringFormats {
   val BACKGROUND_CYAN = "\u001B[46m"
   val BACKGROUND_WHITE = "\u001B[47m"
 
+  val CLEAR_SCREEN = ESCAPE + "[2J" + ESCAPE + "[0;0H"
+
   // initialize this after the name strings above are initialized as GamePieces need name strings to properly initialize
   val pieceNameFormat: String = "%-" + GamePieces.longestNameLength + "s"
 

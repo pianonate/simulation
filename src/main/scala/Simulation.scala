@@ -44,14 +44,14 @@ case class SimulationInfo(
  * @param plcList - PieceLocCleared list
  * @param board - the resultant Board after placing all pieces in PieceLocCleared.
  */
-case class Simulation(plcList: List[PieceLocCleared], board: Board, id:Int) {
+case class Simulation(plcList: List[PieceLocCleared], board: Board, id:Int, pieceCount:Int) {
 
   import Implicits._
   override def toString: String = this.plcList.map(plc => plc.piece).label // visible in debugger
 
   // used to group Simulations
   // if pieceCount is less than 3 then GameOver man!
-  val pieceCount: Int = plcList.length
+ //  val pieceCount: Int = plcList.length
 
   // pieceCount to weighted sum so Best choice always considers a solution that includes all pieces
   // to be better than a solution with less pieces

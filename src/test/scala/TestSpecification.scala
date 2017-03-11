@@ -8,18 +8,18 @@ class TestSpecification extends FlatSpec {
 
   behavior of "A Specification"
 
-  it must "for a spec with all optimization factors on, drive a working Game" in {
+  it must "drive a working game from a specification" in {
 
     new GameInfoFixture {
 
-      val fullSpec = Specification(filtered=false)
+      val spec = Specification()
 
-      assert(fullSpec.spec.nonEmpty)
+      assert(spec.spec.nonEmpty)
       context.stopGameAtRound = 2 // ensure the game runs fast - just to exercise code
       context.gamesToPlay = 1 // only run one game
       context.show = false // don't show results as the game is playing
 
-      context.specification = fullSpec
+      context.specification = spec
       val game = new Game(context, multiGameStats)
       val result: GameResults = game.run
       assert(result.score > 0)

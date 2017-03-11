@@ -21,25 +21,21 @@ case class BoardScore(
 
   private def getScore(opt: OptimizationFactor, intValue: Int): ScoreComponent = {
 
-    if (opt.enabled) {
+    // normalize the value to range from 0 to 1.
+    // if an optimization factor is supposed to a low number, then subtract it from it's max value before normalizing
+    val normalizedValue: Double = if (opt.minimize)
+      1 - (intValue - opt.minVal) / (opt.maxVal - opt.minVal).toDouble
+    else
+      (intValue - opt.minVal) / (opt.maxVal - opt.minVal).toDouble
 
-      // normalize the value to range from 0 to 1.
-      // if an optimization factor is supposed to a low number, then subtract it from it's max value before normalizing
-      val normalizedValue: Double = if (opt.minimize)
-        1 - (intValue - opt.minVal) / (opt.maxVal - opt.minVal).toDouble
-      else
-        (intValue - opt.minVal) / (opt.maxVal - opt.minVal).toDouble
+    if (normalizedValue > 1.0) {
+      throw new IllegalArgumentException(opt.label + ".normalizedValue > 1.0 - here's the scoop: " + normalizedValue)
+    }
 
-      if (normalizedValue > 1.0) {
-        throw new IllegalArgumentException(opt.label + ".normalizedValue > 1.0 - here's the scoop: " + normalizedValue)
-      }
+    // the weighted value is multiplied by the opt factor's weight - which in theory will guarantee goodness
+    val weightedValue: Double = normalizedValue * opt.weight
 
-      // the weighted value is multiplied by the opt factor's weight - which in theory will guarantee goodness
-      val weightedValue: Double = normalizedValue * opt.weight
-
-      ScoreComponent(opt.label, intValue, normalizedValue, weightedValue, opt.weight)
-    } else
-      ScoreComponent(opt.label + "- disabled", 0, 0.0, 0.0, opt.weight)
+    ScoreComponent(opt.label, intValue, normalizedValue, weightedValue, opt.weight)
 
   }
 

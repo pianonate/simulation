@@ -20,7 +20,6 @@ import Specification._
 import scala.collection.immutable.{Iterable, ListMap}
 
 case class OptimizationFactor(
-  enabled:     Boolean,
   key:         String,
   minimize:    Boolean,
   weight:      Double,
@@ -32,10 +31,18 @@ case class OptimizationFactor(
 
 case class Specification(spec: ListMap[String, OptimizationFactor]) {
 
-  val length: Int = spec.size
 
-  //def apply(i: Int): OptimizationFactor = weightedSpec(i)
-  def apply(s: String): OptimizationFactor = spec(s)
+
+
+
+
+
+
+
+
+
+
+  val length: Int = spec.size
 
   // provided so that the getNamedResult function in boardScore can iterate over a while loop
   // as using named keys into the ListMap along with apply() access is VERY SLOW
@@ -49,7 +56,7 @@ case class Specification(spec: ListMap[String, OptimizationFactor]) {
     if (spec.contains(name))
       spec(name)
     else
-      OptimizationFactor(enabled = false, name, minimize = false, 0.0, 0, 0, "", "")
+      OptimizationFactor(name, minimize = false, 0.0, 0, 0, "", "")
   }
 
   // val allMaximizersOptFactor: OptimizationFactor = getOptimizationFactor(Specification.allMaximizersKey)
@@ -128,19 +135,18 @@ case class Specification(spec: ListMap[String, OptimizationFactor]) {
 
       }.mkString(spaceAndVertical) + spaceAndVertical
 
-    piecesHeader + horizontal + scoreHeader + horizontal + scoreString + horizontal + weightedSumString
-  }
+    val sb = new StringBuilder
+    sb ++= piecesHeader
+    sb ++= horizontal
+    sb ++= scoreHeader
+    sb ++= horizontal
+    sb ++= scoreString
+    sb ++= horizontal
+    sb ++= weightedSumString
 
-  def getBoardResultString(boardResult: Array[Int]): String = {
+    sb.toString
 
-    // this is called from a board placement result during the actual placing of pieces post-simulation
-    // we keep board placement results separate on the one board that the whole game runs on
-    // so that we can compare expected results from a simulation with actual results on the board
-    // additionally, this mechanism allows us to display line clearing.
-    spec
-      .zip(boardResult)
-      .map(tup => greenifyResult(Some(tup._1._2.label), isGreen = true, tup._2))
-      .mkString(" -")
+    // piecesHeader + horizontal + scoreHeader + horizontal + scoreString + horizontal + weightedSumString
   }
 
   def getWeightsJSON: String = {
@@ -159,7 +165,7 @@ object Specification {
   // apparently it's important that this be declared after Game.CYAN is declared above :)
   // this is not private because we show the maximizer piece at game start
   val maximizer3x3: Piece = GamePieces.bigBox
-  val maximizer5x1: Piece = GamePieces.h5Line
+  /*  val maximizer5x1: Piece = GamePieces.h5Line
   val maximizer1x5: Piece = GamePieces.v5Line
 
   val maximizerArray: Array[Array[Piece]] = Array(
@@ -173,7 +179,7 @@ object Specification {
     maximizer1x5,
     maximizer1x5
 
-  ).combinations(3).toArray
+  ).combinations(3).toArray */
 
   val avoidMiddleArray: Array[Array[Int]] = {
     // creates an array of board size
@@ -262,21 +268,29 @@ object Specification {
     // you'll need to update class Specification named optFactors above, plus the calls from BoardScore.scores if you change this
 
     // this one needs to run a subsequent simulation - not yet easy to do
-    //allMaximizersCountName -> OptimizationFactor(enabled = true, allMaximizersKey, maximize, weightMap(allMaximizersKey), 0.0, maximizerArray.length, "all maximizers", "count of boards that can fit all combinations (with repeats) of 3x3, 5x1 and 1x5 pieces  - if each piece was placed on the board"),
-    avoidMiddleKey -> OptimizationFactor(enabled = true, avoidMiddleKey, minimize, weightMap(avoidMiddleKey), 0, avoidMiddleArraySum, "avoid middle", "unoccupied positions in the middle are bad so score them with a high score"),
-    lineContiguousUnoccupiedKey -> OptimizationFactor(enabled = true, lineContiguousUnoccupiedKey, minimize, weightMap(lineContiguousUnoccupiedKey), Board.BOARD_SIZE * 2, totalPositions / 2, "spaces on a line", "number of separate spaces on a given line - indicator of how many pieces needed to clear"),
-    maxContiguousKey -> OptimizationFactor(enabled = true, maxContiguousKey, maximize, weightMap(maxContiguousKey), 0, Board.BOARD_SIZE, "connected open", "number of lines (either horizontal or vertical) that are open and contiguous"),
-    maximizerKey -> OptimizationFactor(enabled = true, maximizerKey, maximize, weightMap(maximizerKey), 0, math.pow(Board.BOARD_SIZE - maximizer3x3.cols + 1, 2).toInt, "maximizer", "positions in which a 3x3 piece can fit"),
-    neighborsFourKey -> OptimizationFactor(enabled = true, neighborsFourKey, minimize, weightMap(neighborsFourKey), 0, totalPositions / 2, "4 neighbors", "number of positions surrounded on all 4 sides"),
-    neighborsThreeKey -> OptimizationFactor(enabled = true, neighborsThreeKey, minimize, weightMap(neighborsThreeKey), 0, totalPositions / 2, "3 neighbors", "number of positions surrounded on 3 of 4 sides"),
+    //allMaximizersCountName -> OptimizationFactor(allMaximizersKey, maximize, weightMap(allMaximizersKey), 0.0, maximizerArray.length, "all maximizers", "count of boards that can fit all combinations (with repeats) of 3x3, 5x1 and 1x5 pieces  - if each piece was placed on the board"),
+    avoidMiddleKey -> OptimizationFactor(avoidMiddleKey, minimize, weightMap(avoidMiddleKey), 0, avoidMiddleArraySum, "avoid middle", "unoccupied positions in the middle are bad so score them with a high score"),
+    lineContiguousUnoccupiedKey -> OptimizationFactor(lineContiguousUnoccupiedKey, minimize, weightMap(lineContiguousUnoccupiedKey), Board.BOARD_SIZE * 2, totalPositions / 2, "spaces on a line", "number of separate spaces on a given line - indicator of how many pieces needed to clear"),
+    maxContiguousKey -> OptimizationFactor(maxContiguousKey, maximize, weightMap(maxContiguousKey), 0, Board.BOARD_SIZE, "connected open", "number of lines (either horizontal or vertical) that are open and contiguous"),
+    maximizerKey -> OptimizationFactor(maximizerKey, maximize, weightMap(maximizerKey), 0, math.pow(Board.BOARD_SIZE - maximizer3x3.cols + 1, 2).toInt, "maximizer", "positions in which a 3x3 piece can fit"),
+    neighborsFourKey -> OptimizationFactor(neighborsFourKey, minimize, weightMap(neighborsFourKey), 0, totalPositions / 2, "4 neighbors", "number of positions surrounded on all 4 sides"),
+    neighborsThreeKey -> OptimizationFactor(neighborsThreeKey, minimize, weightMap(neighborsThreeKey), 0, totalPositions / 2, "3 neighbors", "number of positions surrounded on 3 of 4 sides"),
     // i'm really not sure that 60 is the maximum number of two neighbors that can be created on a board
     // but i couldn't find another solution that was better
-    neighborsTwoKey -> OptimizationFactor(enabled = true, neighborsTwoKey, minimize, weightMap(neighborsTwoKey), 0, (totalPositions * .6).toInt, "2 neighbors", "number of positions surrounded on 2 of 4 sides"),
-    occupiedKey -> OptimizationFactor(enabled = true, occupiedKey, minimize, weightMap(occupiedKey), 0, totalPositions, "occupied", "occupied positions"),
-    openLinesKey -> OptimizationFactor(enabled = true, openLinesKey, maximize, weightMap(openLinesKey), 0, Board.BOARD_SIZE + Board.BOARD_SIZE, "open rows + cols", "count of open rows plus open columns"),
-    roundScoreKey -> OptimizationFactor(enabled = true, roundScoreKey, maximize, weightMap(roundScoreKey), GamePieces.numPiecesInRound, maxRoundScore, "round score", "total score for the round")
+    neighborsTwoKey -> OptimizationFactor(neighborsTwoKey, minimize, weightMap(neighborsTwoKey), 0, (totalPositions * .6).toInt, "2 neighbors", "number of positions surrounded on 2 of 4 sides"),
+    occupiedKey -> OptimizationFactor(occupiedKey, minimize, weightMap(occupiedKey), 0, totalPositions, "occupied", "occupied positions"),
+    openLinesKey -> OptimizationFactor(openLinesKey, maximize, weightMap(openLinesKey), 0, Board.BOARD_SIZE + Board.BOARD_SIZE, "open rows + cols", "count of open rows plus open columns"),
+    roundScoreKey -> OptimizationFactor(roundScoreKey, maximize, weightMap(roundScoreKey), GamePieces.numPiecesInRound, maxRoundScore, "round score", "total score for the round")
 
   )
+
+  private def weightedSpecification(optFactors: ListMap[String, OptimizationFactor]): Specification = {
+    // create a specification with only the filtered parameters
+    val weightedFactors = normalizeOptimizationFactorWeights(optFactors)
+
+    Specification(weightedFactors)
+
+  }
 
   private def normalizeOptimizationFactorWeights(optFactors: ListMap[String, OptimizationFactor]): ListMap[String, OptimizationFactor] = {
 
@@ -308,7 +322,7 @@ object Specification {
       .map {
         case (specEntry, weight) =>
           specEntry match {
-            case (key, opt) => (key, OptimizationFactor(opt.enabled, opt.key, opt.minimize, weight, opt.minVal, opt.maxVal, opt.label, opt.explanation))
+            case (key, opt) => (key, OptimizationFactor(opt.key, opt.minimize, weight, opt.minVal, opt.maxVal, opt.label, opt.explanation))
           }
       }
 
@@ -316,49 +330,31 @@ object Specification {
     sortedWeights
   }
 
-  // todo - determine if filtered is even necessary for game play anymore
-  def apply(filtered: Boolean, random: Boolean): Specification = {
+  def apply(random: Boolean): Specification = {
 
     if (random) {
 
       val doubleRandomizer = new scala.util.Random()
 
       // copy the current specification into a random specification
-      val randomSpec = Specification().spec.map {
+      val randomSpec = allOptimizationFactors.map {
         case (key, opt) =>
-          (key, OptimizationFactor(opt.enabled, opt.key, opt.minimize, doubleRandomizer.nextDouble /* random! */ , opt.minVal, opt.maxVal, opt.label, opt.explanation))
+          (key, OptimizationFactor(opt.key, opt.minimize, doubleRandomizer.nextDouble, opt.minVal, opt.maxVal, opt.label, opt.explanation))
       }
-      Specification(filtered = false, randomSpec)
-    }
-    else
-      Specification(filtered)
-  }
+      weightedSpecification(randomSpec)
+    } else
+      weightedSpecification(allOptimizationFactors)
 
-  def apply(filtered: Boolean, optFactors: ListMap[String, OptimizationFactor]): Specification = {
-    // create a specification with only the filtered parameters
-    val weightedFactors = if (filtered)
-      normalizeOptimizationFactorWeights(optFactors.filter(opt => opt._2.enabled))
-    else
-      normalizeOptimizationFactorWeights(optFactors)
-
-    val filteredWeightedSpec: Specification = Specification(weightedFactors)
-
-    filteredWeightedSpec
-  }
-
-  def apply(filtered: Boolean): Specification = {
-    apply(filtered, allOptimizationFactors)
-  }
-
-  // by default return the filtered and weighted specification
-  def apply(): Specification = {
-    apply(filtered = true)
   }
 
   def apply(optFactor: OptimizationFactor): Specification = {
-    // get a specification just for this optimization factor
+    // get a specification just for this optimization factor used in weight generation
     val optFactors = ListMap(optFactor.key -> optFactor)
-    apply(filtered = false, optFactors)
+    weightedSpecification(optFactors)
+  }
+
+  def apply(): Specification = {
+    apply(random=true)
   }
 
   // following are used to construct results
@@ -381,24 +377,5 @@ object Specification {
   private val weightedColumnString = "weighted".rightAlignedPadded(permutationColumnWidth - (scoreColumnString.length + normalizedColumnString.length))
   private val columnHeader = scoreColumnString + normalizedColumnString + weightedColumnString + spaceAndVertical
 
-  /**
-   * used for testing purposes (for now) and eventually for an exhaustive run
-   * through of all possible permutations and combinations of specifications
-   * @return
-   */
-  def getAllSpecifications: Array[Array[Array[OptimizationFactor]]] = {
-
-    val r = (1 to allOptimizationFactors.size /*length*/ ).toArray
-
-    val combinations = for { i <- r } yield allOptimizationFactors.values.toArray.combinations(i).toArray
-
-    val result = for {
-      comboArray <- combinations
-      combo <- comboArray
-    } yield combo.permutations.toArray
-
-    result
-
-  }
 
 }

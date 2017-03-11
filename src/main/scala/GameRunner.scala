@@ -16,7 +16,7 @@ object GameRunner {
   case class WeightContext(context:Context) {
 
     context.gamesToPlay = 1
-    val specification = Specification(filtered=false)
+    val specification = Specification()
     val longestKeyLength = specification.spec.keys.map(_.length).max
     val iterations = context.generateWeightsGamesToPlay
     val totalGames = iterations * specification.length
@@ -178,8 +178,8 @@ object GameRunner {
 
       val gameInfo = MultiGameStats(average, sessionHighScore, machineHighScore, gameCount.value, allGamesTimer)
 
-      if (!context.fixedWeights)
-        context.specification = Specification(filtered=false, random=true)
+      if (context.fixedWeights)
+        context.specification = Specification(random=false)
 
       val game = new Game(context, gameInfo)
 
