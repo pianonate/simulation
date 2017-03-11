@@ -16,7 +16,7 @@ object GameRunner {
   case class WeightContext(context:Context) {
 
     context.gamesToPlay = 1
-    val specification = Specification()
+    val specification = Specification(context)
     val longestKeyLength = specification.spec.keys.map(_.length).max
     val iterations = context.generateWeightsGamesToPlay
     val totalGames = iterations * specification.length
@@ -67,13 +67,15 @@ object GameRunner {
 
     context.logger.info("generating weights by playing each optimization factor individually")
 
+    val maxOptFactorKeyLength = context.specification.maxOptFactorKeyLength
+
     // not so necessary any more
     val weightContext = WeightContext(context)
 
     val scores = weightContext.specification.spec.zipWithIndex.map {
       case ((key, optFactor), factorIndex) =>
 
-        context.specification = Specification(optFactor)
+        context.specification = Specification(optFactor, context)
 
         val gameScore: Seq[Int] = for (gameIndex <- 0 until weightContext.iterations) yield {
 
@@ -102,17 +104,17 @@ object GameRunner {
       case (key, sortedScores) =>
 
         val scoreSum = sortedScores.sum.toDouble
-        println(key.leftAlignedPadded(Specification.maxOptFactorKeyLength + 1).appendColon + "average".appendColon + sortedScores.avg.toInt.label(6) + " - weight".appendColon + (scoreSum / sumOfAllGames))
+        println(key.leftAlignedPadded(maxOptFactorKeyLength + 1).appendColon + "average".appendColon + sortedScores.avg.toInt.label(6) + " - weight".appendColon + (scoreSum / sumOfAllGames))
 
     }
 
     println
 
-    val header = "game" + scores.keys.toArray.map(key => " ".repeat(4) + key.rightAlignedPadded(Specification.maxOptFactorKeyLength)).mkString(" ") + "\n"
+    val header = "game" + scores.keys.toArray.map(key => " ".repeat(4) + key.rightAlignedPadded(maxOptFactorKeyLength)).mkString(" ") + "\n"
 
     val s = scores.values.transpose.zipWithIndex.map(game =>
       (game._2 + 1).label(4).toString + " " + game._1.map(each =>
-        " ".repeat(Specification.maxOptFactorKeyLength - each.toString.length) + " ".repeat(3) + each)
+        " ".repeat(maxOptFactorKeyLength - each.toString.length) + " ".repeat(3) + each)
         .mkString("  "))
       .mkString("\n")
 
@@ -179,7 +181,7 @@ object GameRunner {
       val gameInfo = MultiGameStats(average, sessionHighScore, machineHighScore, gameCount.value, allGamesTimer)
 
       if (context.fixedWeights)
-        context.specification = Specification(random=false)
+        context.specification = Specification(random=false, context)
 
       val game = new Game(context, gameInfo)
 

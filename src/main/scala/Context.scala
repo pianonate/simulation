@@ -36,7 +36,93 @@ class Context(conf: Conf) {
 
   // vars so you can change test specifications - consider other mechanisms if you wish
   val beep: Boolean = conf.beep()
-  //val boardSize:Int = conf.dimensions.getOrElse(10) // default board size is 10
+
+  val boardSize:Int = conf.dimensions.getOrElse(10) // default board size is 10
+  val boardPositions:Int = boardSize * boardSize
+
+  // use these values to provide numbers that when added together will be unique for any combination of the three numbers
+  // this was verified in the REPL
+  // take the result of the 3 added together numbers and mod them against the total number of permutations
+  // this is useful because each permutation will generate most of the same locations and we only need to calculate one of them
+  // so we mod by the total permutation count and see if it matches this permutation index and that is the one that is responsible
+  val allLocationHashes: Array[Long] = {
+    (0 until boardPositions).map(x => (math.sin(x).abs * math.pow(10, 11)).toLong).toArray
+  }
+
+  // calculate all locations for a board once - at class Board construction
+  // copyBoard was originally: 21.5% of execution time with the tabulate functionality
+  // moved to a while loop with a ListBuffer and that was...31.6% - worse!!
+  // so moved to a recursive loop with a List - which was 9.1%
+  // and finally by building the list in reverse, recursion gave it back in order...
+  // so we didn't have to call reverse and end up with 4.8% of execution time
+  // worth the optimization - from 21.5% to 4.8%!
+
+  // duh - this value is invariant throughout the game
+  // moved it to Board object, lazy instantiated it on first use
+  // and now it is only calculated once in less than 1 ms
+  // probably you can put the tabulate mechanism back if you wish
+  //
+  // now with getLocations calculated once, copyBoard is about 3.1% of the overall time
+  private def getLocations(boardSize: Int): List[Loc] = /*Array.tabulate(layout.length, layout.length)((i, j) => (i, j)).flatten.toList*/ {
+
+    @annotation.tailrec def loop(row: Int, col: Int, acc: List[Loc]): List[Loc] = {
+      (row, col) match {
+        case (-1, _) => acc
+        case (_, 0)  => loop(row - 1, boardSize - 1, Loc(row, col) :: acc)
+        case _       => loop(row, col - 1, Loc(row, col) :: acc)
+      }
+    }
+
+    val size = boardSize
+    loop(size - 1, size - 1, List())
+
+  }
+
+  val allLocations: Array[Loc] = getLocations(boardSize).toArray
+  private val directions = Array(Loc(-1, 0), Loc(0, -1), Loc(1, 0), Loc(0, 1))
+
+  val allLocationNeighbors: Array[Array[Loc]] = {
+
+    // stashing all location neighbors once at the beginning rather than calculating it each time has saved about 15% of execution time:
+    // on countNeighbors alone it sped up the number of times per second by 1948% (~20x)
+    def getNeighbors(loc: Loc): Array[Loc] = {
+      List.fill[Int](directions.length)(0).indices.map(n => Loc(loc.row + directions(n).row, loc.col + directions(n).col)).toArray
+    }
+
+    val a = allLocations.map(getNeighbors)
+    a
+  }
+
+
+
+  val anySizeEmptyLineValue = 0
+  val boardSizeFullLineValue = OccupancyGrid.fillerup(boardSize)
+
+  val popTable: Array[Int] = {
+
+    // all possible combination of on bits in a context.boardSize position row:
+    // todo - refactor (theInt >> x) &1
+    val countBits = (theInt: Int) => (0 until boardSize).map(x => (theInt >> x) & 1).count(_ == 1)
+    (0 to 1023).map(countBits).toArray
+
+  }
+
+  // provides the score for clearing 1 to 6 (max possible) lines at once
+  val lineClearingScore: Array[Int] = {
+    val r = 1 to 6
+    // Array(0,10,30,60,100,150,210)
+    r.scanLeft(0)(_ + _ * boardSize).toArray
+  }
+
+
+
+  // this is pretty theoretical as to the max - it may be possible to get higher than this but I think it's pretty unlikely
+  // this problem goes away if we implement z-score
+  lazy val maxRoundScore =
+    lineClearingScore(lineClearingScore.length - 1) +
+      (Specification.maximizer3x3.pointValue * 3) +
+      lineClearingScore(3)
+
   val fixedWeights:Boolean = conf.fixedWeights()
 
   var gamesToPlay: Int = conf.gamesToPlay()
@@ -69,8 +155,9 @@ class Context(conf: Conf) {
   // appended abs as there is no need for negative numbers to make the json file name confusing
   def getGameSeed: Int = (if (gameSeed == 0) randomizer.nextInt else gameSeed).abs
 
+
   //noinspection VarCouldBeVal
-  var specification: Specification = Specification()
+  var specification: Specification = Specification(this)
 
   var replayGame: Boolean = false
   //noinspection VarCouldBeVal

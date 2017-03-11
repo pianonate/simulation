@@ -42,10 +42,11 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
     this(
       context,
       multiGameStats,
-      new Board(Board.BOARD_SIZE, context.specification)
+      new Board(context)
     )
   }
 
+  private[this] val boardSize: Int = context.boardSize
   private[this] val gameStats: GameStats = new GameStats
 
   private[this] val gameSeed = context.getGameSeed
@@ -257,14 +258,14 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
         var row = 0
         var col = 0
 
-        while (row < Board.BOARD_SIZE) {
-          while (col < Board.BOARD_SIZE) {
+        while (row < boardSize) {
+          while (col < boardSize) {
 
             if (this.board.cachedOccupancyGrid(row)(col)) {
 
               val color = this.board.colorGrid(row)(col)
               val colorInt = gamePieces.colorIndexMap(color)
-              val shift = row * (Board.BOARD_SIZE * 4) + col * 4
+              val shift = row * (boardSize * 4) + col * 4
               val shifted = math.BigInt(colorInt) << shift
               big = big + shifted
 
@@ -460,7 +461,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
       val totalCleared = cleared.rows + cleared.cols
       val isCleared = totalCleared > 0
 
-      val score = piece.pointValue + Game.lineClearingScore(totalCleared)
+      val score = piece.pointValue + context.lineClearingScore(totalCleared)
 
       // return the board with an instance of a PieceLocCleared class
       BoardScorePLCList(boardCopy, score, PieceLocCleared(piece, loc, isCleared))
@@ -508,9 +509,9 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
           // they don't overlap on occupied positions
           // so to make this algo work, add the offset to the first On Position in the first row
           // so we can validate that pos1 comes before pos2 comes before pos3, barring line clearings
-          val pos1 = plc1.loc.row * Board.BOARD_SIZE + plc1.loc.col + plc1.piece.offSetToFirstOnPosition
-          val pos2 = plc2.loc.row * Board.BOARD_SIZE + plc2.loc.col + plc2.piece.offSetToFirstOnPosition
-          val pos3 = plc3.loc.row * Board.BOARD_SIZE + plc3.loc.col + plc3.piece.offSetToFirstOnPosition
+          val pos1 = plc1.loc.row * boardSize + plc1.loc.col + plc1.piece.offSetToFirstOnPosition
+          val pos2 = plc2.loc.row * boardSize + plc2.loc.col + plc2.piece.offSetToFirstOnPosition
+          val pos3 = plc3.loc.row * boardSize + plc3.loc.col + plc3.piece.offSetToFirstOnPosition
 
           val start2 = if (plc1.clearedLines)
             0
@@ -525,7 +526,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
           if (pos1 == pos2 || pos2 == pos3 || pos3 == pos1)
             println
 
-          (pos1 <= Board.BOARD_POSITIONS - 2) && (pos2 >= start2 && pos2 < Board.BOARD_POSITIONS - 1) && (pos3 >= start3)
+          (pos1 <= context.boardPositions - 2) && (pos2 >= start2 && pos2 < context.boardPositions - 1) && (pos3 >= start3)
 
         }
 
@@ -618,8 +619,8 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
         // fixed a bug that you need to take piece into account.  multiplying it times the pieces prime number
         // (generated at construction) to generate unique values for piece/loc combos
-        val locIndex = if (context.simulationSelfTest) loc.row * Board.BOARD_SIZE + loc.col else 0
-        val locPieceHash = if (context.simulationSelfTest) Board.allLocationHashes(locIndex) * piece.prime + locPieceHashAcc else 0
+        val locIndex = if (context.simulationSelfTest) loc.row * boardSize + loc.col else 0
+        val locPieceHash = if (context.simulationSelfTest) context.allLocationHashes(locIndex) * piece.prime + locPieceHashAcc else 0
 
         val plcList = plc :: plcAcc
 
@@ -733,7 +734,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
     colsCleared.inc(linesClearedResult.cols)
     val total = linesClearedResult.rows + linesClearedResult.cols
 
-    val pieceScore = piece.pointValue + Game.lineClearingScore(total)
+    val pieceScore = piece.pointValue + context.lineClearingScore(total)
     score.inc(pieceScore)
 
     val clearedBoard = Board.copy("clearedBoard", this.board)
@@ -766,7 +767,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
     val valuesWidth = scoreLength.max(minScoreLength)
 
     val boardSpacer = " ".repeat(2)
-    val labelWidth = Specification.maxOptFactorLabelLength
+    val labelWidth = context.specification.maxOptFactorLabelLength
 
     val scoreLabel = "score".leftAlignedPadded(labelWidth).appendColon + pieceHandlerInfo.score.label(valuesWidth).green + boardSpacer
 
@@ -787,15 +788,15 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
     val scoreInfoLength = newScore.length + newBoardResultsString.length
     // whichever is longer score info or board length
-    val totalHeight = scoreInfoLength.max(Board.BOARD_SIZE)
+    val totalHeight = scoreInfoLength.max(boardSize)
 
     val remainingScoreLines = (scoreInfoLength until totalHeight)
       .map(_ => " ".repeat(labelWidth + valuesWidth + boardSpacer.length + 2)).toArray
 
     val newResults: Array[String] = newScore ++ newBoardResultsString ++ remainingScoreLines
 
-    val appendToBoard = "\n" + (Board.BOARD_SIZE until totalHeight)
-      .map(_ => " ".repeat(Board.BOARD_SIZE * 2 - 1 + boardSpacer.length) + "\n").mkString
+    val appendToBoard = "\n" + (boardSize until totalHeight)
+      .map(_ => " ".repeat(boardSize * 2 - 1 + boardSpacer.length) + "\n").mkString
 
     val newBoard = (getShowBoard(pieceHandlerInfo.unclearedBoard) + appendToBoard) splice newResults
 
@@ -1079,13 +1080,6 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 }
 
 object Game {
-
-  // provides the score for clearing 1 to 6 (max possible) lines at once
-  val lineClearingScore: Array[Int] = {
-    val r = 1 to 6
-    // Array(0,10,30,60,100,150,210)
-    r.scanLeft(0)(_ + _ * Board.BOARD_SIZE).toArray
-  }
 
   /* val positions = 0 until Board.BOARD_SIZE * Board.BOARD_SIZE
   val positions = 0 until 10

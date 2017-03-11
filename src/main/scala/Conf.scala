@@ -32,7 +32,7 @@ class Conf(arguments: Seq[String]) extends ScallopConf(arguments) {
                 |
                 |The best simulation is then used to place pieces and continue onto the next round.""".stripMargin
 
-   val explanations = Specification().getOptimizationFactorExplanations
+   val explanations = Specification.getOptimizationFactorExplanations
 
     begin + "\n" + explanations + end
   }
@@ -59,7 +59,7 @@ class Conf(arguments: Seq[String]) extends ScallopConf(arguments) {
   val abridgedLogs: ScallopOption[Boolean] = opt[Boolean](descr="when logging json, reduce the dataset")
   val beep: ScallopOption[Boolean] = opt[Boolean](descr="turn on beeping at the end of each game")
   val continueAtNewHighScore: ScallopOption[Boolean] = opt[Boolean](descr="continue playing if new high score is reached - default is to stop", name="continue")
-  //val dimensions: ScallopOption[Int] = opt[Int](default = Some(10), validate = (i) => i >= 5, descr = "board size wxh - default is 10")
+  val dimensions: ScallopOption[Int] = opt[Int](default = Some(10), validate = (i) => i >= 5, descr = "board size wxh - default is 10")
   val fixedWeights: ScallopOption[Boolean] = opt[Boolean](descr="use weights hardcoded into the specification for the game. Default: Use random weights as currently, random plays better!")
   val gamesToPlay: ScallopOption[Int] = opt[Int](default = Some(0), validate = (i) => i >= 0, name="games", descr = "number of games to play - 0 is continuous")
   val gameSeed: ScallopOption[Int] = opt[Int](default = Some(0), short='m', descr = "provide a seed to cause every game to play with the same pieces, if you don't specify then the pieces will be random")

@@ -12,7 +12,7 @@ class TestSpecification extends FlatSpec {
 
     new GameInfoFixture {
 
-      val spec = Specification()
+      val spec = Specification(context)
 
       assert(spec.spec.nonEmpty)
       context.stopGameAtRound = 2 // ensure the game runs fast - just to exercise code

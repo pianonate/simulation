@@ -21,9 +21,13 @@ object simulate {
 
   def main(args: Array[String]): Unit = {
 
+    // i think to break the maximizer3x3 catch-22 when creating specifications
+    // break apart the construction of an occupancy grid context that can be used
+    // to construct GamePieces and then store GamePieces on the context
+    // and pass the occupancy grid context each time into a newly constructed occupancy grid
+    // so we can ust calculate those values once
     val conf = new Conf(args)
     val context = new Context(conf)
-    //Board.ctx = Some(context)
 
     conf match {
 

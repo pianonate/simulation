@@ -14,8 +14,10 @@ case class ScoreComponent(
 
 case class BoardScore(
   board:         Board,
-  specification: Specification
+  context: Context
 ) {
+
+  private val specification = context.specification
 
   // sum the weighted results and use this as an alternative comparison to current mechanism
 
@@ -39,7 +41,7 @@ case class BoardScore(
 
   }
 
-  private val neighbors = board.countNeighbors(Board.allLocations)
+  private val neighbors = board.countNeighbors(context.allLocations)
 
   // todo it would be far more scalable to just map popCount to the optimization factor and have it call directly
   //      but this would introduce a lambda which, at runtime, has historically slowed things down significantly

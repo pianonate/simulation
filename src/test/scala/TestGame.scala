@@ -7,7 +7,9 @@ import scala.util.parsing.json.JSON
 
 trait GameInfoFixture {
   val multiGameStats = MultiGameStats(0, 0, 0, 1, new GameTimer)
-  val context = new Context(new Conf(Seq()))
+  val conf = new Conf(Seq())
+  val context = new Context(conf)
+  val boardSize = context.boardSize
   context.gamesToPlay = 1
   context.show = false
 
@@ -269,11 +271,11 @@ class TestGame extends FlatSpec {
       private val game = new Game(context, multiGameStats)
       private val results: GameResults = game.run
 
-      private val positions = Board.BOARD_SIZE * Board.BOARD_SIZE
+      private val positions = boardSize * boardSize
       assert(results.totalSimulations === positions * (positions - 1) * (positions - 2), "expected number of simulations did not happen")
 
       // actual combinations
-      private val actualCombinations = (0 until Board.BOARD_POSITIONS).combinations(3).toArray.length
+      private val actualCombinations = (0 until context.boardPositions).combinations(3).toArray.length
       private val expectedUnsimulated = results.totalSimulations - actualCombinations
 
       assert(results.totalUnsimulatedSimulations === expectedUnsimulated, "unsimulated count should be zero when all the pieces are the same")
@@ -348,8 +350,8 @@ class TestGame extends FlatSpec {
         Array(0, 1, 0, 1, 1, 1, 1, 1, 1, 1) //9
       )
 
-      val grid = OccupancyGrid(Board.BOARD_SIZE, Board.BOARD_SIZE, filled = false)
-      val colorGrid: Array[Array[String]] = Array.fill[String](Board.BOARD_SIZE, Board.BOARD_SIZE)(Board.BOARD_COLOR)
+      val grid = OccupancyGrid(boardSize, boardSize, filled = false, context)
+      val colorGrid: Array[Array[String]] = Array.fill[String](boardSize, boardSize)(Board.BOARD_COLOR)
 
       for {
         i <- a.indices
@@ -361,7 +363,7 @@ class TestGame extends FlatSpec {
         }
       }
 
-      val board = new Board("testBoard", Board.BOARD_COLOR, 0, grid, colorGrid, context.specification)
+      val board = new Board("testBoard", Board.BOARD_COLOR, 0, grid, colorGrid, context.specification, context)
 
       val plcList = List(
         PieceLocCleared(GamePieces.bigBox, Loc(0, 0), clearedLines = false),

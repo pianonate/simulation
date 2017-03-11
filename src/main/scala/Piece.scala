@@ -81,6 +81,8 @@ case class El( final val grid: OccupancyGrid, final val name: String, final val 
 
 object Piece {
 
+  var ctx:Option[Context] = None
+
   val primeIterator: Iterator[Int] = {
 
     def sieve(s: Stream[Int]): Stream[Int] = {
@@ -94,7 +96,7 @@ object Piece {
 
   def getLinearGrid(length: Int): OccupancyGrid = getGrid(1, length, filled = true)
   def getBoxGrid(size: Int): OccupancyGrid = getGrid(size, size, filled = true)
-  def getGrid(rows: Int, cols: Int, filled: Boolean): OccupancyGrid = OccupancyGrid(rows, cols, filled)
+  def getGrid(rows: Int, cols: Int, filled: Boolean): OccupancyGrid = OccupancyGrid(rows, cols, filled, ctx.get )
 
   // take a piece, and create a new piece, rotated 90 degrees
   def rotate90(newName: String, pieceToCopy: Piece): Piece = {

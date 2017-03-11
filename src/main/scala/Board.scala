@@ -23,25 +23,28 @@ class Board(
   final val prime:         Int                  = 0,
   final val grid:          OccupancyGrid,
   final val colorGrid:     Array[Array[String]],
-  final val specification: Specification
+  final val specification: Specification,
+  final val context:     Context
 ) extends Piece {
 
-  def this(size: Int, specification: Specification) {
+  def this(context:Context) {
     // initial board creation just requires a size - initialize with all proper defaults
     this(
       "Board",
       Board.BOARD_COLOR,
       0,
-      OccupancyGrid(size, size, filled = false),
-      Board.getBoardColorGrid,
-      specification
+      OccupancyGrid(context.boardSize, context.boardSize, filled = false, context),
+      Board.getBoardColorGrid(context.boardSize),
+      context.specification,
+      context
     )
   }
 
+  val boardSize = context.boardSize
 
 
   // def so a new one is created every time boardScore is called
-  def boardScore: BoardScore = BoardScore(this, specification)
+  def boardScore: BoardScore = BoardScore(this, context)
 
   // the board output shows unoccupied cells so just call .show on every cell
   // different than the Piece.show which will not output unoccupied Cell's in other pieces
@@ -62,7 +65,7 @@ class Board(
     var i = 0
     var j = 0
     var sum = 0
-    val a = Specification.avoidMiddleArray
+    val a = this.specification.avoidMiddleArray
     while (i < a.length) {
       while (j < a.length) {
         if (cachedOccupancyGrid(i)(j))
@@ -199,7 +202,7 @@ class Board(
     var i = 0
     var n = 0
 
-    val locs = Board.allLocations
+    val locs = context.allLocations
     val buf = new Array[Loc](locs.length)
 
     while (i < locs.length) {
@@ -284,7 +287,7 @@ class Board(
         // moving this boolean test inline sped up countLocationNeighbor dramatically by, 20x
         // wtf
         // given other tests with YourKit, I'm not sure that it's reporting this correctly.  it may be that it's a heisenberg issue
-        if (row == Board.BOARD_SIZE || col == Board.BOARD_SIZE || row == -1 || col == -1 || cachedOccupancyGrid(row)(col)) { count += 1 }
+        if (row == boardSize || col == boardSize || row == -1 || col == -1 || cachedOccupancyGrid(row)(col)) { count += 1 }
 
         i += 1
       }
@@ -301,7 +304,7 @@ class Board(
           ()
         else {
 
-          countLocationNeighbor(loc, Board.allLocationNeighbors(i))
+          countLocationNeighbor(loc, context.allLocationNeighbors(i))
 
         }
 
@@ -320,77 +323,24 @@ class Board(
 object Board {
 
   // todo - command line configurable board size!
-  //   the only way you can make BOARD_SIZE command line configurable is if you make Specification object
-  //   not dependent on BOARD_SIZE (and any other object that currently depends on board size) - including this one (below)
-  val BOARD_SIZE = 10
-  val BOARD_POSITIONS = BOARD_SIZE * BOARD_SIZE
+  //   the only way you can make BOARD_SIZE command line configurable is if you make all Objects independent
+  //   of board size
+
   val BOARD_COLOR = StringFormats.BRIGHT_BLACK
 
   val BOX_CHAR: String = /*"\u25A0"*/ "\u25A9" + StringFormats.SANE
 
   private val UNOCCUPIED_BOX_CHAR = BOARD_COLOR + BOX_CHAR
 
-  // calculate all locations for a board once - at class Board construction
-  // copyBoard was originally: 21.5% of execution time with the tabulate functionality
-  // moved to a while loop with a ListBuffer and that was...31.6% - worse!!
-  // so moved to a recursive loop with a List - which was 9.1%
-  // and finally by building the list in reverse, recursion gave it back in order...
-  // so we didn't have to call reverse and end up with 4.8% of execution time
-  // worth the optimization - from 21.5% to 4.8%!
-
-  // duh - this value is invariant throughout the game
-  // moved it to Board object, lazy instantiated it on first use
-  // and now it is only calculated once in less than 1 ms
-  // probably you can put the tabulate mechanism back if you wish
-  //
-  // now with getLocations calculated once, copyBoard is about 3.1% of the overall time
-  private def getLocations(boardSize: Int): List[Loc] = /*Array.tabulate(layout.length, layout.length)((i, j) => (i, j)).flatten.toList*/ {
-
-    @annotation.tailrec def loop(row: Int, col: Int, acc: List[Loc]): List[Loc] = {
-      (row, col) match {
-        case (-1, _) => acc
-        case (_, 0)  => loop(row - 1, boardSize - 1, Loc(row, col) :: acc)
-        case _       => loop(row, col - 1, Loc(row, col) :: acc)
-      }
-    }
-
-    val size = boardSize
-    loop(size - 1, size - 1, List())
-
-  }
-
-  val allLocations: Array[Loc] = getLocations(BOARD_SIZE).toArray
-  private val directions = Array(Loc(-1, 0), Loc(0, -1), Loc(1, 0), Loc(0, 1))
-
-  private val allLocationNeighbors: Array[Array[Loc]] = {
-
-    // stashing all location neighbors once at the beginning rather than calculating it each time has saved about 15% of execution time:
-    // on countNeighbors alone it sped up the number of times per second by 1948% (~20x)
-    def getNeighbors(loc: Loc): Array[Loc] = {
-      List.fill[Int](directions.length)(0).indices.map(n => Loc(loc.row + directions(n).row, loc.col + directions(n).col)).toArray
-    }
-
-    val a = allLocations.map(getNeighbors)
-    a
-  }
-
-  // use these values to provide numbers that when added together will be unique for any combination of the three numbers
-  // this was verified in the REPL
-  // take the result of the 3 added together numbers and mod them against the total number of permutations
-  // this is useful because each permutation will generate most of the same locations and we only need to calculate one of them
-  // so we mod by the total permutation count and see if it matches this permutation index and that is the one that is responsible
-  val allLocationHashes: Array[Long] = {
-    (0 until BOARD_POSITIONS).map(x => (math.sin(x).abs * math.pow(10, 11)).toLong).toArray
-  }
 
   def copy(newName: String, boardToCopy: Board): Board = {
 
-    new Board(newName, BOARD_COLOR, 0, boardToCopy.grid.copy, boardToCopy.colorGrid, boardToCopy.specification)
+    new Board(newName, BOARD_COLOR, 0, boardToCopy.grid.copy, boardToCopy.colorGrid, boardToCopy.specification, boardToCopy.context)
 
   }
 
-  private def getBoardColorGrid: Array[Array[String]] = {
-    Array.tabulate(BOARD_SIZE, BOARD_SIZE) { (_, _) => "" }
+  private def getBoardColorGrid(size:Int): Array[Array[String]] = {
+    Array.tabulate(size, size) { (_, _) => "" }
   }
 
 }

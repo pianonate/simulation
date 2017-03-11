@@ -24,10 +24,10 @@ case class OccupancyGrid(
   cols:          Int,
   rowGrid:       Array[Long],
   colGrid:       Array[Long],
-  occupancyGrid: Array[Array[Boolean]]
+  occupancyGrid: Array[Array[Boolean]],
+  context:       Context
 ) {
 
-  import OccupancyGrid._
 
   override def toString: String = {
 
@@ -40,6 +40,8 @@ case class OccupancyGrid(
 
   }
 
+  private val boardSize = rows
+
   def getOccupancyGrid: Array[Array[Boolean]] = occupancyGrid
 
   def popCount: Int = {
@@ -47,7 +49,7 @@ case class OccupancyGrid(
     var count = 0
     while (row < rows) {
       val rowVal = rowGrid(row).toInt
-      count += OccupancyGrid.popTable(rowVal)
+      count += context.popTable(rowVal)
       row += 1
     }
     count
@@ -60,11 +62,11 @@ case class OccupancyGrid(
     var big = math.BigInt(0)
 
     var row = 0
-    while (row < Board.BOARD_SIZE) {
+    while (row < boardSize) {
       val rowVal = rowGrid(row)
 
       if (rowVal > 0) {
-        val shift = row * Board.BOARD_SIZE
+        val shift = row * boardSize
         val shifted = math.BigInt(rowVal) << shift
         big = big + shifted
       }
@@ -94,7 +96,7 @@ case class OccupancyGrid(
       newOccupancyGrid
     }
 
-    OccupancyGrid(rows, cols, newRowGrid, newColGrid, newOccupancyGrid)
+    OccupancyGrid(rows, cols, newRowGrid, newColGrid, newOccupancyGrid, context)
 
   }
 
@@ -147,7 +149,7 @@ case class OccupancyGrid(
 
     val newOccupancyGrid = occupancyGrid.transpose.map(_.reverse)
 
-    OccupancyGrid(cols, rows, newRowGrid, newColGrid, newOccupancyGrid)
+    OccupancyGrid(cols, rows, newRowGrid, newColGrid, newOccupancyGrid, context)
 
     /*
     for {
@@ -197,7 +199,7 @@ case class OccupancyGrid(
     }
     // it's an optimization to not just use unoccupy
     // as we can zero out the rowGrid in one fell swoop
-    rowGrid(row) = zero
+    rowGrid(row) = context.anySizeEmptyLineValue
   }
 
   def clearCol(col: Int): Unit = {
@@ -209,7 +211,7 @@ case class OccupancyGrid(
     }
     // it's an optimization to not just use unoccupy
     // as we can zero out the colGrid in one fell swoop
-    colGrid(col) = zero
+    colGrid(col) = context.anySizeEmptyLineValue
   }
 
   def openLineCount: Int = getOpenLineCount(rowGrid) + getOpenLineCount(colGrid)
@@ -218,7 +220,7 @@ case class OccupancyGrid(
     var i = 0
     var count = 0
     while (i < theGrid.length) {
-      if (theGrid(i) == zero) { count += 1 }
+      if (theGrid(i) == context.anySizeEmptyLineValue) { count += 1 }
       i += 1
     }
     count
@@ -234,7 +236,7 @@ case class OccupancyGrid(
         var j = 0
         var prevUnoccupied = false
 
-        while (j < Board.BOARD_SIZE) {
+        while (j < boardSize) {
           val unoccupied = getBitAt(line, i, j) == 0
           if (unoccupied) {
             if (!prevUnoccupied)
@@ -267,7 +269,7 @@ case class OccupancyGrid(
       var max = 0
       var currentMax = 0
       while (i < theGrid.length) {
-        if (theGrid(i) == zero) {
+        if (theGrid(i) == context.anySizeEmptyLineValue) {
           currentMax += 1
           if (currentMax > max) { max = currentMax }
         } else {
@@ -289,11 +291,11 @@ case class OccupancyGrid(
     // it's a hack to pass back a sentinel value (-1)
     // but it prevents us from doing a splitAt (or just constructing this thing functionally
     // doing it this way is orders of magnitude faster
-    val a = new Array[Long](Board.BOARD_SIZE)
+    val a = new Array[Long](boardSize)
     var i = 0
     var n = 0
     while (i < a.length) {
-      if (theGrid(i) == boardSizeFullLineValue) {
+      if (theGrid(i) == context.boardSizeFullLineValue) {
         a(n) = i
         n += 1
       }
@@ -340,39 +342,7 @@ case class OccupancyGrid(
 
 object OccupancyGrid {
 
-  /*  def toByteArray(bits:BitSet):Array[Byte] = {
-
-    val bitsLength = bits.size
-    val bytes = new Array[Byte]((bitsLength + 7) / 8)
-
-    var i = 0
-
-    while (i < bitsLength) {
-      if (bits.contains(i)) {
-        val byteIndex = bytes.length - i/8-1
-        val nextVal: Byte = (1 << ( i % 8 )).toByte
-        val current: Byte = bytes(byteIndex)
-        bytes(byteIndex) = current | nextVal
-      }
-
-      i+=1
-    }
-
-    bytes
-  }*/
-
-  private val fillerup = (size: Int) => math.pow(2, size).toLong - 1
-  private val zero = 0
-  private val boardSizeFullLineValue = fillerup(Board.BOARD_SIZE)
-
-  private val popTable: Array[Int] = {
-
-    // all possible combination of on bits in a context.boardSize position row:
-    // todo - refactor (theInt >> x) &1
-    val countBits = (theInt: Int) => (0 until Board.BOARD_SIZE).map(x => (theInt >> x) & 1).count(_ == 1)
-    (0 to 1023).map(countBits).toArray
-
-  }
+  def fillerup = (size: Int) => math.pow(2, size).toLong - 1
 
   private def getNewGrid(rows: Int, cols: Int, fillMe: Boolean): Array[Long] =
     if (fillMe) Array.ofDim[Long](rows).map(_ => fillerup(cols)) else new Array[Long](rows)
@@ -380,12 +350,13 @@ object OccupancyGrid {
   private def getNewOccupancyGrid(rows: Int, cols: Int, fillMe: Boolean): Array[Array[Boolean]] =
     if (fillMe) Array.fill(rows, cols)(true) else Array.ofDim[Boolean](rows, cols)
 
-  def apply(rows: Int, cols: Int, filled: Boolean): OccupancyGrid = OccupancyGrid(
+  def apply(rows: Int, cols: Int, filled: Boolean, context:Context): OccupancyGrid = OccupancyGrid(
     rows,
     cols,
     OccupancyGrid.getNewGrid(rows, cols, filled),
     OccupancyGrid.getNewGrid(rows, cols, filled),
-    OccupancyGrid.getNewOccupancyGrid(rows, cols, filled)
+    OccupancyGrid.getNewOccupancyGrid(rows, cols, filled),
+    context
   )
 
 }
