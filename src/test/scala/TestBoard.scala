@@ -6,24 +6,25 @@ import org.scalatest.{FlatSpec, _}
 
 trait BoardFixture {
 
-  val context = new Context(new Conf(Seq()))
+  val context = Context()
+  val specification: Specification = context.specification
 
-  val boardSize = context.boardSize
+  val boardSize: Int = context.boardSize
   val board = new Board(context)
-  val pieces = new GamePieces(seed = new scala.util.Random().nextInt)
+  val gamePieces: GamePieces = context.getGamePieces(nextSeed = true)
   val initialOccupied: Int = board.grid.popCount
   val initialOpenLines: Int = board.grid.openLineCount
 
   def addRow(at: Int): Unit = {
 
-    board.place(GamePieces.h5Line, Loc(at, 0), updateColor = true)
-    board.place(GamePieces.h5Line, Loc(at, 5), updateColor = true)
+    board.place(gamePieces.h5Line, Loc(at, 0), updateColor = true)
+    board.place(gamePieces.h5Line, Loc(at, 5), updateColor = true)
 
   }
 
   def addCol(at: Int): Unit = {
-    board.place(GamePieces.v5Line, Loc(0, at), updateColor = true)
-    board.place(GamePieces.v5Line, Loc(5, at), updateColor = true)
+    board.place(gamePieces.v5Line, Loc(0, at), updateColor = true)
+    board.place(gamePieces.v5Line, Loc(5, at), updateColor = true)
   }
 }
 
@@ -31,7 +32,7 @@ class TestBoard extends FlatSpec {
 
   trait BoardCopyFixture extends BoardFixture {
 
-    board.place(pieces.getRandomPiece, Loc(boardSize / 2, boardSize / 2), updateColor = true) // just place one in the middle
+    board.place(gamePieces.getRandomPiece, Loc(boardSize / 2, boardSize / 2), updateColor = true) // just place one in the middle
 
     val copy: Board = Board.copy("copy", board)
 
@@ -46,13 +47,11 @@ class TestBoard extends FlatSpec {
 
   it must "count 2 neighbors correctly" in {
     new BoardFixture {
-      board.place(GamePieces.singleton, Loc(0, 0), updateColor = true)
-      val score = board.boardScore.twoNeighborsScore.intValue
+      board.place(gamePieces.singleton, Loc(0, 0), updateColor = true)
+      val score: Int = board.boardScore.twoNeighborsScore.intValue
       assert(score == 5, "placing a singleton at the upper left should result in a two neighbor count of 5")
     }
   }
-
-
 
   it must "make an exact copy" in {
     new BoardCopyFixture {
@@ -74,7 +73,7 @@ class TestBoard extends FlatSpec {
   it must "not reflect changes in underlying board when changes are made on a copy" in {
     new BoardCopyFixture {
       // place the random piece at the beginning
-      val piece: Piece = pieces.getRandomPiece
+      val piece: Piece = gamePieces.getRandomPiece
       board.place(piece, Loc(0, 0), updateColor = true) // we know that the source board is empty at (0,0) as it is not filled in on the fixture
 
       // iterate through piece indices as they will match the board at location (0,0)
@@ -96,7 +95,7 @@ class TestBoard extends FlatSpec {
       //        as there is no optimization that runs and if the pieces
       //        are returned in a different order, we may not
       //        clear enough lines to have this execute safely
-      for (piece <- pieces.pieceList) {
+      for (piece <- gamePieces.pieceList) {
         board.clearLines
         val boardScore = board.grid.popCount
         val pieceScore = piece.pointValue
@@ -228,7 +227,7 @@ class TestBoard extends FlatSpec {
         (boardSize - piece.rows + 1) * (boardSize - piece.cols + 1)
       }
       for {
-        piece <- pieces.pieceList
+        piece <- gamePieces.pieceList
         board = new Board(context)
       } {
         val legal = board.legalPlacements(piece).length

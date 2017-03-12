@@ -1,5 +1,5 @@
 /**
- * Created by nathan mccoy on  1/15/2017.
+ * Created by rhialtotm on  1/15/2017.
  *
  * introducing the Specification in order to configure it on the context
  *
@@ -29,9 +29,9 @@ case class OptimizationFactor(
   explanation: String
 )
 
-case class Specification(random:Boolean, optFactor: Option[OptimizationFactor], context:Context) {
+case class Specification(random: Boolean, optFactor: Option[OptimizationFactor], constructionInfo: ConstructionInfo) {
 
-  val boardSize = context.boardSize
+  val boardSize: Int = constructionInfo.boardSizeInfo.boardSize
 
   val avoidMiddleArray: Array[Array[Int]] = {
     // creates an array of board size
@@ -39,9 +39,8 @@ case class Specification(random:Boolean, optFactor: Option[OptimizationFactor], 
     // get much larger
     // then we add up all board positions where a value is on
 
-
     val smallestValue = 3
-   // Array.tabulate(boardSize, boardSize) { (_, _) => 0 }
+    // Array.tabulate(boardSize, boardSize) { (_, _) => 0 }
     Array.tabulate(boardSize, boardSize) { (row, col) =>
       val pos: Int = {
         val rowVal = math.pow(smallestValue, if (row < boardSize / 2) row + 1 else boardSize - row).toInt
@@ -58,7 +57,7 @@ case class Specification(random:Boolean, optFactor: Option[OptimizationFactor], 
   private val minimize = true
   private val maximize = false
 
-  private val totalPositions = context.boardPositions
+  private val totalPositions = constructionInfo.boardSizeInfo.boardPositions
 
   // todo - all things being equal, favor a position closer to the upper left (just add Loc Row and Col) - this will allow seeded games to repeat themselves I believe
   // todo - OptimizationFactor of all combinations of 3x3 1x5 and 5x1 - this is actually a lookahead.  dive into machine learning, m'lad
@@ -97,9 +96,6 @@ case class Specification(random:Boolean, optFactor: Option[OptimizationFactor], 
 
    */
 
-
-
-
   private val allOptimizationFactors = ListMap(
 
     // you'll need to update class Specification named optFactors below, plus the calls from BoardScore.scores if you change this
@@ -109,15 +105,15 @@ case class Specification(random:Boolean, optFactor: Option[OptimizationFactor], 
     avoidMiddleKey -> OptimizationFactor(avoidMiddleKey, minimize, fixedWeightMap(avoidMiddleKey), 0, avoidMiddleArraySum, "avoid middle", Specification.allFeatureDescriptions(avoidMiddleKey)),
     lineContiguousUnoccupiedKey -> OptimizationFactor(lineContiguousUnoccupiedKey, minimize, fixedWeightMap(lineContiguousUnoccupiedKey), boardSize * 2, totalPositions / 2, "spaces on a line", Specification.allFeatureDescriptions(lineContiguousUnoccupiedKey)),
     maxContiguousKey -> OptimizationFactor(maxContiguousKey, maximize, fixedWeightMap(maxContiguousKey), 0, boardSize, "connected open", Specification.allFeatureDescriptions(maxContiguousKey)),
-    maximizerKey -> OptimizationFactor(maximizerKey, maximize, fixedWeightMap(maximizerKey), 0, math.pow(boardSize - Specification.maximizer3x3Cols + 1, 2).toInt, "maximizer", Specification.allFeatureDescriptions(maximizerKey)),
+    maximizerKey -> OptimizationFactor(maximizerKey, maximize, fixedWeightMap(maximizerKey), 0, math.pow(boardSize - constructionInfo.maximizer3x3.cols + 1, 2).toInt, "maximizer", Specification.allFeatureDescriptions(maximizerKey)),
     neighborsFourKey -> OptimizationFactor(neighborsFourKey, minimize, fixedWeightMap(neighborsFourKey), 0, totalPositions / 2, "4 neighbors", Specification.allFeatureDescriptions(neighborsFourKey)),
-    neighborsThreeKey -> OptimizationFactor(neighborsThreeKey, minimize, fixedWeightMap(neighborsThreeKey), 0, totalPositions / 2, "3 neighbors",Specification.allFeatureDescriptions(neighborsThreeKey)),
+    neighborsThreeKey -> OptimizationFactor(neighborsThreeKey, minimize, fixedWeightMap(neighborsThreeKey), 0, totalPositions / 2, "3 neighbors", Specification.allFeatureDescriptions(neighborsThreeKey)),
     // i'm really not sure that 60 is the maximum number of two neighbors that can be created on a board
     // but i couldn't find another solution that was better
-    neighborsTwoKey -> OptimizationFactor(neighborsTwoKey, minimize, fixedWeightMap(neighborsTwoKey), 0, (totalPositions * .6).toInt, "2 neighbors",Specification.allFeatureDescriptions(neighborsTwoKey)),
+    neighborsTwoKey -> OptimizationFactor(neighborsTwoKey, minimize, fixedWeightMap(neighborsTwoKey), 0, (totalPositions * .6).toInt, "2 neighbors", Specification.allFeatureDescriptions(neighborsTwoKey)),
     occupiedKey -> OptimizationFactor(occupiedKey, minimize, fixedWeightMap(occupiedKey), 0, totalPositions, "occupied", Specification.allFeatureDescriptions(occupiedKey)),
     openLinesKey -> OptimizationFactor(openLinesKey, maximize, fixedWeightMap(openLinesKey), 0, boardSize * 2, "open rows + cols", Specification.allFeatureDescriptions(openLinesKey)),
-    roundScoreKey -> OptimizationFactor(roundScoreKey, maximize, fixedWeightMap(roundScoreKey), GamePieces.numPiecesInRound, context.maxRoundScore, "round score", Specification.allFeatureDescriptions(roundScoreKey))
+    roundScoreKey -> OptimizationFactor(roundScoreKey, maximize, fixedWeightMap(roundScoreKey), Game.numPiecesInRound, constructionInfo.maxRoundScore, "round score", Specification.allFeatureDescriptions(roundScoreKey))
 
   )
 
@@ -208,31 +204,33 @@ case class Specification(random:Boolean, optFactor: Option[OptimizationFactor], 
   val threeNeighborOptFactor: OptimizationFactor = spec(Specification.neighborsThreeKey)
   val twoNeighborsOptFactor: OptimizationFactor = spec(Specification.neighborsTwoKey)
 
-
-
-  private[this] def greenifyResult(optLabel: Option[String], isGreen: Boolean, value: Int): String = {
-
-    val resultString = optLabel match {
-      case s: Some[String] => s.get.optFactorLabel + (if (isGreen) value.greenLabel else value.redLabel)
-      case _               => (if (isGreen) value.greenLabel else value.redLabel).parens
-    }
-
-    resultString
-  }
-
-  private val piecePrefixLength = maxOptFactorLabelLength + prefixWeightFormatLength + 4
-
-  def getSimulationResultsString(simulationResults: List[SimulationInfo], chosen: Simulation, bullShit: String): String = {
+  def getSimulationResultsString(simulationResults: List[SimulationInfo], chosen: Simulation, bullShit: String, gamePieces: GamePieces): String = {
     // todo - add in simulations, skipped simulations, perSecond information
+
+    val weightBufferLength = 13 - StringFormats.weightFormatLength
+    val weightBuffer = " ".repeat(weightBufferLength + 3)
+
+    val prefixWeightFormatLength = StringFormats.weightFormatLength + 3
+    val piecePrefixLength = maxOptFactorLabelLength + prefixWeightFormatLength + 4
+
+    val columnPadding = Game.numPiecesInRound * 2
+
+    val spaceAndVertical = " " + StringFormats.VERTICAL_LINE
+    val scoreColumnString = "score".rightAlignedPadded(columnPadding + 1)
+    val normalizedColumnString = "normalized".rightAlignedPadded(columnPadding + 6)
+
+    val permutationColumnWidth = ((gamePieces.widestPiece * 2 - 1) * 3) + 7
+    val weightedColumnString = "weighted".rightAlignedPadded(permutationColumnWidth - (scoreColumnString.length + normalizedColumnString.length))
+    val columnHeader = scoreColumnString + normalizedColumnString + weightedColumnString + spaceAndVertical
 
     def getPrefixString(name: String, value: String) = name.leftAlignedPadded(maxOptFactorLabelLength + 1).appendColon +
       value.rightAlignedPadded(prefixWeightFormatLength) + spaceAndVertical
 
-    val wrappedBullShit = bullShit.wrap(piecePrefixLength, GamePieces.tallestPiece + 1, StringFormats.BRIGHT_MAGENTA)
+    val wrappedBullShit = bullShit.wrap(piecePrefixLength, gamePieces.tallestPiece + 1, StringFormats.BRIGHT_MAGENTA)
 
     val piecesString = simulationResults
       .zipWithIndex
-      .map { case (result, index) => result.pieces.permutationPiecesHeader(index) }
+      .map { case (result, index) => result.pieces.permutationPiecesHeader(index, gamePieces) }
       .spreadHorizontal(bracketWith = StringFormats.VERTICAL_LINE + " ", separator = StringFormats.VERTICAL_LINE + " ")
 
     val piecesHeader = wrappedBullShit.splice(piecesString.split("\n")) + "\n"
@@ -309,16 +307,16 @@ object Specification {
 
   val allFeatureDescriptions = ListMap(
 
-    Specification.avoidMiddleKey ->  "unoccupied positions in the middle are bad so score them with a high score",
-    Specification.lineContiguousUnoccupiedKey ->  "number of separate spaces on a given line - indicator of how many pieces needed to clear",
-    Specification.maxContiguousKey ->  "number of lines (either horizontal or vertical) that are open and contiguous",
-    Specification.maximizerKey ->  "positions in which a 3x3 piece can fit",
-    Specification.neighborsFourKey ->  "number of positions surrounded on all 4 sides",
+    Specification.avoidMiddleKey -> "unoccupied positions in the middle are bad so score them with a high score",
+    Specification.lineContiguousUnoccupiedKey -> "number of separate spaces on a given line - indicator of how many pieces needed to clear",
+    Specification.maxContiguousKey -> "number of lines (either horizontal or vertical) that are open and contiguous",
+    Specification.maximizerKey -> "positions in which a 3x3 piece can fit",
+    Specification.neighborsFourKey -> "number of positions surrounded on all 4 sides",
     Specification.neighborsThreeKey -> "number of positions surrounded on 3 of 4 sides",
     Specification.neighborsTwoKey -> "number of positions surrounded on 2 of 4 sides",
-    Specification.occupiedKey ->  "occupied positions",
-    Specification.openLinesKey ->  "count of open rows plus open columns",
-    Specification.roundScoreKey ->  "total score for the round"
+    Specification.occupiedKey -> "occupied positions",
+    Specification.openLinesKey -> "count of open rows plus open columns",
+    Specification.roundScoreKey -> "total score for the round"
 
   )
 
@@ -327,67 +325,18 @@ object Specification {
     allFeatureDescriptions.map(desc => "* " + desc._1.label + " - " + desc._2).mkString("\n")
   }
 
-
-  // one of the optimizations is to ensure that the maximum number of
-  // maximum pieces can fit on a board from all the boards simulated in the permutation of a set of pieces
-  // apparently it's important that this be declared after Game.CYAN is declared above :)
-  // this is not private because we show the maximizer piece at game start
-  val maximizer3x3: Piece = GamePieces.bigBox
-  // couldn't get initializing sequence to work corectly in order to provide
-  // the board size on the command line without ending up with some catch-22's
-  // this magic value addresses the fact that specification is constructed as part of
-  // context construction - but it needs the maximizer cols for a specificaiton opt factor
-  val maximizer3x3Cols:Int = 3
-
-
-  /*  val maximizer5x1: Piece = GamePieces.h5Line
-  val maximizer1x5: Piece = GamePieces.v5Line
-
-  val maximizerArray: Array[Array[Piece]] = Array(
-    maximizer3x3,
-    maximizer3x3,
-    maximizer3x3,
-    maximizer5x1,
-    maximizer5x1,
-    maximizer5x1,
-    maximizer1x5,
-    maximizer1x5,
-    maximizer1x5
-
-  ).combinations(3).toArray */
-
-
-
-
-  def apply(random: Boolean, context:Context): Specification = {
-    Specification(random, None, context)
+  def apply(random: Boolean, constructionInfo: ConstructionInfo): Specification = {
+    Specification(random, None, constructionInfo)
   }
 
-  def apply(optFactor: OptimizationFactor,context:Context): Specification = {
-    Specification(random=true, Some(optFactor), context)
+  def apply(optFactor: OptimizationFactor, constructionInfo: ConstructionInfo): Specification = {
+    Specification(random = true, Some(optFactor), constructionInfo)
   }
 
-  def apply(context:Context): Specification = {
-    Specification(random=true, None, context)
+  def apply(constructionInfo: ConstructionInfo): Specification = {
+    Specification(random = true, None, constructionInfo)
   }
-
 
   // used in formatting results
-  private val weightBufferLength = 13 - StringFormats.weightFormatLength
-  private val weightBuffer = " ".repeat(weightBufferLength + 3)
-
-  private val prefixWeightFormatLength = StringFormats.weightFormatLength + 3
-
-
-  private val columnPadding = GamePieces.numPiecesInRound * 2
-
-  private val spaceAndVertical = " " + StringFormats.VERTICAL_LINE
-  private val permutationColumnWidth = ((GamePieces.widestPiece * 2 - 1) * 3) + 7
-  private val scoreColumnString = "score".rightAlignedPadded(columnPadding + 1)
-  private val normalizedColumnString = "normalized".rightAlignedPadded(columnPadding + 6)
-  private val weightedColumnString = "weighted".rightAlignedPadded(permutationColumnWidth - (scoreColumnString.length + normalizedColumnString.length))
-  private val columnHeader = scoreColumnString + normalizedColumnString + weightedColumnString + spaceAndVertical
-
-
 
 }

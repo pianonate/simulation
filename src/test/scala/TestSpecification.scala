@@ -1,5 +1,5 @@
 /**
- * Created by nathan mccoy on 1/15/17.
+ * Created by rhialtotm on 1/15/17.
  * used to test all combinations of specification entries
  */
 import org.scalatest.FlatSpec
@@ -12,14 +12,13 @@ class TestSpecification extends FlatSpec {
 
     new GameInfoFixture {
 
-      val spec = Specification(context)
+      private val spec = context.specification
 
       assert(spec.spec.nonEmpty)
       context.stopGameAtRound = 2 // ensure the game runs fast - just to exercise code
       context.gamesToPlay = 1 // only run one game
       context.show = false // don't show results as the game is playing
 
-      context.specification = spec
       val game = new Game(context, multiGameStats)
       val result: GameResults = game.run
       assert(result.score > 0)

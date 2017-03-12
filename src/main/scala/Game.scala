@@ -8,7 +8,7 @@
  * todo - abridged vs. detailed logging - for outputting to brendan vs .ux
  * todo - allowed combinations optimization could work even with cleared lines - use the specified combinations but if you clear lines, have a 2 combo legal and if you clear another line, then all positions are legal
  * todo - create a blog series
- * todo - automatically output the weights from a highscore game to a file that can be copied over the fixed weightmap - code generation
+ * todo - automatically output the weights from a highscore game to a file that can be copied over the fixed weight map - code generation
  */
 
 import scala.collection.GenSeq
@@ -49,8 +49,9 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
   private[this] val boardSize: Int = context.boardSize
   private[this] val gameStats: GameStats = new GameStats
 
-  private[this] val gameSeed = context.getGameSeed
-  private[this] val gamePieces: GamePieces = new GamePieces(gameSeed)
+  private[this] val gamePieces: GamePieces = context.getGamePieces(nextSeed = true)
+  private[this] val gameSeed = context.getCurrentGameSeed
+  assert(gamePieces.seed == gameSeed)
 
   private[this] val score = Counter()
   private[this] val rowsCleared = Counter()
@@ -60,7 +61,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
   private[this] val nonSimulationTimer = new GameTimer
 
   private[this] val postTimer = new GameTimer
-  postTimer.pause
+  postTimer.pause()
 
   private[this] val timerGetPlacePiecesResultsString = new GameTimer
   private[this] val timerGetRoundResultsString = new GameTimer
@@ -68,11 +69,11 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
   private[this] val timerPrintHeader = new GameTimer
   private[this] val timerPrintRoundResults = new GameTimer
 
-  timerGetPlacePiecesResultsString.pause
-  timerGetRoundResultsString.pause
-  timerSimulationResultsString.pause
-  timerPrintHeader.pause
-  timerPrintRoundResults.pause
+  timerGetPlacePiecesResultsString.pause()
+  timerGetRoundResultsString.pause()
+  timerSimulationResultsString.pause()
+  timerPrintHeader.pause()
+  timerPrintRoundResults.pause()
 
   private[this] val bullShit = new BullShit(rounds, gameTimer)
 
@@ -195,7 +196,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
       if (context.replayGame && context.ignoreSimulation)
         "\ninstrumented game - skipping results\n"
       else {
-        val resultsString = "\n" + context.specification.getSimulationResultsString(results, bestSimulation, bullShit.iterator.next) + "\n"
+        val resultsString = "\n" + context.specification.getSimulationResultsString(results, bestSimulation, bullShit.iterator.next, gamePieces) + "\n"
         resultsString
       }
 
@@ -295,7 +296,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
     nonSimulationTimer.resume()
 
-    postTimer.resume
+    postTimer.resume()
 
     val bestSimulation = getTheChosenOne(results, replayPieces)
 
@@ -325,7 +326,6 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
           val unplacedPiecesString = getUnplacedPiecesString(bestSimulation)
 
-
           timerPrintHeader.resume()
           val sb = new StringBuilder
           sb ++= StringFormats.CLEAR_SCREEN
@@ -350,11 +350,11 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
       logRound(results, bestSimulation, placePiecesInfo, colorGridBitMask)
     }
 
-    if (bestSimulation.pieceCount < GamePieces.numPiecesInRound || (rounds.value == context.stopGameAtRound)) {
+    if (bestSimulation.pieceCount < Game.numPiecesInRound || (rounds.value == context.stopGameAtRound)) {
       gameOver
     }
 
-    postTimer.pause
+    postTimer.pause()
 
   }
 
@@ -483,7 +483,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
           // (locPieceHash % totalPermutations) == permutationIndex
           // even if this permutation is the only one that handles this set of pieces in the three positions
           // indicated - anytime there are 2 or 3 of the same pieces in this single permutation, we can
-          // eliminate redundant calculations by the following algrithm
+          // eliminate redundant calculations by the following algorithm
           /*
            the first piece can be any position from 0 to positions - 2
            the second piece can be the first piece position + 1 up to positions - 1
@@ -800,7 +800,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
     val newBoard = (getShowBoard(pieceHandlerInfo.unclearedBoard) + appendToBoard) splice newResults
 
-    val finalBoard = if (pieceHandlerInfo.index == GamePieces.numPiecesInRound) newBoard splice (getShowBoard(this.board) + appendToBoard).split("\n") else newBoard
+    val finalBoard = if (pieceHandlerInfo.index == Game.numPiecesInRound) newBoard splice (getShowBoard(this.board) + appendToBoard).split("\n") else newBoard
 
     // todo - get rid of piece.cellShowFunction - it's got to work better than this
 
@@ -812,7 +812,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
     val placingHeader = Array(placingLabel) ++ pieceArray
 
-    val remainingPieceLines = (placingHeader.length to GamePieces.tallestPiece).map(_ => " ".repeat(placingBuffer)).toArray
+    val remainingPieceLines = (placingHeader.length to gamePieces.tallestPiece).map(_ => " ".repeat(placingBuffer)).toArray
     val atLoc = Array(("at " + pieceHandlerInfo.loc.show).leftAlignedPadded(placingBuffer))
 
     val placingContent = placingHeader ++ remainingPieceLines ++ atLoc
@@ -967,16 +967,6 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
     }
   }
 
-  val delimiter = ","
-
-  private def getNameVal(name: String, value: Any): String = {
-    getNameVal(name, value, delimited = true)
-  }
-
-  private def getNameVal(name: String, value: Any, delimited: Boolean) = {
-    "\"" + name + "\":" + value.toString + (if (delimited) delimiter else "")
-  }
-
   private def logWeights(): Unit = {
 
     if (context.logJSON) {
@@ -1080,6 +1070,8 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 }
 
 object Game {
+
+  val numPiecesInRound: Int = 3
 
   /* val positions = 0 until Board.BOARD_SIZE * Board.BOARD_SIZE
   val positions = 0 until 10

@@ -24,24 +24,23 @@ class Board(
   final val grid:          OccupancyGrid,
   final val colorGrid:     Array[Array[String]],
   final val specification: Specification,
-  final val context:     Context
+  final val context:       Context
 ) extends Piece {
 
-  def this(context:Context) {
+  def this(context: Context) {
     // initial board creation just requires a size - initialize with all proper defaults
     this(
       "Board",
       Board.BOARD_COLOR,
       0,
-      OccupancyGrid(context.boardSize, context.boardSize, filled = false, context),
+      OccupancyGrid(context.boardSize, context.boardSize, filled = false, context.boardSizeInfo),
       Board.getBoardColorGrid(context.boardSize),
       context.specification,
       context
     )
   }
 
-  val boardSize = context.boardSize
-
+  val boardSize: Int = context.boardSize
 
   // def so a new one is created every time boardScore is called
   def boardScore: BoardScore = BoardScore(this, context)
@@ -59,7 +58,7 @@ class Board(
       Board.UNOCCUPIED_BOX_CHAR
   }
 
-  def maximizerCount: Int = legalPlacements(Specification.maximizer3x3).length
+  def maximizerCount: Int = legalPlacements(context.maximizer3x3).length
 
   def avoidMiddleSum: Int = {
     var i = 0
@@ -78,6 +77,7 @@ class Board(
     sum
   }
 
+  // allow for setting this by the game which does the scoring
   var roundScore = 0
 
   // changed to not use a rotated copy of the board
@@ -332,14 +332,13 @@ object Board {
 
   private val UNOCCUPIED_BOX_CHAR = BOARD_COLOR + BOX_CHAR
 
-
   def copy(newName: String, boardToCopy: Board): Board = {
 
     new Board(newName, BOARD_COLOR, 0, boardToCopy.grid.copy, boardToCopy.colorGrid, boardToCopy.specification, boardToCopy.context)
 
   }
 
-  private def getBoardColorGrid(size:Int): Array[Array[String]] = {
+  private def getBoardColorGrid(size: Int): Array[Array[String]] = {
     Array.tabulate(size, size) { (_, _) => "" }
   }
 

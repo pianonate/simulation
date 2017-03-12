@@ -8,7 +8,7 @@ abstract class Piece {
   val name: String
   val color: String
   val grid: OccupancyGrid
-  val prime:Int
+  val prime: Int
   val weight: Int = 0 // defined so subclasses (such as Board) don't have to provide an implementation
 
   final val usage = Counter()
@@ -27,7 +27,7 @@ abstract class Piece {
    * recalculate it each time
    */
   final lazy val pointValue: Int = grid.popCount
-  final lazy val offSetToFirstOnPosition:Int = cachedOccupancyGrid(0).zipWithIndex.filter(_._1==true)(0)._2
+  final lazy val offSetToFirstOnPosition: Int = cachedOccupancyGrid(0).zipWithIndex.filter(_._1 == true)(0)._2
 
   override def toString: String = this.name // for the debugger
 
@@ -57,16 +57,16 @@ abstract class Piece {
 
 // generic line class - let's you create a bunch of different lines
 // length is not marked as val because it is not a field we retain
-case class Line( final val grid: OccupancyGrid, final val name: String, final val color: String, final val prime:Int, final override val weight: Int) extends Piece
+case class Line( final val grid: OccupancyGrid, final val name: String, final val color: String, final val prime: Int, final override val weight: Int) extends Piece
 
 // generic box class - let's you create boxes of different sizes
 // size is not marked as val because it is not a field we retain
 // although size does matter
-case class Box( final val grid: OccupancyGrid, final val name: String, final val color: String,  final val prime:Int, final override val weight: Int) extends Piece
+case class Box( final val grid: OccupancyGrid, final val name: String, final val color: String, final val prime: Int, final override val weight: Int) extends Piece
 
 // generic El class - let's you create L's of different sizes
 // size is not marked as val because it is not a field we retain
-case class El( final val grid: OccupancyGrid, final val name: String, final val color: String,  final val prime:Int, final override val weight: Int) extends Piece {
+case class El( final val grid: OccupancyGrid, final val name: String, final val color: String, final val prime: Int, final override val weight: Int) extends Piece {
 
   // blank out the hole in the el
 
@@ -81,8 +81,6 @@ case class El( final val grid: OccupancyGrid, final val name: String, final val 
 
 object Piece {
 
-  var ctx:Option[Context] = None
-
   val primeIterator: Iterator[Int] = {
 
     def sieve(s: Stream[Int]): Stream[Int] = {
@@ -91,12 +89,11 @@ object Piece {
 
     sieve(Stream.from(2)).toIterator
 
-
   }
 
-  def getLinearGrid(length: Int): OccupancyGrid = getGrid(1, length, filled = true)
-  def getBoxGrid(size: Int): OccupancyGrid = getGrid(size, size, filled = true)
-  def getGrid(rows: Int, cols: Int, filled: Boolean): OccupancyGrid = OccupancyGrid(rows, cols, filled, ctx.get )
+  def getLinearGrid(length: Int, boardSizeInfo: BoardSizeInfo): OccupancyGrid = getGrid(1, length, filled = true, boardSizeInfo)
+  def getBoxGrid(size: Int, boardSizeInfo: BoardSizeInfo): OccupancyGrid = getGrid(size, size, filled = true, boardSizeInfo)
+  def getGrid(rows: Int, cols: Int, filled: Boolean, boardSizeInfo: BoardSizeInfo): OccupancyGrid = OccupancyGrid(rows, cols, filled, boardSizeInfo)
 
   // take a piece, and create a new piece, rotated 90 degrees
   def rotate90(newName: String, pieceToCopy: Piece): Piece = {

@@ -71,12 +71,58 @@ import scala.util.Random
 
  */
 
-class GamePieces(seed: Int) {
+class GamePieces(val seed: Int, boardSizeInfo: BoardSizeInfo) {
+
+  private[this] val singletonName = "Singleton"
+  private[this] val h2LineName = "HLine2"
+  private[this] val v2LineName = "VLine2"
+  private[this] val h3LineName = "HLine3"
+  private[this] val v3LineName = "VLine3"
+  private[this] val h4LineName = "HLine4"
+  private[this] val v4LineName = "VLine4"
+  private[this] val h5LineName = "HLine5"
+  private[this] val v5LineName = "VLine5"
+  private[this] val boxName = "Box"
+  private[this] val bigBoxName = "BigBox"
+  private[this] val lowerLeftElName = "LowerLL"
+  private[this] val upperLeftElName = "UpperLL"
+  private[this] val upperRightElName = "UpperRL"
+  private[this] val lowerRightElName = "LowerRL"
+  private[this] val bigLowerLeftElName = "BigLowerLL"
+  private[this] val bigUpperLeftElName = "BigUpperLL"
+  private[this] val bigUpperRightElName = "BigUpperRL"
+  private[this] val bigLowerRightElName = "BigLowerRL"
+
+  // used for testing otherwise they could just be private
+  val singleton = Line(Piece.getLinearGrid(1, boardSizeInfo), singletonName, StringFormats.BLUE, Piece.primeIterator.next, 4)
+
+  val h2Line = Line(Piece.getLinearGrid(2, boardSizeInfo), h2LineName, StringFormats.BRIGHT_YELLOW, Piece.primeIterator.next, 6)
+  val v2Line: Piece = Piece.rotate90(v2LineName, h2Line)
+
+  val h3Line = Line(Piece.getLinearGrid(3, boardSizeInfo), h3LineName, StringFormats.YELLOW, Piece.primeIterator.next, 6)
+  val v3Line: Piece = Piece.rotate90(v3LineName, h3Line)
+
+  val h4Line = Line(Piece.getLinearGrid(4, boardSizeInfo), h4LineName, StringFormats.BRIGHT_RED, Piece.primeIterator.next, 4)
+  val v4Line: Piece = Piece.rotate90(v4LineName, h4Line)
+
+  val h5Line = Line(Piece.getLinearGrid(5, boardSizeInfo), h5LineName, StringFormats.RED, Piece.primeIterator.next, 4)
+  val v5Line: Piece = Piece.rotate90(v5LineName, h5Line)
+
+  val box = Box(Piece.getBoxGrid(2, boardSizeInfo), boxName, StringFormats.GREEN, Piece.primeIterator.next, 12)
+  val bigBox = Box(Piece.getBoxGrid(3, boardSizeInfo), bigBoxName, StringFormats.CYAN, Piece.primeIterator.next, 4)
+
+  val lowerLeftEl = El(Piece.getBoxGrid(2, boardSizeInfo), lowerLeftElName, StringFormats.MAGENTA, Piece.primeIterator.next, 3)
+  val upperLeftEl: Piece = Piece.rotate90(upperLeftElName, lowerLeftEl)
+  val upperRightEl: Piece = Piece.rotate90(upperRightElName, upperLeftEl)
+  val lowerRightEl: Piece = Piece.rotate90(lowerRightElName, upperRightEl)
+
+  val bigLowerLeftEl = El(Piece.getBoxGrid(3, boardSizeInfo), bigLowerLeftElName, StringFormats.CYAN, Piece.primeIterator.next, 2)
+  val bigUpperLeftEl: Piece = Piece.rotate90(bigUpperLeftElName, bigLowerLeftEl)
+  val bigUpperRightEl: Piece = Piece.rotate90(bigUpperRightElName, bigUpperLeftEl)
+  val bigLowerRightEl: Piece = Piece.rotate90(bigLowerRightElName, bigUpperRightEl)
 
   // set the piece generator to be seeded by the passed in seed
   private[this] val randomizer: Random = new scala.util.Random(seed)
-
-  import GamePieces._
 
   // format: OFF
   // map as a convenience for requesting specific named pieces
@@ -137,65 +183,8 @@ class GamePieces(seed: Int) {
   // provide an integer index that we then pack into a BigInt representing the colored state of a given board
   // val colorIndexMap = pieceList.zipWithIndex.map(tup => (tup._1.color, tup._2 + 1)).toMap
   val colorIndexMap: Map[String, Int] = pieceList.map(_.color).toSet.zipWithIndex.map(tup => (tup._1, tup._2 + 1)).toMap
-
-}
-
-object GamePieces {
-
-  val numPiecesInRound: Int = 3
-
-  val singletonName = "Singleton"
-  val h2LineName = "HLine2"
-  val v2LineName = "VLine2"
-  val h3LineName = "HLine3"
-  val v3LineName = "VLine3"
-  val h4LineName = "HLine4"
-  val v4LineName = "VLine4"
-  val h5LineName = "HLine5"
-  val v5LineName = "VLine5"
-  val boxName = "Box"
-  val bigBoxName = "BigBox"
-  val lowerLeftElName = "LowerLL"
-  val upperLeftElName = "UpperLL"
-  val upperRightElName = "UpperRL"
-  val lowerRightElName = "LowerRL"
-  val bigLowerLeftElName = "BigLowerLL"
-  val bigUpperLeftElName = "BigUpperLL"
-  val bigUpperRightElName = "BigUpperRL"
-  val bigLowerRightElName = "BigLowerRL"
-
-  // used for testing otherwise they could just be private
-  val singleton = Line(Piece.getLinearGrid(1), GamePieces.singletonName, StringFormats.BLUE, Piece.primeIterator.next, 4)
-
-  val h2Line = Line(Piece.getLinearGrid(2), GamePieces.h2LineName, StringFormats.BRIGHT_YELLOW, Piece.primeIterator.next, 6)
-  val v2Line: Piece = Piece.rotate90(GamePieces.v2LineName, h2Line)
-
-  val h3Line = Line(Piece.getLinearGrid(3), GamePieces.h3LineName, StringFormats.YELLOW, Piece.primeIterator.next, 6)
-  val v3Line: Piece = Piece.rotate90(GamePieces.v3LineName, h3Line)
-
-  val h4Line = Line(Piece.getLinearGrid(4), GamePieces.h4LineName, StringFormats.BRIGHT_RED, Piece.primeIterator.next, 4)
-  val v4Line: Piece = Piece.rotate90(GamePieces.v4LineName, h4Line)
-
-  val h5Line = Line(Piece.getLinearGrid(5), GamePieces.h5LineName, StringFormats.RED, Piece.primeIterator.next, 4)
-  val v5Line: Piece = Piece.rotate90(GamePieces.v5LineName, h5Line)
-
-  val box = Box(Piece.getBoxGrid(2), GamePieces.boxName, StringFormats.GREEN, Piece.primeIterator.next, 12)
-  val bigBox = Box(Piece.getBoxGrid(3), GamePieces.bigBoxName, StringFormats.CYAN, Piece.primeIterator.next, 4)
-
-  val lowerLeftEl = El(Piece.getBoxGrid(2), GamePieces.lowerLeftElName, StringFormats.MAGENTA, Piece.primeIterator.next, 3)
-  val upperLeftEl: Piece = Piece.rotate90(GamePieces.upperLeftElName, lowerLeftEl)
-  val upperRightEl: Piece = Piece.rotate90(GamePieces.upperRightElName, upperLeftEl)
-  val lowerRightEl: Piece = Piece.rotate90(GamePieces.lowerRightElName, upperRightEl)
-
-  val bigLowerLeftEl = El(Piece.getBoxGrid(3), GamePieces.bigLowerLeftElName, StringFormats.CYAN, Piece.primeIterator.next, 2)
-  val bigUpperLeftEl: Piece = Piece.rotate90(GamePieces.bigUpperLeftElName, bigLowerLeftEl)
-  val bigUpperRightEl: Piece = Piece.rotate90(GamePieces.bigUpperRightElName, bigUpperLeftEl)
-  val bigLowerRightEl: Piece = Piece.rotate90(GamePieces.bigLowerRightElName, bigUpperRightEl)
-
-  private val gamePieces = new GamePieces(seed = 0)
-  // used for outputting a set of three pieces
-  val tallestPiece: Int = gamePieces.pieceList.map(_.rows).max
-  val widestPiece: Int = gamePieces.pieceList.map(_.cols).max
-  val longestNameLength: Int = gamePieces.pieceList.map(_.name.length).max
+  val tallestPiece: Int = pieceList.map(_.rows).max
+  val widestPiece: Int = pieceList.map(_.cols).max
+  val longestNameLength: Int = pieceList.map(_.name.length).max
 
 }

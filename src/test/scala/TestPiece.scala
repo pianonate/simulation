@@ -13,7 +13,7 @@ class TestPiece extends FlatSpec {
   it must "must have a point value consistent with the number of occupied positions in the piece" in {
 
     // validate all the pieces we create
-    val pieces = new GamePieces(seed=0).pieceList
+    val pieces = Context().getGamePieces(nextSeed = true).pieceList
 
     pieces foreach {piece =>
       val occupancyLength = piece.grid.occupancyGrid.flatten.count(_ == true)

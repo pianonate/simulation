@@ -7,14 +7,95 @@ import org.slf4j.LoggerFactory
 import org.slf4j.MDC
 import scala.language.reflectiveCalls
 
+import ch.qos.logback.classic.{Logger, LoggerContext}
 
-import ch.qos.logback.classic.{ Logger,  LoggerContext }
+// todo - add tests to ensure that game seeds whether passed in or not are honored
+case class BoardSizeInfo(boardSize: Int) {
 
-class Context(conf: Conf) {
+  val boardPositions: Int = boardSize * boardSize
+
+  val popTable: Array[Int] = {
+
+    // all possible combination of on bits in a context.boardSize position row:
+    // todo - refactor (theInt >> x) &1
+    val countBits = (theInt: Int) => (0 until boardSize).map(x => (theInt >> x) & 1).count(_ == 1)
+    (0 to 1023).map(countBits).toArray
+
+  }
+
+  val anySizeEmptyLineValue: Int = 0
+  val boardSizeFullLineValue: Long = OccupancyGrid.fillerup(boardSize)
+
+}
+
+case class ConstructionInfo(conf: Conf) {
+
+  val boardSizeInfo = BoardSizeInfo(conf.dimensions())
+
+  // provides the score for clearing 1 to 6 (max possible) lines at once
+  val lineClearingScore: Array[Int] = {
+    val r = 1 to 6
+    // Array(0,10,30,60,100,150,210)
+    r.scanLeft(0)(_ + _ * boardSizeInfo.boardSize).toArray
+  }
+
+  private val multiGameSeed = conf.sessionSeed()
+  // either we will generate a new series of games from scratch, or take the provided multi game seed to redo a previously generated series
+  private val randomizer = if (multiGameSeed == 0) new scala.util.Random() else new scala.util.Random(multiGameSeed)
+
+  // get the gameSeed from the command line
+  private var confGameSeed = conf.gameSeed()
+
+  // allows overriding the next game seed - used by weight generator
+  def setGameSeed(seed: Int): Unit = confGameSeed = seed
+
+  // use this as a placeholder so when it is asked for when not needed to increment,
+  // we can just return the current value
+  private var currentGameSeed: Int = confGameSeed
+
+  // if there is no passed in gameSeed then generate it from the randomizer,
+  // otherwise use the gameSeed that is either passed in via conf or set via setGameSeed
+  // appended abs as there is no need for negative numbers to make the json file name confusing
+  def getNextGameSeed: Int = {
+    val seed = (if (confGameSeed == 0) randomizer.nextInt else confGameSeed).abs
+    currentGameSeed = seed
+    seed
+  }
+
+  def getCurrentGameSeed: Int = currentGameSeed
+
+  def getGamePieces(nextSeed: Boolean) = {
+    val seed = if (nextSeed) getNextGameSeed else getCurrentGameSeed
+    new GamePieces(seed, boardSizeInfo)
+  }
+
+  val maximizer3x3: Box = getGamePieces(nextSeed = false).bigBox
+
+  // this is pretty theoretical as to the max - it may be possible to get higher than this but I think it's pretty unlikely
+  // this problem goes away if we implement z-score
+  val maxRoundScore: Int =
+    lineClearingScore(lineClearingScore.length - 1) +
+      (maximizer3x3.pointValue * 3) +
+      lineClearingScore(3)
+}
+
+case class Context(conf: Conf) {
+
+  // construction info is just a pass through when not used in constructing Specification
+  // make the code a little more readable by just delegating to constructionInfo
+  private val constructionInfo = ConstructionInfo(conf)
+  def getConstructionInfo: ConstructionInfo = constructionInfo
+  def getCurrentGameSeed: Int = constructionInfo.getCurrentGameSeed
+  def getGamePieces(nextSeed: Boolean): GamePieces = constructionInfo.getGamePieces(nextSeed)
+  val maximizer3x3: Box = constructionInfo.maximizer3x3
+  val lineClearingScore: Array[Int] = constructionInfo.lineClearingScore
+  def setGameSeed(seed: Int): Unit = constructionInfo.setGameSeed(seed)
+
+  val boardSizeInfo: BoardSizeInfo = constructionInfo.boardSizeInfo
 
   private val loggerContext: LoggerContext = LoggerFactory.getILoggerFactory.asInstanceOf[LoggerContext]
 
-  val logger:Logger  = loggerContext.getLogger("root") // Logger("simulation_logger") // gets root logger - could also get it from loggerContext via loggerContext.getLogger("ROOT")
+  val logger: Logger = loggerContext.getLogger("root") // Logger("simulation_logger") // gets root logger - could also get it from loggerContext via loggerContext.getLogger("ROOT")
 
   sys.addShutdownHook(
     {
@@ -25,20 +106,20 @@ class Context(conf: Conf) {
     }
   )
 
-  val jsonLogger:Logger = loggerContext.getLogger("json")
+  val jsonLogger: Logger = loggerContext.getLogger("json")
 
   // used to append a game number to a json file so we get a file per game
   def setJSONFileNameDiscriminators(gameNumber: Int, gameSeed: Int): Unit = {
     MDC.put("gameInfo", "game_" + gameNumber.toString + "_seed_" + gameSeed.toString)
   }
 
-  val abridgedLogs:Boolean = conf.abridgedLogs()
+  val abridgedLogs: Boolean = conf.abridgedLogs()
 
   // vars so you can change test specifications - consider other mechanisms if you wish
   val beep: Boolean = conf.beep()
 
-  val boardSize:Int = conf.dimensions.getOrElse(10) // default board size is 10
-  val boardPositions:Int = boardSize * boardSize
+  val boardSize: Int = conf.dimensions() // default board size is 10
+  val boardPositions: Int = boardSize * boardSize
 
   // use these values to provide numbers that when added together will be unique for any combination of the three numbers
   // this was verified in the REPL
@@ -93,41 +174,11 @@ class Context(conf: Conf) {
     a
   }
 
-
-
-  val anySizeEmptyLineValue = 0
-  val boardSizeFullLineValue = OccupancyGrid.fillerup(boardSize)
-
-  val popTable: Array[Int] = {
-
-    // all possible combination of on bits in a context.boardSize position row:
-    // todo - refactor (theInt >> x) &1
-    val countBits = (theInt: Int) => (0 until boardSize).map(x => (theInt >> x) & 1).count(_ == 1)
-    (0 to 1023).map(countBits).toArray
-
-  }
-
-  // provides the score for clearing 1 to 6 (max possible) lines at once
-  val lineClearingScore: Array[Int] = {
-    val r = 1 to 6
-    // Array(0,10,30,60,100,150,210)
-    r.scanLeft(0)(_ + _ * boardSize).toArray
-  }
-
-
-
-  // this is pretty theoretical as to the max - it may be possible to get higher than this but I think it's pretty unlikely
-  // this problem goes away if we implement z-score
-  lazy val maxRoundScore =
-    lineClearingScore(lineClearingScore.length - 1) +
-      (Specification.maximizer3x3.pointValue * 3) +
-      lineClearingScore(3)
-
-  val fixedWeights:Boolean = conf.fixedWeights()
+  val fixedWeights: Boolean = conf.fixedWeights()
 
   var gamesToPlay: Int = conf.gamesToPlay()
   val generateWeightsGamesToPlay: Int = conf.weights.getOrElse(0)
-  val generatingWeights:Boolean = generateWeightsGamesToPlay > 0
+  val generatingWeights: Boolean = generateWeightsGamesToPlay > 0
 
   var stopGameAtRound: Int = conf.roundsToPlay()
   //noinspection VarCouldBeVal
@@ -140,24 +191,7 @@ class Context(conf: Conf) {
 
   val stopAtNewHighScore: Boolean = !conf.continueAtNewHighScore()
 
-  private val multiGameSeed = conf.sessionSeed()
-  // either we will generate a new series of games from scratch, or take the provided multi game seed to redo a previously generated series
-  private val randomizer = if (multiGameSeed == 0) new scala.util.Random() else new scala.util.Random(multiGameSeed)
-
-  // get the gameSeed from the command line
-  private var gameSeed = conf.gameSeed()
-
-  // allows overriding the next game seed - used by weight generator
-  def setGameSeed(seed: Int): Unit = gameSeed = seed
-
-  // if there is no passed in gameSeed then generate it from the randomizer,
-  // otherwise use the gameSeed that is either passed in via conf or set via setGameSeed
-  // appended abs as there is no need for negative numbers to make the json file name confusing
-  def getGameSeed: Int = (if (gameSeed == 0) randomizer.nextInt else gameSeed).abs
-
-
-  //noinspection VarCouldBeVal
-  var specification: Specification = Specification(this)
+  var specification = Specification(constructionInfo) // spec
 
   var replayGame: Boolean = false
   //noinspection VarCouldBeVal
@@ -170,12 +204,31 @@ class Context(conf: Conf) {
     internalReplayListIterator = plcList.toIterator
   }
 
-  def takeReplayPiecesForRound: Iterator[PieceLocCleared] = internalReplayListIterator.take(GamePieces.numPiecesInRound)
+  def takeReplayPiecesForRound: Iterator[PieceLocCleared] = internalReplayListIterator.take(Game.numPiecesInRound)
 
-  var simulationSelfTest:Boolean = false
+  var simulationSelfTest: Boolean = false
 
 }
 
 object Context {
   val FILE_HIGH_SCORE = ".highscore"
+
+  def apply(args: Array[String]): Context = {
+
+    val conf = new Conf(args)
+
+    // construction  and boardSizeInfo are used
+    // to deal with init order issues
+    // unfortunately you can't just pass in context to GamePieces and Specification
+    // because context isn't fully constructed yet.
+    // so passing these case classes along to construct other objects is
+    // the way to go
+
+    Context(conf)
+
+  }
+
+  // mostly used in testing where we are accepting defaults fro Conf
+  def apply(): Context = apply(Array[String]())
+
 }

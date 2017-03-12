@@ -1,5 +1,5 @@
 /**
- * Created by nathan mccoy on 12/24/16.
+ * Created by rhialtotm on 12/24/16.
  * encapsulate counter logic
  */
 case class Counter(from: Int = 0) {
@@ -11,7 +11,7 @@ case class Counter(from: Int = 0) {
   // this can be accessed from multiple threads so protect it
   // returned value can be used for simulation ID to avoid calling .hashcode
   // which takes up 7% of execution time right now
-  def inc(): Int = synchronized{counter += 1;counter}
-  def inc(count: Int): Int = { counter += count;counter }
+  def inc(): Int = synchronized { counter += 1; counter }
+  def inc(count: Int): Int = { counter += count; counter }
 
 }

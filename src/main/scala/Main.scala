@@ -13,26 +13,16 @@
  * todo - think about a new name for simulation class
  */
 
-import scala.language.reflectiveCalls
-
-//noinspection ScalaFileName
-
-object simulate {
+object Main {
 
   def main(args: Array[String]): Unit = {
 
-    // i think to break the maximizer3x3 catch-22 when creating specifications
-    // break apart the construction of an occupancy grid context that can be used
-    // to construct GamePieces and then store GamePieces on the context
-    // and pass the occupancy grid context each time into a newly constructed occupancy grid
-    // so we can ust calculate those values once
-    val conf = new Conf(args)
-    val context = new Context(conf)
+    val context = Context(args)
 
-    conf match {
+    context.conf match {
 
       case c if c.weights.getOrElse(0) > 0 => GameRunner.generateWeightsV1(context)
-      case c if c.printPieces()            => new GamePieces(seed = 0).printPossiblePieces(context)
+      case c if c.printPieces()            => context.getGamePieces(nextSeed = false).printPossiblePieces(context)
       case _                               => GameRunner.play(context)
 
     }

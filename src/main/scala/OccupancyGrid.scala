@@ -25,9 +25,8 @@ case class OccupancyGrid(
   rowGrid:       Array[Long],
   colGrid:       Array[Long],
   occupancyGrid: Array[Array[Boolean]],
-  context:       Context
+  boardSizeInfo: BoardSizeInfo
 ) {
-
 
   override def toString: String = {
 
@@ -49,7 +48,7 @@ case class OccupancyGrid(
     var count = 0
     while (row < rows) {
       val rowVal = rowGrid(row).toInt
-      count += context.popTable(rowVal)
+      count += boardSizeInfo.popTable(rowVal)
       row += 1
     }
     count
@@ -96,7 +95,7 @@ case class OccupancyGrid(
       newOccupancyGrid
     }
 
-    OccupancyGrid(rows, cols, newRowGrid, newColGrid, newOccupancyGrid, context)
+    OccupancyGrid(rows, cols, newRowGrid, newColGrid, newOccupancyGrid, boardSizeInfo)
 
   }
 
@@ -149,7 +148,7 @@ case class OccupancyGrid(
 
     val newOccupancyGrid = occupancyGrid.transpose.map(_.reverse)
 
-    OccupancyGrid(cols, rows, newRowGrid, newColGrid, newOccupancyGrid, context)
+    OccupancyGrid(cols, rows, newRowGrid, newColGrid, newOccupancyGrid, boardSizeInfo)
 
     /*
     for {
@@ -199,7 +198,7 @@ case class OccupancyGrid(
     }
     // it's an optimization to not just use unoccupy
     // as we can zero out the rowGrid in one fell swoop
-    rowGrid(row) = context.anySizeEmptyLineValue
+    rowGrid(row) = boardSizeInfo.anySizeEmptyLineValue
   }
 
   def clearCol(col: Int): Unit = {
@@ -211,7 +210,7 @@ case class OccupancyGrid(
     }
     // it's an optimization to not just use unoccupy
     // as we can zero out the colGrid in one fell swoop
-    colGrid(col) = context.anySizeEmptyLineValue
+    colGrid(col) = boardSizeInfo.anySizeEmptyLineValue
   }
 
   def openLineCount: Int = getOpenLineCount(rowGrid) + getOpenLineCount(colGrid)
@@ -220,7 +219,7 @@ case class OccupancyGrid(
     var i = 0
     var count = 0
     while (i < theGrid.length) {
-      if (theGrid(i) == context.anySizeEmptyLineValue) { count += 1 }
+      if (theGrid(i) == boardSizeInfo.anySizeEmptyLineValue) { count += 1 }
       i += 1
     }
     count
@@ -269,7 +268,7 @@ case class OccupancyGrid(
       var max = 0
       var currentMax = 0
       while (i < theGrid.length) {
-        if (theGrid(i) == context.anySizeEmptyLineValue) {
+        if (theGrid(i) == boardSizeInfo.anySizeEmptyLineValue) {
           currentMax += 1
           if (currentMax > max) { max = currentMax }
         } else {
@@ -295,7 +294,7 @@ case class OccupancyGrid(
     var i = 0
     var n = 0
     while (i < a.length) {
-      if (theGrid(i) == context.boardSizeFullLineValue) {
+      if (theGrid(i) == boardSizeInfo.boardSizeFullLineValue) {
         a(n) = i
         n += 1
       }
@@ -342,7 +341,7 @@ case class OccupancyGrid(
 
 object OccupancyGrid {
 
-  def fillerup = (size: Int) => math.pow(2, size).toLong - 1
+  def fillerup: (Int) => Long = (size: Int) => math.pow(2, size).toLong - 1
 
   private def getNewGrid(rows: Int, cols: Int, fillMe: Boolean): Array[Long] =
     if (fillMe) Array.ofDim[Long](rows).map(_ => fillerup(cols)) else new Array[Long](rows)
@@ -350,13 +349,13 @@ object OccupancyGrid {
   private def getNewOccupancyGrid(rows: Int, cols: Int, fillMe: Boolean): Array[Array[Boolean]] =
     if (fillMe) Array.fill(rows, cols)(true) else Array.ofDim[Boolean](rows, cols)
 
-  def apply(rows: Int, cols: Int, filled: Boolean, context:Context): OccupancyGrid = OccupancyGrid(
+  def apply(rows: Int, cols: Int, filled: Boolean, boardSizeInfo: BoardSizeInfo): OccupancyGrid = OccupancyGrid(
     rows,
     cols,
     OccupancyGrid.getNewGrid(rows, cols, filled),
     OccupancyGrid.getNewGrid(rows, cols, filled),
     OccupancyGrid.getNewOccupancyGrid(rows, cols, filled),
-    context
+    boardSizeInfo
   )
 
 }
