@@ -58,7 +58,7 @@ class Conf(arguments: Seq[String]) extends ScallopConf(arguments) {
   val beep: ScallopOption[Boolean] = opt[Boolean](descr = "turn on beeping at the end of each game")
   val continueAtNewHighScore: ScallopOption[Boolean] = opt[Boolean](descr = "continue playing if new high score is reached - default is to stop", name = "continue")
   val dimensions: ScallopOption[Int] = opt[Int](default = Some(Conf.DEFAULT_BOARD_SIZE), validate = (i) => i >= 5, descr = "board size wxh - default is 10")
-  val fixedWeights: ScallopOption[Boolean] = opt[Boolean](descr = "use weights hardcoded into the specification for the game. Default: Use random weights as currently, random plays better!")
+  val fixedWeights: ScallopOption[Boolean] = opt[Boolean](short=Conf.fixedWeightArg, descr = "use weights hardcoded into the specification for the game. Default: Use random weights as currently, random plays better!")
   val gamesToPlay: ScallopOption[Int] = opt[Int](default = Some(0), validate = (i) => i >= 0, name = "games", descr = "number of games to play - 0 is continuous")
   val gameSeed: ScallopOption[Int] = opt[Int](default = Some(0), short = 'm', descr = "provide a seed to cause every game to play with the same pieces, if you don't specify then the pieces will be random")
   val hide: ScallopOption[Boolean] = opt[Boolean](descr = "hides default output")
@@ -78,4 +78,5 @@ class Conf(arguments: Seq[String]) extends ScallopConf(arguments) {
 
 object Conf {
   private val DEFAULT_BOARD_SIZE = 10
+  val fixedWeightArg:Char = 'f'
 }

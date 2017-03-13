@@ -1049,8 +1049,8 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
         "score".jsonNameValuePair(score.value) +
         "linesCleared".jsonNameValuePair(rowsCleared.value + colsCleared.value) +
         /* "gamePieceSeed".jsonNameValuePair(gameSeed) + */ // you can get this from the file name
-        "beginOfRoundColorGridBitMask".jsonNameValuePair(colorGridBitMask) +
-        "endOfRoundBitMask".jsonNameValuePair(this.board.grid.asBigInt) +
+        "beginOfRoundColorGridBitMask".jsonNameValuePair(colorGridBitMask.toString.doubleQuote) +
+        "endOfRoundBitMask".jsonNameValuePair(this.board.grid.asBigInt.toString.doubleQuote) +
         "selectedPieces".jsonNameValuePair(selectedPieces.squareBracket) +
         (if (context.abridgedLogs) // only include permutations when not abridged
           "endOfRoundScores".jsonNameValuePairLast(endOfRoundScores.squareBracket)

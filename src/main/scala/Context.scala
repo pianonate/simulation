@@ -9,7 +9,6 @@ import scala.language.reflectiveCalls
 
 import ch.qos.logback.classic.{Logger, LoggerContext}
 
-// todo - add tests to ensure that game seeds whether passed in or not are honored
 case class BoardSizeInfo(boardSize: Int) {
 
   val boardPositions: Int = boardSize * boardSize
@@ -81,10 +80,15 @@ case class ConstructionInfo(conf: Conf) {
 
 case class Context(conf: Conf) {
 
+  // all vars on the context are vars so that tests can change them easily
+  // it would be possible to create Conf objects with the appropriate changes, I suppose,
+  // but it'd be time consumign to add at this point 
+  // the down side to leaving these as vars is it is more mistake-prone
+
   // construction info is just a pass through when not used in constructing Specification
   // make the code a little more readable by just delegating to constructionInfo
   private val constructionInfo = ConstructionInfo(conf)
-  def getConstructionInfo: ConstructionInfo = constructionInfo
+  def getConstructionInfo: ConstructionInfo = constructionInfo // used when generating weights
   def getCurrentGameSeed: Int = constructionInfo.getCurrentGameSeed
   def getGamePieces(nextSeed: Boolean): GamePieces = constructionInfo.getGamePieces(nextSeed)
   val maximizer3x3: Box = constructionInfo.maximizer3x3
@@ -191,7 +195,10 @@ case class Context(conf: Conf) {
 
   val stopAtNewHighScore: Boolean = !conf.continueAtNewHighScore()
 
-  var specification = Specification(constructionInfo) // spec
+  var specification = if (fixedWeights)
+    Specification(random = false, constructionInfo)
+  else
+    Specification(random = true, constructionInfo)
 
   var replayGame: Boolean = false
   //noinspection VarCouldBeVal

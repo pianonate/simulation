@@ -12,8 +12,6 @@ class TestGamePieces extends FlatSpec {
 
   it must "return the same set of pieces when seeded with the same value" in {
 
-    // todo - GamePieces can get seed from context directly
-
     val context = Context()
     val seed = new scala.util.Random().nextInt
     context.setGameSeed(seed)

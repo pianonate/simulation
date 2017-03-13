@@ -179,8 +179,9 @@ object GameRunner {
 
       val gameInfo = MultiGameStats(average, sessionHighScore, machineHighScore, gameCount.value, allGamesTimer)
 
-      if (context.fixedWeights)
-        context.specification = Specification(random = false, context.getConstructionInfo)
+      // need to reset to new random weights wach time
+      if (!context.fixedWeights)
+        context.specification = Specification(random= true, context.getConstructionInfo)
 
       val game = new Game(context, gameInfo)
 

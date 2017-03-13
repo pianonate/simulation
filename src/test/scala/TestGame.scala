@@ -253,10 +253,10 @@ class TestGame extends FlatSpec {
   }
 
   // todo  currently this is setup to use the new "possible combinations algo not the old locPieceHash algo
+  // todo - decide cleanup of the above - do we need to accumulate lineclearing in self test if we aren't using locPieceHash? algo
   // either algo will benefit from replacing List[PieceLocCleared] with Array[PieceLocCleared] but the latter
   // has the advantage of also allowing use of the combinations in the mustUpdateForThisPermutation routine
   // which eliminates duplicate calculations
-  // so... first try all of that (replacing List with Array) and for now, ignore this test
   it must "run all simulations for three singletons" in {
     new GameInfoFixture {
       private val plcList = List(

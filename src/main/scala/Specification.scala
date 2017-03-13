@@ -96,7 +96,8 @@ case class Specification(random: Boolean, optFactor: Option[OptimizationFactor],
 
    */
 
-  private val allOptimizationFactors = ListMap(
+  // public for testing purposes
+  val allFeatures = ListMap(
 
     // you'll need to update class Specification named optFactors below, plus the calls from BoardScore.scores if you change this
 
@@ -155,7 +156,8 @@ case class Specification(random: Boolean, optFactor: Option[OptimizationFactor],
     sortedWeights
   }
 
-  private def weightedSpecification(optFactors: ListMap[String, OptimizationFactor]): ListMap[String, OptimizationFactor] = {
+  // public for testing purposes
+  def weightedSpecification(optFactors: ListMap[String, OptimizationFactor]): ListMap[String, OptimizationFactor] = {
     // create a specification with only the filtered parameters
     val weightedFactors = normalizeOptimizationFactorWeights(optFactors)
 
@@ -163,10 +165,11 @@ case class Specification(random: Boolean, optFactor: Option[OptimizationFactor],
   }
 
   // following are used to construct results
-  val maxOptFactorLabelLength: Int = allOptimizationFactors.values.map(_.label.length).max
-  val maxOptFactorKeyLength: Int = allOptimizationFactors.values.map(_.key.length).max
+  val maxOptFactorLabelLength: Int = allFeatures.values.map(_.label.length).max
+  val maxOptFactorKeyLength: Int = allFeatures.values.map(_.key.length).max
 
   val spec: ListMap[String, OptimizationFactor] = optFactor match {
+
     case Some(optFactor) =>
       // get a specification just for this optimization factor used in weight generation
       val optFactorListMap = ListMap(optFactor.key -> optFactor)
@@ -178,13 +181,13 @@ case class Specification(random: Boolean, optFactor: Option[OptimizationFactor],
         val doubleRandomizer = new scala.util.Random()
 
         // copy the current specification into a random specification
-        val randomSpec = allOptimizationFactors.map {
+        val randomSpec = allFeatures.map {
           case (key, opt) =>
             (key, OptimizationFactor(opt.key, opt.minimize, doubleRandomizer.nextDouble, opt.minVal, opt.maxVal, opt.label, opt.explanation))
         }
         weightedSpecification(randomSpec)
       } else
-        weightedSpecification(allOptimizationFactors)
+        weightedSpecification(allFeatures)
   }
 
   val length: Int = spec.size
@@ -305,6 +308,7 @@ object Specification {
   val neighborsTwoKey = "neighborsTwoKey"
   val roundScoreKey = "roundScoreKey"
 
+  // todo - this was only created to try to work around an initialization issue - you can put it back in allFeatures
   val allFeatureDescriptions = ListMap(
 
     Specification.avoidMiddleKey -> "unoccupied positions in the middle are bad so score them with a high score",
