@@ -111,12 +111,12 @@ class GamePieces(val seed: Int, boardSizeInfo: BoardSizeInfo) {
   val box = Box(Piece.getBoxGrid(2, boardSizeInfo), boxName, StringFormats.GREEN, Piece.primeIterator.next, 12)
   val bigBox = Box(Piece.getBoxGrid(3, boardSizeInfo), bigBoxName, StringFormats.CYAN, Piece.primeIterator.next, 4)
 
-  val lowerLeftEl = El(Piece.getBoxGrid(2, boardSizeInfo), lowerLeftElName, StringFormats.MAGENTA, Piece.primeIterator.next, 3)
+  val lowerLeftEl = El(Piece.getElGrid(2, boardSizeInfo), lowerLeftElName, StringFormats.MAGENTA, Piece.primeIterator.next, 3)
   val upperLeftEl: Piece = Piece.rotate90(upperLeftElName, lowerLeftEl)
   val upperRightEl: Piece = Piece.rotate90(upperRightElName, upperLeftEl)
   val lowerRightEl: Piece = Piece.rotate90(lowerRightElName, upperRightEl)
 
-  val bigLowerLeftEl = El(Piece.getBoxGrid(3, boardSizeInfo), bigLowerLeftElName, StringFormats.BRIGHT_BLUE, Piece.primeIterator.next, 2)
+  val bigLowerLeftEl = El(Piece.getElGrid(3, boardSizeInfo), bigLowerLeftElName, StringFormats.BRIGHT_BLUE, Piece.primeIterator.next, 2)
   val bigUpperLeftEl: Piece = Piece.rotate90(bigUpperLeftElName, bigLowerLeftEl)
   val bigUpperRightEl: Piece = Piece.rotate90(bigUpperRightElName, bigUpperLeftEl)
   val bigLowerRightEl: Piece = Piece.rotate90(bigLowerRightElName, bigUpperRightEl)
@@ -173,7 +173,7 @@ class GamePieces(val seed: Int, boardSizeInfo: BoardSizeInfo) {
 
     for (piece <- pieceList.sortBy(_.pointValue)) {
       println(piece.name.appendColon + piece.pointValue)
-      println(piece.show(piece.cellShowFunction))
+      println(piece.show)
       println
     }
   }

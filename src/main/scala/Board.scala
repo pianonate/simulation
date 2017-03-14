@@ -18,44 +18,56 @@ case class ClearedLines(rows: Int, cols: Int)
 // if there is any value to mixin, then do that - for example, mixin name and grid but that's it.
 
 class Board(
-  final val name:          String,
-  final val color:         String,
-  final val prime:         Int                  = 0,
-  final val grid:          OccupancyGrid,
-  final val colorGrid:     Array[Array[String]],
-  final val specification: Specification,
-  final val context:       Context
-) extends Piece {
+  final val grid:      OccupancyGrid,
+  final val colorGrid: Array[Array[String]],
+  final val context:   Context
+) {
 
   def this(context: Context) {
     // initial board creation just requires a size - initialize with all proper defaults
     this(
-      "Board",
-      Board.BOARD_COLOR,
-      0,
       OccupancyGrid(context.boardSize, context.boardSize, filled = false, context.boardSizeInfo),
       Board.getBoardColorGrid(context.boardSize),
-      context.specification,
       context
     )
   }
 
-  val boardSize: Int = context.boardSize
+  final val specification = context.specification
+
+  final val boardSize: Int = context.boardSize
+
+  final val cachedOccupancyGrid: Array[Array[Boolean]] = grid.getOccupancyGrid
 
   // def so a new one is created every time boardScore is called
   def boardScore: BoardScore = BoardScore(this, context)
 
-  // the board output shows unoccupied cells so just call .show on every cell
-  // different than the Piece.show which will not output unoccupied Cell's in other pieces
-  // this method is mapped in from Piece.show
-  override def cellShowFunction(row: Int, col: Int): String = {
-    val occupied = cachedOccupancyGrid(row)(col)
-    val color = colorGrid(row)(col)
 
-    if (occupied)
-      color + Board.BOX_CHAR + StringFormats.SANE
-    else
-      Board.UNOCCUPIED_BOX_CHAR
+  // todo - thi sis duplicated:
+  def show: String = {
+
+    val s = new StringBuilder()
+
+    for {
+      row <- grid.occupancyGrid.indices
+      col <- grid.occupancyGrid(row).indices
+    } {
+      val box = {
+
+        val occupied = cachedOccupancyGrid(row)(col)
+        val color = colorGrid(row)(col)
+
+        if (occupied)
+          color + Board.BOX_CHAR + StringFormats.SANE
+        else
+          Board.UNOCCUPIED_BOX_CHAR
+
+      }
+      val nl = if (col == grid.occupancyGrid(0).length - 1) " \n" else ""
+      s ++= box + " " + nl
+    }
+
+    // we don't need the final newline
+    s.toString.dropRight(1)
   }
 
   def maximizerCount: Int = legalPlacements(context.maximizer3x3).length
@@ -233,8 +245,8 @@ class Board(
     val pieceRows = piece.rows
     val pieceCols = piece.cols
 
-    if ((pieceRows + locRow) > rows) return false // exceeds the bounds of the board - no point in checking any further
-    if ((pieceCols + locCol) > cols) return false // exceeds the bounds of the board - no point in checking any further
+    if ((pieceRows + locRow) > boardSize) return false // exceeds the bounds of the board - no point in checking any further
+    if ((pieceCols + locCol) > boardSize) return false // exceeds the bounds of the board - no point in checking any further
 
     val pieceGrid = piece.cachedOccupancyGrid
 
@@ -322,24 +334,14 @@ class Board(
 
 object Board {
 
-  // todo - command line configurable board size!
-  //   the only way you can make BOARD_SIZE command line configurable is if you make all Objects independent
-  //   of board size
-
   val BOARD_COLOR = StringFormats.BRIGHT_BLACK
-
   val BOX_CHAR: String = /*"\u25A0"*/ "\u25A9" + StringFormats.SANE
 
   private val UNOCCUPIED_BOX_CHAR = BOARD_COLOR + BOX_CHAR
 
-  def copy(newName: String, boardToCopy: Board): Board = {
+  def copy(boardToCopy: Board): Board = new Board(boardToCopy.grid.copy, boardToCopy.colorGrid, boardToCopy.context)
 
-    new Board(newName, BOARD_COLOR, 0, boardToCopy.grid.copy, boardToCopy.colorGrid, boardToCopy.specification, boardToCopy.context)
-
-  }
-
-  private def getBoardColorGrid(size: Int): Array[Array[String]] = {
-    Array.tabulate(size, size) { (_, _) => "" }
+  private def getBoardColorGrid(size: Int): Array[Array[String]] = Array.tabulate(size, size) { (_, _) => ""
   }
 
 }

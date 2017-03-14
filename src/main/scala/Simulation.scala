@@ -49,6 +49,7 @@ case class Simulation(plcList: List[PieceLocCleared], board: Board, id: Int, pie
 
   // used to group Simulations
   // if pieceCount is less than 3 then GameOver man!
+  // passed in pieceCount as getting the List[PieceLocCleared].length takes too much time
   //  val pieceCount: Int = plcList.length
 
   // pieceCount to weighted sum so Best choice always considers a solution that includes all pieces

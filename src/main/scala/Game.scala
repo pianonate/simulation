@@ -28,9 +28,9 @@ case class GameResults(
 )
 
 case class SelfTestResults(
-  legalPositions:        scala.collection.mutable.ListBuffer[Long],
-  simulatedPositions:    scala.collection.mutable.ListBuffer[Long],
-  pieces:                List[Piece]
+  legalPositions:     scala.collection.mutable.ListBuffer[Long],
+  simulatedPositions: scala.collection.mutable.ListBuffer[Long],
+  pieces:             List[Piece]
 )
 
 // this constructor is used in testing to pass in a pre-constructed board state
@@ -460,7 +460,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
     //return the board copy and the number of lines cleared
     def placeMe(piece: Piece, theBoard: Board, loc: Loc): BoardScorePLCList = {
 
-      val boardCopy = Board.copy("simulationBoard", theBoard)
+      val boardCopy = Board.copy(theBoard)
       boardCopy.place(piece, loc, updateColor = false)
       val cleared = boardCopy.clearLines
       val totalCleared = cleared.rows + cleared.cols
@@ -473,40 +473,46 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
     }
 
-    def createSimulations(board: Board, pieces: List[Piece], linesClearedAcc: Boolean, plcAcc: List[PieceLocCleared], scoreAcc: Int, locPieceHashAcc: Long, pieceCountAcc: Int): Unit = {
+    def getLocPieceHash(loc: Loc, piece: Piece, locPieceHashAcc: Long) = {
+      if (context.simulationSelfTest) {
+        // locPieceHash is only used for selfTest
+        // each location has a unique value and the value are distributed such that when added together
+        // the values are unique.  this allows us to view a combination of locations as unique
+        // and given these combinations will be repeated in each simulation, a simulation is only
+        // responsible to be created for it's proportion of the total number of simulations
+        // we use this unique value to count legal positions and simulated positions in the self test
 
-      def isUpdatable(plcList: List[PieceLocCleared], locPieceHash: Long, linesCleared: Boolean): Boolean = {
+        val locIndex = loc.row * boardSize + loc.col
+        // fixed a bug that you need to take piece into account.  multiplying it times the pieces prime number
+        // (generated at construction) to generate unique values for piece/loc combos
+        context.allLocationHashes(locIndex) * piece.prime + locPieceHashAcc
+      } else 0l
+    }
 
-        /* locHash is the sum of all locHashes (accumulated on updatableAccumulator
-           this permutation is only responsible for it's proportion of these locHashes
-           which will always be repeated on each permutation from any given starting board
-           other that this, always score if a line is cleared as this is not guaranteed to happen
-           on all permutations
-           */
+    def createSimulations(board: Board, pieces: List[Piece], linesClearedAcc: Boolean, plcAcc: List[PieceLocCleared], plcArrayAcc: Array[PieceLocCleared], scoreAcc: Int, locPieceHashAcc: Long, pieceCountAcc: Int): Unit = {
+
+      def isUpdatable(plcList: List[PieceLocCleared], linesCleared: Boolean): Boolean = {
+        // improved from (Mac Pro Profiler)
+        // 19,000/s - when using toArray
+        // 49,500/s - removed toArray
+        // 54,182/s - removed lazy val call on offSetToFirstOnPosition - possibly this is just a profiler illusion
+        //            but that's okay as the code is now simpler because Board no longer extends Piece
+
         def mustUpdateForThisPermutation: Boolean = {
 
-          // (locPieceHash % totalPermutations) == permutationIndex
-          // even if this permutation is the only one that handles this set of pieces in the three positions
-          // indicated - anytime there are 2 or 3 of the same pieces in this single permutation, we can
-          // eliminate redundant calculations by the following algorithm
-          /*
-           the first piece can be any position from 0 to positions - 2
-           the second piece can be the first piece position + 1 up to positions - 1
-               if a lines is cleared after the first piece then the second piece can be 0 to positions - 1
-           the third piece, can be the second position + 1 up to positions
-                if a line is cleared after the second piece then thd third number can be any position
-           */
-
-          //todo - i believe this can run faster than the locPieceHash method
-          // as this one will also eliminate duplicates when there are pieces that are the same in a list
+          // originally this used locPieceHash method but this is better 
+          // as this one will also eliminate duplicates when there are duplicate or triplicate pieces
           // which happens often
           // to make this work, stop using List[PieceLocCleared] and start using an Array[PieceLocCleared]
           // then indexing and getting length and all of that BS will go faster.
 
-          val plArray = plcList.toArray
-          val plc1 = plArray(0)
-          val plc2 = plArray(1)
-          val plc3 = plArray(2)
+          // experimented with turning the List into an Array (toArray) under the theory that
+          // Array access is constant time but it turns out that it doesn't help
+          // as the cost of turning it into the array exceeds the cost of indexing into this short list
+          // In the profiler on a MacPro, just indexing the List is about 2.6x faster
+          val plc1 = plcList(0)
+          val plc2 = plcList(1)
+          val plc3 = plcList(2)
 
           // whoah - this was complicated to find
           // a piece can be placed at the same legal position as a number piece if it fits around it
@@ -518,6 +524,13 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
           val pos2 = plc2.loc.row * boardSize + plc2.loc.col + plc2.piece.offSetToFirstOnPosition
           val pos3 = plc3.loc.row * boardSize + plc3.loc.col + plc3.piece.offSetToFirstOnPosition
 
+          /* 
+             the first piece can be any position from 0 to positions - 2
+             the second piece can be the first piece position + 1 up to positions - 1
+                 if a lines is cleared after the first piece then the second piece can be 0 to positions - 1
+             the third piece, can be the second position + 1 up to positions
+                  if a line is cleared after the second piece then thd third number can be any position
+             */
           val start2 = if (plc1.clearedLines)
             0
           else
@@ -528,8 +541,8 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
           else
             pos2 + 1
 
-          if (pos1 == pos2 || pos2 == pos3 || pos3 == pos1)
-            println
+          // using the offsets, we should _never_ any positions that map to the same value
+          assert(pos1 != pos2 && pos2 != pos3 && pos3 != pos1)
 
           (pos1 <= context.boardPositions - 2) && (pos2 >= start2 && pos2 < context.boardPositions - 1) && (pos3 >= start3)
 
@@ -541,11 +554,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
       def updateBest(simulation: Simulation): Unit = {
 
-        def simulationIsBetterThanBest: Boolean = {
-          val newWay = best.get.weightedSum < simulation.weightedSum
-          newWay
-
-        }
+        def simulationIsBetterThanBest: Boolean = best.get.weightedSum < simulation.weightedSum
 
         def safeUpdateBest(): Unit = {
           val bestID = best.get.id
@@ -587,6 +596,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
       def updateSimulation(plcList: List[PieceLocCleared], board: Board, pieceCount: Int): Unit = {
         val id = simulationCount.inc()
+        // reverse is expensive - only do this when showing in the UX
         val simulation = Simulation(plcList /*.reverse*/ , board, id, pieceCount)
         updateBest(simulation)
       }
@@ -603,20 +613,12 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
       val paralegal: GenSeq[Loc] = getLegal(board, piece)
 
       def simulationHandler(loc: Loc) = {
+
         val result = placeMe(piece, board, loc)
         val boardCopy = result.board
         val plc = result.plc
 
-        // each location has a unique value and the value are distributed such that when added together
-        // the values are unique.  this allows us to view a combination of locations as unique
-        // and given these combinations will be repeated in each simulation, a simulation is only
-        // responsible to be created for it's proportion of the total number of simulations
-        // we mod the total to make this work
-
-        // fixed a bug that you need to take piece into account.  multiplying it times the pieces prime number
-        // (generated at construction) to generate unique values for piece/loc combos
-        val locIndex = if (context.simulationSelfTest) loc.row * boardSize + loc.col else 0
-        val locPieceHash = if (context.simulationSelfTest) context.allLocationHashes(locIndex) * piece.prime + locPieceHashAcc else 0
+        val locPieceHash = getLocPieceHash(loc, piece, locPieceHashAcc)
 
         val plcList = plc :: plcAcc
 
@@ -630,7 +632,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
         if (pieces.tail.nonEmpty) {
 
-          createSimulations(boardCopy, pieces.tail, linesCleared, plcList, score, locPieceHash, pieceCount)
+          createSimulations(boardCopy, pieces.tail, linesCleared, plcList, Array(plc) ++ plcArrayAcc, score, locPieceHash, pieceCount)
 
         } else {
 
@@ -642,7 +644,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
             synchronized { this.legalPositionsSelfTest += locPieceHash }
 
           // only add simulation when we've reached the last legal location on this path
-          if (isUpdatable(plcList, locPieceHash, linesCleared)) {
+          if (isUpdatable(plcList, linesCleared)) {
 
             // this completes the test of validating we are simulating all legal positions
             // this records all simulations
@@ -672,7 +674,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
       }
     }
 
-    createSimulations(board, pieces, linesClearedAcc = false, List(), 0, 0, 0)
+    createSimulations(board, pieces, linesClearedAcc = false, List(), Array(), 0, 0, 0)
 
     def emptySimulation: Simulation = Simulation(List(), this.board, 0, 0)
 
@@ -722,7 +724,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
     // score me baby
     // score.inc(piece.pointValue)
 
-    val unclearedBoard = Board.copy("unclearedBoard", this.board)
+    val unclearedBoard = Board.copy(this.board)
 
     val linesClearedResult = board.clearLines
 
@@ -733,7 +735,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
     val pieceScore = piece.pointValue + context.lineClearingScore(total)
     score.inc(pieceScore)
 
-    val clearedBoard = Board.copy("clearedBoard", this.board)
+    val clearedBoard = Board.copy(this.board)
 
     this.board.roundScore += pieceScore
     clearedBoard.roundScore = this.board.roundScore
@@ -753,17 +755,13 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
   private def getPieceHandlerResults(pieceHandlerInfo: PieceHandlerInfo): String = {
 
-    def getShowBoard(board: Board) = {
-      board.show(board.cellShowFunction)
-    }
-
     val minScoreLength = 5 // to allow for 4 digits and a comma
     // this is a whole lot of string construction... should it be here? or should we split pieceHandler and boardResultsString into two separate operations
     val scoreLength = pieceHandlerInfo.score.shortLabel.length.max(minScoreLength)
     val valuesWidth = scoreLength.max(minScoreLength)
 
     val boardSpacer = " ".repeat(2)
-    val labelWidth = context.specification.maxOptFactorLabelLength
+    val labelWidth = context.specification.maxFeatureKeyLength
 
     val scoreLabel = "score".leftAlignedPadded(labelWidth).appendColon + pieceHandlerInfo.score.label(valuesWidth).green + boardSpacer
 
@@ -772,14 +770,14 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
       "cleared rows".leftAlignedPadded(labelWidth).appendColon + pieceHandlerInfo.rowsCleared.label(valuesWidth) + boardSpacer,
       "cleared cols".leftAlignedPadded(labelWidth).appendColon + pieceHandlerInfo.colsCleared.label(valuesWidth) + boardSpacer,
       " ".leftAlignedPadded(labelWidth) + " ".repeat("".appendColon.length) + " ".repeat(valuesWidth) + boardSpacer,
-      ("opt factors".leftAlignedPadded(labelWidth) + " ".repeat("".appendColon.length) + " ".repeat(valuesWidth)).underline + boardSpacer
+      ("features".leftAlignedPadded(labelWidth) + " ".repeat("".appendColon.length) + " ".repeat(valuesWidth)).underline + boardSpacer
 
     )
 
     val newBoardResultsString = context.specification.spec.values.zip(pieceHandlerInfo.clearedBoard.boardScore.scores)
       .map {
         case (optFactor, scoreComponent) =>
-          optFactor.label.leftAlignedPadded(labelWidth).appendColon + scoreComponent.intValue.label(valuesWidth) + boardSpacer
+          optFactor.key.leftAlignedPadded(labelWidth).appendColon + scoreComponent.intValue.label(valuesWidth) + boardSpacer
       }.toArray
 
     val scoreInfoLength = newScore.length + newBoardResultsString.length
@@ -794,17 +792,15 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
     val appendToBoard = "\n" + (boardSize until totalHeight)
       .map(_ => " ".repeat(boardSize * 2 - 1 + boardSpacer.length) + "\n").mkString
 
-    val newBoard = (getShowBoard(pieceHandlerInfo.unclearedBoard) + appendToBoard) splice newResults
+    val newBoard = (pieceHandlerInfo.unclearedBoard.show + appendToBoard) splice newResults
 
-    val finalBoard = if (pieceHandlerInfo.index == Game.numPiecesInRound) newBoard splice (getShowBoard(this.board) + appendToBoard).split("\n") else newBoard
-
-    // todo - get rid of piece.cellShowFunction - it's got to work better than this
+    val finalBoard = if (pieceHandlerInfo.index == Game.numPiecesInRound) newBoard splice (this.board.show + appendToBoard).split("\n") else newBoard
 
     val placingLabel: String = "Placing " + pieceHandlerInfo.index.firstSecondThirdLabel + " ".repeat(2)
     val placingBuffer = placingLabel.length
     val pieceWidth = pieceHandlerInfo.piece.cols * 2 - 1
 
-    val pieceArray: Array[String] = pieceHandlerInfo.piece.show(pieceHandlerInfo.piece.cellShowFunction).split("\n").map(each => each + " ".repeat(placingBuffer - pieceWidth - 2))
+    val pieceArray: Array[String] = pieceHandlerInfo.piece.show.split("\n").map(each => each + " ".repeat(placingBuffer - pieceWidth - 2))
 
     val placingHeader = Array(placingLabel) ++ pieceArray
 
@@ -984,11 +980,11 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
     if (context.logJSON) {
 
-      def getScores(scores: Array[ScoreComponent]): String = {
+      def getScores(scores: Array[FeatureScore]): String = {
         scores.map { scoreComponent =>
 
           (
-            "name".jsonNameValuePair(scoreComponent.label.doubleQuote) +
+            "name".jsonNameValuePair(scoreComponent.key.doubleQuote) +
             "intVal".jsonNameValuePair(scoreComponent.intValue) +
             "normalizedVal".jsonNameValuePair(scoreComponent.normalizedValue) +
             "weightedVal".jsonNameValuePairLast(scoreComponent.weightedValue)

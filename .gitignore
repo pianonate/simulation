@@ -3,5 +3,6 @@ json/
 project/project
 simulation.log
 target/
+coverage/
 
 

@@ -24,15 +24,20 @@ class Conf(arguments: Seq[String]) extends ScallopConf(arguments) {
         |Each placement of three pieces along with the board state after placing the third piece is
         |called a Simulation.
         |
+        |After placing pieces in a Simulation, the resultant board is scored for the following features:
         |""".stripMargin
 
     val end = """
-                |After pacing pieces, the resultant board is scored by a set of features
-                |and then  based on their weightings, the best simulation will be chosen.
                 |
-                |The best simulation is then used to place pieces and continue onto the next round.""".stripMargin
+                |Each game generates random weights to be used for the whole game.  The integer scores
+                |for the pieces are first normalized to a scale of 0 to 1, then multiplied by the weights.
+                |The weighted sum of the scores determines the best Simulation.
+                |
+                |The best Simulation is then used to place pieces and continue onto the next round.""".stripMargin
 
-    begin + "\n" + end
+    val explanations = Specification.getFeatureDescriptions
+
+    begin + "\n" + explanations + end
   }
 
   version("simulation 0.1 ")

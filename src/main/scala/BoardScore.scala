@@ -4,8 +4,8 @@
  *
  */
 
-case class ScoreComponent(
-  label:           String,
+case class FeatureScore(
+  key:             String,
   intValue:        Int,
   normalizedValue: Double,
   weightedValue:   Double,
@@ -13,7 +13,7 @@ case class ScoreComponent(
 )
 
 case class BoardScore(
-  board:         Board,
+  board:   Board,
   context: Context
 ) {
 
@@ -21,7 +21,7 @@ case class BoardScore(
 
   // sum the weighted results and use this as an alternative comparison to current mechanism
 
-  private def getScore(opt: OptimizationFactor, intValue: Int): ScoreComponent = {
+  private def getScore(opt: Feature, intValue: Int): FeatureScore = {
 
     // normalize the value to range from 0 to 1.
     // if an optimization factor is supposed to a low number, then subtract it from it's max value before normalizing
@@ -31,61 +31,55 @@ case class BoardScore(
       (intValue - opt.minVal) / (opt.maxVal - opt.minVal).toDouble
 
     if (normalizedValue > 1.0) {
-      throw new IllegalArgumentException(opt.label + ".normalizedValue > 1.0 - here's the scoop: " + normalizedValue)
+      throw new IllegalArgumentException(opt.key + ".normalizedValue > 1.0 - here's the scoop: " + normalizedValue)
     }
 
     // the weighted value is multiplied by the opt factor's weight - which in theory will guarantee goodness
     val weightedValue: Double = normalizedValue * opt.weight
 
-    ScoreComponent(opt.label, intValue, normalizedValue, weightedValue, opt.weight)
+    FeatureScore(opt.key, intValue, normalizedValue, weightedValue, opt.weight)
 
   }
 
   private val neighbors = board.countNeighbors(context.allLocations)
 
-  // todo it would be far more scalable to just map popCount to the optimization factor and have it call directly
-  //      but this would introduce a lambda which, at runtime, has historically slowed things down significantly
-  //      - test this theory and see if we can go direct as this would make the code much more maintainable
+  val avoidMiddleScore: FeatureScore = getScore(specification.avoidMiddleFeature, board.avoidMiddleSum)
+  val fourNeighborsScore: FeatureScore = getScore(specification.fourNeighborsFeature, neighbors(4))
+  val lineContiguousScore: FeatureScore = getScore(specification.spacesOnALineFeature, board.grid.lineContiguousCount)
+  val contiguousOpenScore: FeatureScore = getScore(specification.contiguousOpenFeature, board.grid.maxContiguousOpenLines)
+  val maximizerScore: FeatureScore = getScore(specification.maximizerFeature, board.maximizerCount)
+  val occupiedScore: FeatureScore = getScore(specification.occupiedFeature, board.grid.popCount)
+  val openLinesScore: FeatureScore = getScore(specification.openLinesFeature, board.grid.openLineCount)
+  val roundScore: FeatureScore = getScore(specification.roundScoreFeature, board.roundScore)
+  val threeNeighborsScore: FeatureScore = getScore(specification.threeNeighborsFeature, neighbors(3))
+  val twoNeighborsScore: FeatureScore = getScore(specification.twoNeighborsFeature, neighbors(2))
 
-  // this is not how you would count allMaximizers, you need to run a simulation at the end of the simulation
-  // that would short circuit once it found the first working solution for each of the combinations of all maximizers
-  // this would tell us that we have a winning
-  ///val allMaximizersScore: ScoreComponent = getScore(specification.allMaximizersOptFactor, ???)
+  // experimented with just creating an array and sorting it to match the spec
+  // on MacPro profiler this generated 1,724 BoardScore.<init> /s
+  // using the getNamedScore algo: 5,284/s
+  // aboux 3x faster in the profiler
+  val scores: Array[FeatureScore] = {
 
-  val avoidMiddleScore: ScoreComponent = getScore(specification.avoidMiddleOptFactor, board.avoidMiddleSum)
-  val fourNeighborsScore: ScoreComponent = getScore(specification.fourNeighborsOptFactor, neighbors(4))
-  val lineContiguousScore: ScoreComponent = getScore(specification.lineContiguousOptFactor, board.grid.lineContiguousCount)
-  val maxContiguousLinesScore: ScoreComponent = getScore(specification.maxContiguousLinesOptFactor, board.grid.maxContiguousOpenLines)
-  val maximizerScore: ScoreComponent = getScore(specification.maximizerOptFactor, board.maximizerCount)
-  val occupiedScore: ScoreComponent = getScore(specification.occupiedOptFactor, board.grid.popCount)
-  val openLinesScore: ScoreComponent = getScore(specification.openLinesOptFactor, board.grid.openLineCount)
-  val roundScore: ScoreComponent = getScore(specification.roundScoreOptFactor, board.roundScore)
-  val threeNeighborsScore: ScoreComponent = getScore(specification.threeNeighborOptFactor, neighbors(3))
-  val twoNeighborsScore: ScoreComponent = getScore(specification.twoNeighborsOptFactor, neighbors(2))
-
-  val scores: Array[ScoreComponent] = {
-
-    def getNamedScore(name: String): ScoreComponent = {
+    def getNamedScore(name: String): FeatureScore = {
 
       name match {
-        // case Specification.allMaximizersCountName => allMaximizersScore
-        case Specification.avoidMiddleKey              => avoidMiddleScore
-        case Specification.neighborsFourKey            => fourNeighborsScore
-        case Specification.lineContiguousUnoccupiedKey => lineContiguousScore
-        case Specification.occupiedKey                 => occupiedScore
-        case Specification.maxContiguousKey            => maxContiguousLinesScore
-        case Specification.maximizerKey                => maximizerScore
-        case Specification.openLinesKey                => openLinesScore
-        case Specification.roundScoreKey               => roundScore
-        case Specification.neighborsThreeKey           => threeNeighborsScore
-        case Specification.neighborsTwoKey             => twoNeighborsScore
+        case Specification.avoidMiddleKey    => avoidMiddleScore
+        case Specification.fourNeighborsKey  => fourNeighborsScore
+        case Specification.spacesOnALineKey  => lineContiguousScore
+        case Specification.occupiedKey       => occupiedScore
+        case Specification.contiguousOpenKey => contiguousOpenScore
+        case Specification.maximizerKey      => maximizerScore
+        case Specification.openLinesKey      => openLinesScore
+        case Specification.roundScoreKey     => roundScore
+        case Specification.threeNeighborsKey => threeNeighborsScore
+        case Specification.twoNeighborsKey   => twoNeighborsScore
         case _ =>
           throw new IllegalArgumentException("This optimization factor was requested but hasn't been added to the scores List: " + name)
       }
     }
 
-    val factors = specification.optimizationFactors
-    val scoreArray = new Array[ScoreComponent](factors.length)
+    val factors = specification.featuresArray
+    val scoreArray = new Array[FeatureScore](factors.length)
 
     var i = 0
     while (i < factors.length) {
@@ -113,7 +107,7 @@ case class BoardScore(
 
     if (sum > 1.0) {
       val s = scores.map(score =>
-        score.label + ", " +
+        score.key + ", " +
           score.intValue + ", " +
           score.normalizedValue + ", " +
           score.weightedValue + ", " +

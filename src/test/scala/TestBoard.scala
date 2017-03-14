@@ -36,7 +36,7 @@ class TestBoard extends FlatSpec {
 
     board.place(gamePieces.getRandomPiece, Loc(boardSize / 2, boardSize / 2), updateColor = true) // just place one in the middle
 
-    val copy: Board = Board.copy("copy", board)
+    val copy: Board = Board.copy(board)
 
     val sourceColorGrid: Array[Array[String]] = board.colorGrid
     val sourceGrid: OccupancyGrid = board.grid

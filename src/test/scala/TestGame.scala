@@ -364,7 +364,7 @@ class TestGame extends FlatSpec {
         }
       }
 
-      val board = new Board("testBoard", Board.BOARD_COLOR, 0, grid, colorGrid, context.specification, context)
+      val board = new Board(grid, colorGrid, context)
 
       val plcList = List(
         PieceLocCleared(gamePieces.bigBox, Loc(0, 0), clearedLines = false),

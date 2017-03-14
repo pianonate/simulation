@@ -16,7 +16,8 @@ class TestPiece extends ContextSpec {
 
     pieces foreach {piece =>
       val occupancyLength = piece.grid.occupancyGrid.flatten.count(_ == true)
-      assert(piece.pointValue===occupancyLength)
+      val pointValue = piece.pointValue
+      assert(pointValue===occupancyLength)
     }
 
   }

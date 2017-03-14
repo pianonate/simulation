@@ -138,7 +138,7 @@ class PieceListFormats(val pieceList: List[Piece]) {
         piece => {
           val pieceBuffer = maxPieceWidth - (piece.cols * 2 - 1)
 
-          piece.show(piece.cellShowFunction).split("\n").map(each => each + " ".repeat(pieceBuffer)).mkString("\n") +
+          piece.show.split("\n").map(each => each + " ".repeat(pieceBuffer)).mkString("\n") +
             (piece.rows until gamePieces.tallestPiece).map(_ => "\n" + " ".repeat(maxPieceWidth + 2)).mkString
 
         }
