@@ -4,12 +4,13 @@
  */
 import org.scalatest.{FlatSpec, _}
 
-class TestPieces extends FlatSpec {
+class TestPieces extends ContextSpec {
 
   behavior of "the Pieces container"
 
   it must "contain 19 Piece elements in .pieceList" in {
-    val pieces = Context().getGamePieces
+    val context = getContext()
+    val pieces = context.getGamePieces
 
     assert(pieces.pieceList.length == 19)
   }

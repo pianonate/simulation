@@ -2,9 +2,8 @@
  * Created by rhialtotm on 1/15/17.
  * used to test all combinations of specification entries
  */
-import org.scalatest.FlatSpec
 
-class TestSpecification extends FlatSpec {
+class TestSpecification extends ContextSpec {
 
   behavior of "A Specification"
 
@@ -17,7 +16,6 @@ class TestSpecification extends FlatSpec {
       assert(spec.spec.nonEmpty)
       context.stopGameAtRound = 2 // ensure the game runs fast - just to exercise code
       context.gamesToPlay = 1 // only run one game
-      context.show = false // don't show results as the game is playing
 
       val game = new Game(context, multiGameStats)
       val result: GameResults = game.run
@@ -31,7 +29,7 @@ class TestSpecification extends FlatSpec {
 
     // the specification is randomized by copying the allFeatures listMap and randomizing weights
     // if the fixed weight argument is used, then allFeatures spec is used "as is"
-    val context = Context(Array("-" + Conf.fixedWeightArg.toString))
+    val context = getContext(fixedWeightArg)
     val specification = context.specification
     // get the weight that was constructed based on the command line argument
     val specMaximizerWeight = specification.spec(Specification.maximizerKey).weight

@@ -7,6 +7,8 @@ import org.scalatest.{FlatSpec, _}
 trait BoardFixture {
 
   val context = Context()
+  context.show = false
+
   val specification: Specification = context.specification
 
   val boardSize: Int = context.boardSize

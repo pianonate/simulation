@@ -1,7 +1,7 @@
 scalaVersion := "2.12.1"
 scalacOptions ++= Seq("-opt:_", "-target:jvm-1.8")
-javaOptions in run += "-Xmx4096M"
-javaOptions in run += "-Xms4096M"
+javaOptions in run += "-Xmx2G"
+javaOptions in run += "-Xms2G"
 
 // testing
 libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.1" % "test"
@@ -29,7 +29,5 @@ cancelable in Global := true
 //packAutoSettings
 packSettings
 packMain := Map("simulation" -> "Main")
-//packJvmOpts := Map("simulation" -> Seq("-Xmx4G -Xms4G -XX:+UseConcMarkSweepGC"))
-//packJvmOpts := Map("simulation" -> Seq("-Xmx4G -Xms4G -XX:+UseG1GC -XX:MaxGCPauseMillis=500"))
 packJvmOpts := Map("simulation" -> Seq("-Xmx2G -Xms2G"))
 

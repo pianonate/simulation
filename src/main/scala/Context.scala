@@ -3,11 +3,10 @@
  * parses command line and sets defaults
  */
 
-import org.slf4j.LoggerFactory
-import org.slf4j.MDC
-import scala.language.reflectiveCalls
+import org.slf4j.{Logger, LoggerFactory, MDC}
 
-import ch.qos.logback.classic.{Logger, LoggerContext}
+import scala.language.reflectiveCalls
+import ch.qos.logback.classic.LoggerContext
 
 // used for constructing OccupancyGrid's
 case class BoardSizeInfo(boardSize: Int) {
@@ -59,10 +58,10 @@ case class ConstructionInfo(conf: Conf) {
     seed
   }
 
-  def getCurrentGameSeed:Int = currentGameSeed
+  def getCurrentGameSeed: Int = currentGameSeed
 
   // called for each new game - and nextSeed will get a new set of gamePieces unless overridden at the command line
-  def getGamePieces:GamePieces = {
+  def getGamePieces: GamePieces = {
     new GamePieces(getNextGameSeed, boardSizeInfo)
   }
 
@@ -81,7 +80,7 @@ case class Context(conf: Conf) {
 
   // all vars on the context are vars so that tests can change them easily
   // it would be possible to create Conf objects with the appropriate changes, I suppose,
-  // but it'd be time consumign to add at this point 
+  // but it'd be time consuming to add at this point
   // the down side to leaving these as vars is it is more mistake-prone
 
   // construction info is just a pass through when not used in constructing Specification
@@ -94,20 +93,22 @@ case class Context(conf: Conf) {
 
   val boardSizeInfo: BoardSizeInfo = constructionInfo.boardSizeInfo
 
-  private val loggerContext: LoggerContext = LoggerFactory.getILoggerFactory.asInstanceOf[LoggerContext]
-
-  val logger: Logger = loggerContext.getLogger("root") // Logger("simulation_logger") // gets root logger - could also get it from loggerContext via loggerContext.getLogger("ROOT")
+  val logger: Logger= LoggerFactory.getLogger("root")
+  val jsonLogger: Logger = LoggerFactory.getLogger("json")
 
   sys.addShutdownHook(
     {
+      // for some awesome reason, you have to instantiate this after making a call to LoggerFactory
+      // otherwise you get the following error when you try to run sbt test from the command line
+      // [info]   java.lang.ClassCastException: org.slf4j.helpers.SubstituteLoggerFactory cannot be cast to ch.qos.logback.classic.LoggerContext
+      // whatever
+      val loggerContext: LoggerContext = LoggerFactory.getILoggerFactory.asInstanceOf[LoggerContext]
       logger.info("done")
-      // val loggerContext: LoggerContext = LoggerFactory.getILoggerFactory().asInstanceOf[LoggerContext]
       loggerContext.stop()
-      if (this.show) println("goodbye - i hoped you enjoyed this simulation") //}
+      if (this.show) println("goodbye - i hoped you enjoyed this simulation - (ShutdownHook correctly stopped logging threads)") //}
     }
   )
 
-  val jsonLogger: Logger = loggerContext.getLogger("json")
 
   // used to append a game number to a json file so we get a file per game
   // called each new game run when logging json
@@ -191,7 +192,7 @@ case class Context(conf: Conf) {
 
   val stopAtNewHighScore: Boolean = !conf.continueAtNewHighScore()
 
-  var specification = if (fixedWeights)
+  var specification: Specification = if (fixedWeights)
     Specification(random = false, constructionInfo)
   else
     Specification(random = true, constructionInfo)

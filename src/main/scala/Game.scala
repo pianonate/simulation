@@ -30,7 +30,6 @@ case class GameResults(
 case class SelfTestResults(
   legalPositions:        scala.collection.mutable.ListBuffer[Long],
   simulatedPositions:    scala.collection.mutable.ListBuffer[Long],
-  linesClearedPositions: scala.collection.mutable.ListBuffer[Long],
   pieces:                List[Piece]
 )
 
@@ -90,13 +89,11 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
   // logic that skips simulations correctly
   private[this] val legalPositionsSelfTest = scala.collection.mutable.ListBuffer[Long]()
   private[this] val simulatedPositionsSelfTest = scala.collection.mutable.ListBuffer[Long]()
-  private[this] val clearedLinesPositionsSelfTest = scala.collection.mutable.ListBuffer[Long]()
   private var piecesSelfTest: List[Piece] = List()
 
   def getSelfTestResults: SelfTestResults = SelfTestResults(
     legalPositionsSelfTest,
     simulatedPositionsSelfTest,
-    clearedLinesPositionsSelfTest,
     piecesSelfTest
   )
 
@@ -394,7 +391,6 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
       // these lists each time...thus:
       this.legalPositionsSelfTest.clear()
       this.simulatedPositionsSelfTest.clear()
-      this.clearedLinesPositionsSelfTest.clear()
     }
 
     val permutations = pieces
@@ -537,15 +533,6 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
           (pos1 <= context.boardPositions - 2) && (pos2 >= start2 && pos2 < context.boardPositions - 1) && (pos3 >= start3)
 
-        }
-
-        // the final piece of the simulation count self test is to account
-        // for cleared lines that force a calculation even on a thread
-        // that is not responsible for this permutation
-        if (context.simulationSelfTest) {
-          if (linesCleared && !mustUpdateForThisPermutation) {
-            synchronized { clearedLinesPositionsSelfTest += locPieceHash }
-          }
         }
 
         // we have to count this one if it clears lines as this can happen on any permutation

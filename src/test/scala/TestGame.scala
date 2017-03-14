@@ -9,13 +9,14 @@ import scala.util.parsing.json.JSON
 trait GameInfoFixture {
   val multiGameStats = MultiGameStats(0, 0, 0, 1, new GameTimer)
   val context = Context()
+  context.show = false
+
 
   val specification = context.specification
 
   val gamePieces = context.getGamePieces
   val boardSize = context.boardSize
   context.gamesToPlay = 1
-  context.show = false
 
 }
 
@@ -181,10 +182,13 @@ class TestGame extends FlatSpec {
     val selfTestResults: SelfTestResults = game.getSelfTestResults
 
     val simulatedPositions = selfTestResults.simulatedPositions
-    val linesClearedPositions = selfTestResults.linesClearedPositions
 
     val legalPositionsSet = selfTestResults.legalPositions.toSet
     val simulatedPositionsSet = simulatedPositions.toSet
+
+    // simulatedPositionsSet will have duplicates in it when lines are cleared
+    // so we use the set to determine whether there are any missing simulations
+    // also we use the simulatedPositionsSet to make sure we didn't miss anything in legal positions
 
     val missingSimulations = legalPositionsSet.diff(simulatedPositionsSet)
     val missingLegal = simulatedPositionsSet.diff(legalPositionsSet)
@@ -193,16 +197,16 @@ class TestGame extends FlatSpec {
     // implicitly so we don't need to calculate the line clears Positions size
     val expectedSimulationCount = legalPositionsSet.size // + linesClearedPositions.size
 
-    // if (selfTestResults.simulatedPositions.size != expectedSimulationCount) {
-    // selfTestResults.pieces.foreach(piece => println(piece.name))
-    // }
-
     assert(missingSimulations.size === 0, "there are legal positions that are unsimulated")
     assert(missingLegal.size === 0, "there are simulations that didn't have an associated legal position")
     assert(
       simulatedPositionsSet.size === expectedSimulationCount,
       "the simulated positions is different than the expected simulation count (legal positions + cleared lines count)"
     )
+
+    // both the counter and simulatedPositions ListBuffer are counting the same thing, so validate that
+    val simulationCounterExpected = results.totalSimulations - results.totalUnsimulatedSimulations
+    assert(simulationCounterExpected === simulatedPositions.length)
   }
 
   it must "simulate all legal positions when pieces overlap" in {
@@ -252,11 +256,6 @@ class TestGame extends FlatSpec {
     }
   }
 
-  // todo  currently this is setup to use the new "possible combinations algo not the old locPieceHash algo
-  // todo - decide cleanup of the above - do we need to accumulate lineclearing in self test if we aren't using locPieceHash? algo
-  // either algo will benefit from replacing List[PieceLocCleared] with Array[PieceLocCleared] but the latter
-  // has the advantage of also allowing use of the combinations in the mustUpdateForThisPermutation routine
-  // which eliminates duplicate calculations
   it must "run all simulations for three singletons" in {
     new GameInfoFixture {
       private val plcList = List(
@@ -275,7 +274,8 @@ class TestGame extends FlatSpec {
       private val positions = boardSize * boardSize
       assert(results.totalSimulations === positions * (positions - 1) * (positions - 2), "expected number of simulations did not happen")
 
-      // actual combinations
+      // actual combinations - these are the ones that the algo actually calculates - the remainder (expectedUnsimulated) are duplicates
+      // that are not calculated.  the totalUnsimulatedCounterSimulations counter will give us this
       private val actualCombinations = (0 until context.boardPositions).combinations(3).toArray.length
       private val expectedUnsimulated = results.totalSimulations - actualCombinations
 

@@ -2,9 +2,8 @@
   * Created by nathan on 2/27/17.
   * validating GamePieces behavior
   */
-import org.scalatest.{ FlatSpec, _ }
 
-class TestGamePieces extends FlatSpec {
+class TestGamePieces extends ContextSpec {
 
 
   behavior of "GamePieces"
@@ -12,9 +11,7 @@ class TestGamePieces extends FlatSpec {
 
   it must "return the same set of pieces when seeded with the same value" in {
 
-    // -m sets a s specific seed
-    val seedArg = Array("-" + Conf.gameSeedArg + "1")
-    val context = Context(seedArg)
+    val context = getContext(gameSeedArg)
 
     val pieces1 = context.getGamePieces
     val pieces2 = context.getGamePieces
@@ -27,6 +24,13 @@ class TestGamePieces extends FlatSpec {
       assert(piece1.name===piece2.name, "pieces are not the same - piece1: " + piece1.name + " piece2: " + piece2.name)
     }
 
+  }
+
+  it must "have 8 distinct colors" in {
+    val context = getContext()
+    val pieces = context.getGamePieces
+    val colors = pieces.pieceList.map(_.color).toSet
+    assert(colors.size === 9)
   }
 }
 

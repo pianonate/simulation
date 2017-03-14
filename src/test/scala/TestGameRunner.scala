@@ -5,17 +5,16 @@
 
 import org.scalatest.FlatSpec
 
-class TestGameRunner extends FlatSpec {
+class TestGameRunner extends ContextSpec {
 
   behavior of "A GameRunner"
 
   it must "run two games if two games are requested" in {
 
-    val context = Context()
+    val context = getContext()
 
     context.gamesToPlay = 2
     context.stopGameAtRound = 1
-    context.show = false
 
     val scores = GameRunner.play(context)
 
@@ -24,8 +23,7 @@ class TestGameRunner extends FlatSpec {
 
   it must "generate new random weights each game if not using fixed weights" in {
     // for this test to work, you need to run games the way they are run in GameRunner.play
-    val context = Context()
-    context.show = false
+    val context = getContext()
     context.gamesToPlay = 1
     context.stopGameAtRound = 1
 
