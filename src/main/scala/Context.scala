@@ -9,6 +9,7 @@ import scala.language.reflectiveCalls
 
 import ch.qos.logback.classic.{Logger, LoggerContext}
 
+// used for constructing OccupancyGrid's
 case class BoardSizeInfo(boardSize: Int) {
 
   val boardPositions: Int = boardSize * boardSize
@@ -26,6 +27,7 @@ case class BoardSizeInfo(boardSize: Int) {
 
 }
 
+// used for constructing Specification
 case class ConstructionInfo(conf: Conf) {
 
   val boardSizeInfo = BoardSizeInfo(conf.dimensions())
@@ -56,6 +58,8 @@ case class ConstructionInfo(conf: Conf) {
     currentGameSeed = seed
     seed
   }
+
+  def getCurrentGameSeed:Int = currentGameSeed
 
   // called for each new game - and nextSeed will get a new set of gamePieces unless overridden at the command line
   def getGamePieces:GamePieces = {

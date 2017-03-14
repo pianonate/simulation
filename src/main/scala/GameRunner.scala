@@ -7,6 +7,7 @@
 import Implicits._
 import java.awt.Toolkit
 import java.io.PrintWriter
+import scala.collection.mutable.ListBuffer
 
 object GameRunner {
 
@@ -16,7 +17,6 @@ object GameRunner {
 
     context.logger.info("starting simulation")
 
-    import scala.collection.mutable.ListBuffer
 
     val scores = new ListBuffer[Int]
     val rounds = new ListBuffer[Int]
@@ -51,11 +51,7 @@ object GameRunner {
 
       val gameInfo = MultiGameStats(average, sessionHighScore, machineHighScore, gameCount.value, allGamesTimer)
 
-      // need to reset to new random weights wach time
-      if (!context.fixedWeights)
-        context.specification = Specification(random = true, context.getConstructionInfo)
-
-      val game = new Game(context, gameInfo)
+       val game = new Game(context, gameInfo)
 
       val results: GameResults = game.run
 

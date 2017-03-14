@@ -53,6 +53,14 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
   private[this] val gamePieces: GamePieces = context.getGamePieces
   private[this] val gameSeed = gamePieces.seed
 
+  // note when you getGamePieces for a game it always gets the next in the series of random seeds
+  // (unless overriden by gameSeed or sessionSeed)
+  // in either case, constructing the specificaiton, ti uses the same seed as was used to make the gamePieces
+  // this way if you ever want to replay a game, then the the spec will have the same weights on replay
+  // need to reset to new random weights each time
+  if (!context.fixedWeights)
+    context.specification = Specification(random = true, context.getConstructionInfo)
+
   private[this] val score = Counter()
   private[this] val rowsCleared = Counter()
   private[this] val colsCleared = Counter()

@@ -38,6 +38,36 @@ class TestContext extends FlatSpec {
     }
   }
 
+  it must "have the same random weights from two different games if there is a gameSeed provided" in {
+    new ContextFixture {
+      val context = Context(Array(gameSeedArg))
+      val multiGameStats = MultiGameStats(0, 0, 0, 1, new GameTimer)
+
+      val game1 = new Game(context, multiGameStats)
+      val weights1 = context.specification.spec.values.map(_.weight)
+
+      val game2 = new Game(context, multiGameStats)
+      val weights2 = context.specification.spec.values.map(_.weight)
+
+      assert(weights1===weights2)
+    }
+  }
+
+  it must "have different weights from two different games if there is no gameSeed provided" in {
+    new ContextFixture {
+      val context = Context()
+      val multiGameStats = MultiGameStats(0, 0, 0, 1, new GameTimer)
+
+      val game1 = new Game(context, multiGameStats)
+      val weights1 = context.specification.spec.values.map(_.weight)
+
+      val game2 = new Game(context, multiGameStats)
+      val weights2 = context.specification.spec.values.map(_.weight)
+
+      assert(weights1!=weights2)
+    }
+  }
+
   it must "return the gameSeed if both a gameSeed and a sessionSeed are passed on the command line" in {
     new ContextFixture {
       val args = Array(gameSeedArg, sessionSeedArg)
@@ -50,10 +80,6 @@ class TestContext extends FlatSpec {
     }
 
   }
-
-  // todo - add specification randomization - gets same randomization seed!!
-  // passed in seed and multi-game seed, seed overrides
-  // pass in nothing - new seed each time
 
   it must "return the same series of seeds when a multi-game seed is requested" in {
     new ContextFixture {

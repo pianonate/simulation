@@ -29,7 +29,7 @@ case class OptimizationFactor(
   explanation: String
 )
 
-case class Specification(random: Boolean, optFactor: Option[OptimizationFactor], constructionInfo: ConstructionInfo) {
+case class Specification(random: Boolean, constructionInfo: ConstructionInfo, optFactor: Option[OptimizationFactor]) {
 
   val boardSize: Int = constructionInfo.boardSizeInfo.boardSize
 
@@ -168,6 +168,7 @@ case class Specification(random: Boolean, optFactor: Option[OptimizationFactor],
   val maxOptFactorLabelLength: Int = allFeatures.values.map(_.label.length).max
   val maxOptFactorKeyLength: Int = allFeatures.values.map(_.key.length).max
 
+  // here is the actual construction of the specification - rand or fixed
   val spec: ListMap[String, OptimizationFactor] = optFactor match {
 
     case Some(optFactor) =>
@@ -178,7 +179,7 @@ case class Specification(random: Boolean, optFactor: Option[OptimizationFactor],
     case None =>
       if (random) {
 
-        val doubleRandomizer = new scala.util.Random()
+        val doubleRandomizer = new scala.util.Random(constructionInfo.getCurrentGameSeed)
 
         // copy the current specification into a random specification
         val randomSpec = allFeatures.map {
@@ -330,17 +331,15 @@ object Specification {
   }
 
   def apply(random: Boolean, constructionInfo: ConstructionInfo): Specification = {
-    Specification(random, None, constructionInfo)
+    Specification(random, constructionInfo, None)
   }
 
   def apply(optFactor: OptimizationFactor, constructionInfo: ConstructionInfo): Specification = {
-    Specification(random = true, Some(optFactor), constructionInfo)
+    Specification(random = true, constructionInfo, Some(optFactor))
   }
 
   def apply(constructionInfo: ConstructionInfo): Specification = {
-    Specification(random = true, None, constructionInfo)
+    Specification(random = true, constructionInfo, None)
   }
-
-  // used in formatting results
 
 }
