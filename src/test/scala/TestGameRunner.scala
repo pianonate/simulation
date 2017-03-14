@@ -6,13 +6,6 @@
 import org.scalatest.FlatSpec
 
 class TestGameRunner extends FlatSpec {
-  // todo - add tests to ensure that game seeds whether passed in or not are honored
-  // and the correct behavior occurs for each argument
-  // passed in seed only
-  // passed in multi-game seed to cause a series to recur
-  // todo - add specification randomization - gets same randomization seed!!
-  // passed in seed and multi-game seed, seed overrides
-  // pass in nothing - new seed each time
 
   behavior of "A GameRunner"
 
@@ -30,7 +23,7 @@ class TestGameRunner extends FlatSpec {
   }
 
   it must "generate new random weights each game if not using fixed weights" in {
-    // for this test to work, you need to run games essentiall8y the way they are run in GameRunner.play
+    // for this test to work, you need to run games the way they are run in GameRunner.play
     val context = Context()
     context.show = false
     context.gamesToPlay = 1

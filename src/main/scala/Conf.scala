@@ -60,15 +60,14 @@ class Conf(arguments: Seq[String]) extends ScallopConf(arguments) {
   val dimensions: ScallopOption[Int] = opt[Int](default = Some(Conf.DEFAULT_BOARD_SIZE), validate = (i) => i >= 5, descr = "board size wxh - default is 10")
   val fixedWeights: ScallopOption[Boolean] = opt[Boolean](short=Conf.fixedWeightArg, descr = "use weights hardcoded into the specification for the game. Default: Use random weights as currently, random plays better!")
   val gamesToPlay: ScallopOption[Int] = opt[Int](default = Some(0), validate = (i) => i >= 0, name = "games", descr = "number of games to play - 0 is continuous")
-  val gameSeed: ScallopOption[Int] = opt[Int](default = Some(0), short = 'm', descr = "provide a seed to cause every game to play with the same pieces, if you don't specify then the pieces will be random")
+  val gameSeed: ScallopOption[Int] = opt[Int](default = Some(0), short = Conf.gameSeedArg, descr = "provide a seed to cause every game to play with the same pieces, if you don't specify then the pieces will be random")
   val hide: ScallopOption[Boolean] = opt[Boolean](descr = "hides default output")
   val logJSON: ScallopOption[Boolean] = opt[Boolean](descr = "logs game json to json folder", name = "logjson", short = 'j')
   val printPieces: ScallopOption[Boolean] = opt[Boolean](descr = "print out the game pieces ")
   val roundsToPlay: ScallopOption[Int] = opt[Int](default = Some(0), validate = (i) => i >= 0, name = "rounds", descr = "end the game at this round number")
   val serial: ScallopOption[Boolean] = opt[Boolean](descr = "play serial - if left blank, runs multi-threaded - faster!")
-  val sessionSeed: ScallopOption[Int] = opt[Int](default = Some(0), short = 'e', descr = "provide a seed to play a series of games with the same seed value, replaying each game within the session with the same seed value - if you don't specify then the entire series will be random (as long as you have not specified a --game-seed)")
+  val sessionSeed: ScallopOption[Int] = opt[Int](default = Some(0), short = Conf.sessionSeedArg, descr = "provide a seed to play a series of games with the same seed value, replaying each game within the session with the same seed value - if you don't specify then the entire series will be random (as long as you have not specified a --game-seed)")
   val showRoundResultsOnly: ScallopOption[Boolean] = opt[Boolean](descr = "use this to only display round results and not all results", short = 'o')
-  val weights: ScallopOption[Int] = opt[Int](validate = (i) => i > 0, short = 'w', descr = "generate the weights for each optimization factor based on how well they play - the integer value is how many games to play for each optFactor.")
 
   mainOptions = Seq(gamesToPlay, roundsToPlay, logJSON, hide, beep, serial)
 
@@ -79,4 +78,6 @@ class Conf(arguments: Seq[String]) extends ScallopConf(arguments) {
 object Conf {
   private val DEFAULT_BOARD_SIZE = 10
   val fixedWeightArg:Char = 'f'
+  val gameSeedArg:Char = 'm'
+  val sessionSeedArg:Char = 'e'
 }

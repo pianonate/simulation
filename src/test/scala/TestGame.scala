@@ -12,7 +12,7 @@ trait GameInfoFixture {
 
   val specification = context.specification
 
-  val gamePieces = context.getGamePieces(nextSeed = true)
+  val gamePieces = context.getGamePieces
   val boardSize = context.boardSize
   context.gamesToPlay = 1
   context.show = false

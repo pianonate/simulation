@@ -23,7 +23,8 @@ case class GameResults(
   bestPerSecond:               Int,
   totalSimulations:            Long,
   totalUnsimulatedSimulations: Long,
-  gameTimer:                   GameTimer
+  gameTimer:                   GameTimer,
+  gameSeed:                    Int
 )
 
 case class SelfTestResults(
@@ -49,9 +50,8 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
   private[this] val boardSize: Int = context.boardSize
   private[this] val gameStats: GameStats = new GameStats
 
-  private[this] val gamePieces: GamePieces = context.getGamePieces(nextSeed = true)
-  private[this] val gameSeed = context.getCurrentGameSeed
-  assert(gamePieces.seed == gameSeed)
+  private[this] val gamePieces: GamePieces = context.getGamePieces
+  private[this] val gameSeed = gamePieces.seed
 
   private[this] val score = Counter()
   private[this] val rowsCleared = Counter()
@@ -146,7 +146,8 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
       if (context.replayGame && context.ignoreSimulation) 0 else gameStats.bestPerSecond,
       if (context.replayGame && context.ignoreSimulation) 0l else gameStats.totalSimulations,
       if (context.replayGame && context.ignoreSimulation) 0l else gameStats.totalUnsimulatedSimulations,
-      gameTimer
+      gameTimer,
+      gameSeed
     )
 
   }
@@ -1017,7 +1018,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
       val endOfRoundScores = getScores(this.board.boardScore.scores)
 
-      val permutations = if (context.generatingWeights) "" // don't include permutations when generating weights
+      val permutations = if (context.abridgedLogs) "" // don't include permuations in abridged results
       else
         results.zipWithIndex.map {
           case (p, i) =>

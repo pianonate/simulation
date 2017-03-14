@@ -12,12 +12,12 @@ class TestGamePieces extends FlatSpec {
 
   it must "return the same set of pieces when seeded with the same value" in {
 
-    val context = Context()
-    val seed = new scala.util.Random().nextInt
-    context.setGameSeed(seed)
+    // -m sets a s specific seed
+    val seedArg = Array("-" + Conf.gameSeedArg + "1")
+    val context = Context(seedArg)
 
-    val pieces1 = context.getGamePieces(nextSeed = true)
-    val pieces2 = context.getGamePieces(nextSeed = false)
+    val pieces1 = context.getGamePieces
+    val pieces2 = context.getGamePieces
 
     // validate 100 pieces - which should give you confidence that you're getting the same pieces based on
     // the current seed
@@ -28,6 +28,5 @@ class TestGamePieces extends FlatSpec {
     }
 
   }
-
 }
 

@@ -21,8 +21,7 @@ object Main {
 
     context.conf match {
 
-      case c if c.weights.getOrElse(0) > 0 => GameRunner.generateWeightsV1(context)
-      case c if c.printPieces()            => context.getGamePieces(nextSeed = false).printPossiblePieces(context)
+      case c if c.printPieces()            => context.getGamePieces.printPossiblePieces(context)
       case _                               => GameRunner.play(context)
 
     }

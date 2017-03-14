@@ -16,7 +16,6 @@ case class BoardSizeInfo(boardSize: Int) {
   val popTable: Array[Int] = {
 
     // all possible combination of on bits in a context.boardSize position row:
-    // todo - refactor (theInt >> x) &1
     val countBits = (theInt: Int) => (0 until boardSize).map(x => (theInt >> x) & 1).count(_ == 1)
     (0 to 1023).map(countBits).toArray
 
@@ -43,10 +42,7 @@ case class ConstructionInfo(conf: Conf) {
   private val randomizer = if (multiGameSeed == 0) new scala.util.Random() else new scala.util.Random(multiGameSeed)
 
   // get the gameSeed from the command line
-  private var confGameSeed = conf.gameSeed()
-
-  // allows overriding the next game seed - used by weight generator
-  def setGameSeed(seed: Int): Unit = confGameSeed = seed
+  private val confGameSeed = conf.gameSeed()
 
   // use this as a placeholder so when it is asked for when not needed to increment,
   // we can just return the current value
@@ -55,20 +51,19 @@ case class ConstructionInfo(conf: Conf) {
   // if there is no passed in gameSeed then generate it from the randomizer,
   // otherwise use the gameSeed that is either passed in via conf or set via setGameSeed
   // appended abs as there is no need for negative numbers to make the json file name confusing
-  def getNextGameSeed: Int = {
+  private def getNextGameSeed: Int = {
     val seed = (if (confGameSeed == 0) randomizer.nextInt else confGameSeed).abs
     currentGameSeed = seed
     seed
   }
 
-  def getCurrentGameSeed: Int = currentGameSeed
-
-  def getGamePieces(nextSeed: Boolean) = {
-    val seed = if (nextSeed) getNextGameSeed else getCurrentGameSeed
-    new GamePieces(seed, boardSizeInfo)
+  // called for each new game - and nextSeed will get a new set of gamePieces unless overridden at the command line
+  def getGamePieces:GamePieces = {
+    new GamePieces(getNextGameSeed, boardSizeInfo)
   }
 
-  val maximizer3x3: Box = getGamePieces(nextSeed = false).bigBox
+  // we don't want to increment the seed so just get a set and use it to get the bigBox
+  val maximizer3x3: Box = Box(Piece.getBoxGrid(3, boardSizeInfo), "maximizer3x3", StringFormats.CYAN, Piece.primeIterator.next, 4)
 
   // this is pretty theoretical as to the max - it may be possible to get higher than this but I think it's pretty unlikely
   // this problem goes away if we implement z-score
@@ -89,11 +84,9 @@ case class Context(conf: Conf) {
   // make the code a little more readable by just delegating to constructionInfo
   private val constructionInfo = ConstructionInfo(conf)
   def getConstructionInfo: ConstructionInfo = constructionInfo // used when generating weights
-  def getCurrentGameSeed: Int = constructionInfo.getCurrentGameSeed
-  def getGamePieces(nextSeed: Boolean): GamePieces = constructionInfo.getGamePieces(nextSeed)
+  def getGamePieces: GamePieces = constructionInfo.getGamePieces
   val maximizer3x3: Box = constructionInfo.maximizer3x3
   val lineClearingScore: Array[Int] = constructionInfo.lineClearingScore
-  def setGameSeed(seed: Int): Unit = constructionInfo.setGameSeed(seed)
 
   val boardSizeInfo: BoardSizeInfo = constructionInfo.boardSizeInfo
 
@@ -113,6 +106,7 @@ case class Context(conf: Conf) {
   val jsonLogger: Logger = loggerContext.getLogger("json")
 
   // used to append a game number to a json file so we get a file per game
+  // called each new game run when logging json
   def setJSONFileNameDiscriminators(gameNumber: Int, gameSeed: Int): Unit = {
     MDC.put("gameInfo", "game_" + gameNumber.toString + "_seed_" + gameSeed.toString)
   }
@@ -181,8 +175,6 @@ case class Context(conf: Conf) {
   val fixedWeights: Boolean = conf.fixedWeights()
 
   var gamesToPlay: Int = conf.gamesToPlay()
-  val generateWeightsGamesToPlay: Int = conf.weights.getOrElse(0)
-  val generatingWeights: Boolean = generateWeightsGamesToPlay > 0
 
   var stopGameAtRound: Int = conf.roundsToPlay()
   //noinspection VarCouldBeVal

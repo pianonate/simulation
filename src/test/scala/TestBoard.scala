@@ -11,7 +11,7 @@ trait BoardFixture {
 
   val boardSize: Int = context.boardSize
   val board = new Board(context)
-  val gamePieces: GamePieces = context.getGamePieces(nextSeed = true)
+  val gamePieces: GamePieces = context.getGamePieces
   val initialOccupied: Int = board.grid.popCount
   val initialOpenLines: Int = board.grid.openLineCount
 
