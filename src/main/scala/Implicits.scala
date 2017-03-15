@@ -22,11 +22,11 @@ object Implicits {
 
   implicit def gameTimer2GameTimerFormats(gameTimer: GameTimer): GameTimerFormats = new GameTimerFormats(gameTimer)
 
-  implicit def pieceList2PieceListFormats(pieces: List[Piece]): PieceListFormats = new PieceListFormats(pieces)
+  implicit def pieceArray2PieceArrayFormats(pieces: Array[Piece]): PieceArrayFormats = new PieceArrayFormats(pieces)
 
   implicit def listBuffer2EnhancedListBuffer(buf: ListBuffer[Int]): EnhancedListBuffer = new EnhancedListBuffer(buf)
 
-  implicit def listString2EnhancedListString(xs: List[String]): EnhancedListString = new EnhancedListString(xs)
+  implicit def arrayString2EnhancedArrayString(xs: Array[String]): EnhancedArrayString = new EnhancedArrayString(xs)
 
   implicit def long2LongFormats(l: Long): LongFormats = new LongFormats(l)
 
@@ -81,7 +81,7 @@ class EnhancedArray(val a: Array[Int]) {
   }
 }
 
-class EnhancedListString(val xs: List[String]) {
+class EnhancedArrayString(val xs: Array[String]) {
   def spreadHorizontal(startAt: Int = 0, bracketWith: String = "", separator: String = " "): String =
     xs.map(_.split("\n"))
       .transpose
@@ -121,7 +121,7 @@ class GameTimerFormats(val gameTimer: GameTimer) {
   def elapsedLabelMs: String = elapsedFormatMs.format(gameTimer.showElapsedMs)
 }
 
-class PieceListFormats(val pieceList: List[Piece]) {
+class PieceArrayFormats(val pieceList: Array[Piece]) {
 
   def permutationPiecesHeader(index: Int, gamePieces: GamePieces): String = {
 

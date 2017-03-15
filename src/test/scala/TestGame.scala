@@ -56,9 +56,9 @@ class TestGame extends FlatSpec {
   it must "score all combinations of cleared lines correctly" in {
     new GameInfoFixture {
 
-      def runAndAssert(plc: List[PieceLocCleared], expectedScore: Int): Assertion = {
+      def runAndAssert(plc: Array[PieceLocCleared], expectedScore: Int): Assertion = {
 
-        context.setReplayList(plc)
+        context.setReplayPieces(plc)
         context.ignoreSimulation = true
 
         val game = new Game(context, multiGameStats)
@@ -67,16 +67,16 @@ class TestGame extends FlatSpec {
 
       }
 
-      private val plcList1 = List(
+      private val plcArray1 = Array(
         PieceLocCleared(gamePieces.h4Line, Loc(0, 0), clearedLines = false),
         PieceLocCleared(gamePieces.h5Line, Loc(0, 4), clearedLines = false),
         PieceLocCleared(gamePieces.singleton, Loc(0, 9), clearedLines = false)
       )
 
       // 10 points for 1
-      runAndAssert(plcList1, 20)
+      runAndAssert(plcArray1, 20)
 
-      private val plcList2 = List(
+      private val plcArray2 = Array(
         PieceLocCleared(gamePieces.h4Line, Loc(0, 0), clearedLines = false),
         PieceLocCleared(gamePieces.h5Line, Loc(0, 4), clearedLines = false),
         PieceLocCleared(gamePieces.h4Line, Loc(1, 0), clearedLines = false),
@@ -86,9 +86,9 @@ class TestGame extends FlatSpec {
       )
 
       // 30 points for 2
-      runAndAssert(plcList2, 51)
+      runAndAssert(plcArray2, 51)
 
-      private val plcList3 = List(
+      private val plcArray3 = Array(
         PieceLocCleared(gamePieces.h4Line, Loc(0, 0), clearedLines = false),
         PieceLocCleared(gamePieces.h5Line, Loc(0, 4), clearedLines = false),
         PieceLocCleared(gamePieces.h4Line, Loc(1, 0), clearedLines = false),
@@ -102,9 +102,9 @@ class TestGame extends FlatSpec {
       )
 
       // 60 points for 3
-      runAndAssert(plcList3, 92)
+      runAndAssert(plcArray3, 92)
 
-      private val plcList4 = List(
+      private val plcArray4 = Array(
         PieceLocCleared(gamePieces.h4Line, Loc(0, 0), clearedLines = false),
         PieceLocCleared(gamePieces.h5Line, Loc(0, 4), clearedLines = false),
         PieceLocCleared(gamePieces.h4Line, Loc(1, 0), clearedLines = false),
@@ -120,9 +120,9 @@ class TestGame extends FlatSpec {
       )
 
       // 100 points for 4
-      runAndAssert(plcList4, 143)
+      runAndAssert(plcArray4, 143)
 
-      private val plcList5 = List(
+      private val plcArray5 = Array(
         PieceLocCleared(gamePieces.h4Line, Loc(0, 0), clearedLines = false),
         PieceLocCleared(gamePieces.h5Line, Loc(0, 4), clearedLines = false),
         PieceLocCleared(gamePieces.h4Line, Loc(1, 0), clearedLines = false),
@@ -138,9 +138,9 @@ class TestGame extends FlatSpec {
       )
 
       // 150 points for 5
-      runAndAssert(plcList5, 201)
+      runAndAssert(plcArray5, 201)
 
-      private val plcList6 = List(
+      private val plcArray6 = Array(
         PieceLocCleared(gamePieces.h4Line, Loc(0, 0), clearedLines = false),
         PieceLocCleared(gamePieces.h3Line, Loc(0, 4), clearedLines = false),
         PieceLocCleared(gamePieces.h4Line, Loc(1, 0), clearedLines = false),
@@ -164,7 +164,7 @@ class TestGame extends FlatSpec {
       )
 
       // 210 points for 6
-      runAndAssert(plcList6, 263)
+      runAndAssert(plcArray6, 263)
 
       // 7 is impossible
 
@@ -217,13 +217,13 @@ class TestGame extends FlatSpec {
       // such as bigLowerRightEl.
       // added an offset to pieces to indicate what is the first occupied position
       // which is then used by the mustUpdateForThisPermutation method
-      private val overlappingPieces = List(
+      private val overlappingPieces = Array(
         PieceLocCleared(gamePieces.upperLeftEl, Loc(0, 0), clearedLines = false),
         PieceLocCleared(gamePieces.v4Line, Loc(0, 0), clearedLines = false),
         PieceLocCleared(gamePieces.bigLowerRightEl, Loc(0, 0), clearedLines = false)
       )
 
-      context.setReplayList(overlappingPieces)
+      context.setReplayPieces(overlappingPieces)
       context.ignoreSimulation = false
       runSelfTest(context, multiGameStats)
     }
@@ -233,13 +233,13 @@ class TestGame extends FlatSpec {
     new GameInfoFixture {
 
       // make sure line clearing still generates the correct count of simulations
-      private val lineClearingPieces = List(
+      private val lineClearingPieces = Array(
         PieceLocCleared(gamePieces.h5Line, Loc(0, 0), clearedLines = false),
         PieceLocCleared(gamePieces.h5Line, Loc(0, 0), clearedLines = false),
         PieceLocCleared(gamePieces.h5Line, Loc(0, 0), clearedLines = false)
       )
 
-      context.setReplayList(lineClearingPieces)
+      context.setReplayPieces(lineClearingPieces)
       context.ignoreSimulation = false
       runSelfTest(context, multiGameStats)
     }
@@ -258,12 +258,12 @@ class TestGame extends FlatSpec {
 
   it must "run all simulations for three singletons" in {
     new GameInfoFixture {
-      private val plcList = List(
+      private val plcArray = Array(
         PieceLocCleared(gamePieces.singleton, Loc(0, 0), clearedLines = false),
         PieceLocCleared(gamePieces.singleton, Loc(0, 0), clearedLines = false),
         PieceLocCleared(gamePieces.singleton, Loc(0, 0), clearedLines = false)
       )
-      context.setReplayList(plcList)
+      context.setReplayPieces(plcArray)
       context.ignoreSimulation = false
 
       context.stopGameAtRound = 1
@@ -288,7 +288,7 @@ class TestGame extends FlatSpec {
     new GameInfoFixture {
 
       // set up a game that will have a row and a column that will clear at the same time
-      private val plcList = List(
+      private val plcArray = Array(
         PieceLocCleared(gamePieces.h5Line, Loc(0, 0), clearedLines = false), // 5
         PieceLocCleared(gamePieces.h4Line, Loc(0, 5), clearedLines = false), // 4 rt:9
         PieceLocCleared(gamePieces.v5Line, Loc(5, 9), clearedLines = false), // 5 rt:14
@@ -298,7 +298,7 @@ class TestGame extends FlatSpec {
       )
 
       // setReplayList will put the game in a mode where it only plays from the specified list (in this case the one above)
-      context.setReplayList(plcList)
+      context.setReplayPieces(plcArray)
 
       private val game = new Game(context, multiGameStats)
       private val results: GameResults = game.run
@@ -311,13 +311,13 @@ class TestGame extends FlatSpec {
   it must "not get a weighted score larger than 1 when the board is cleared" in {
     new GameInfoFixture {
       // set up a game that will have a row and a column that will clear at the same time
-      private val plcList = List(
+      private val plcArray = Array(
         PieceLocCleared(gamePieces.h5Line, Loc(0, 0), clearedLines = false),
         PieceLocCleared(gamePieces.h4Line, Loc(0, 5), clearedLines = false),
         PieceLocCleared(gamePieces.singleton, Loc(5, 9), clearedLines = false)
       )
       // setReplayList will put the game in a mode where it only plays from the specified list (in this case the one above)
-      context.setReplayList(plcList)
+      context.setReplayPieces(plcArray)
       context.ignoreSimulation = false
       context.show = false
       private val game = new Game(context, multiGameStats)
@@ -337,7 +337,7 @@ class TestGame extends FlatSpec {
 
       // this board was an end of game scenario where sometimes
       // under thread race conditions, the wrong board would be chosen
-      // when the plcList length was 2 when there was a 3 option available
+      // when the plcArray length was 2 when there was a 3 option available
       val a = Array(
         Array(0, 0, 0, 0, 0, 0, 1, 1, 1, 0), //0
         Array(0, 0, 1, 1, 0, 0, 0, 0, 1, 1), //1
@@ -366,7 +366,7 @@ class TestGame extends FlatSpec {
 
       val board = new Board(grid, colorGrid, context)
 
-      val plcList = List(
+      val plcArray = Array(
         PieceLocCleared(gamePieces.bigBox, Loc(0, 0), clearedLines = false),
         PieceLocCleared(gamePieces.bigBox, Loc(0, 5), clearedLines = false),
         PieceLocCleared(gamePieces.bigBox, Loc(5, 9), clearedLines = false),
@@ -376,7 +376,7 @@ class TestGame extends FlatSpec {
 
       )
 
-      context.setReplayList(plcList)
+      context.setReplayPieces(plcArray)
       context.ignoreSimulation = false
       context.show = false
 

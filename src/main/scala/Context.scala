@@ -201,14 +201,15 @@ case class Context(conf: Conf) {
   //noinspection VarCouldBeVal
   var ignoreSimulation: Boolean = true
 
-  private var internalReplayListIterator = List[PieceLocCleared]().toIterator
+  private var internalReplayIterator = List[PieceLocCleared]().toIterator
 
-  def setReplayList(plcList: List[PieceLocCleared]): Unit = {
+  def setReplayPieces(plcArray: Array[PieceLocCleared]): Unit = {
     replayGame = true
-    internalReplayListIterator = plcList.toIterator
+    // has to be a list or it will just keep returning the same values from the Array
+    internalReplayIterator = plcArray.toList.toIterator
   }
 
-  def takeReplayPiecesForRound: Iterator[PieceLocCleared] = internalReplayListIterator.take(Game.numPiecesInRound)
+  def getNextReplayPiecesForRound: Array[PieceLocCleared] = internalReplayIterator.take(Game.numPiecesInRound).toArray
 
   var simulationSelfTest: Boolean = false
 

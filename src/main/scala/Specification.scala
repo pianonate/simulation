@@ -231,7 +231,7 @@ case class Specification(random: Boolean, constructionInfo: ConstructionInfo, op
     val piecesString = simulationResults
       .zipWithIndex
       .map { case (result, index) => result.pieces.permutationPiecesHeader(index, gamePieces) }
-      .spreadHorizontal(bracketWith = StringFormats.VERTICAL_LINE + " ", separator = StringFormats.VERTICAL_LINE + " ")
+      .toArray.spreadHorizontal(bracketWith = StringFormats.VERTICAL_LINE + " ", separator = StringFormats.VERTICAL_LINE + " ")
 
     val piecesHeader = wrappedBullShit.splice(piecesString.split("\n")) + "\n"
 

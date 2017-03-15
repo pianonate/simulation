@@ -89,12 +89,12 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
   // logic that skips simulations correctly
   private[this] val legalPositionsSelfTest = scala.collection.mutable.ListBuffer[Long]()
   private[this] val simulatedPositionsSelfTest = scala.collection.mutable.ListBuffer[Long]()
-  private var piecesSelfTest: List[Piece] = List()
+  private var piecesSelfTest: Array[Piece] = Array()
 
   def getSelfTestResults: SelfTestResults = SelfTestResults(
     legalPositionsSelfTest,
     simulatedPositionsSelfTest,
-    piecesSelfTest
+    piecesSelfTest.toList
   )
 
   // used in testing only
@@ -159,34 +159,34 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
   private def roundHandler() = {
 
-    def getReplayPieces: List[PieceLocCleared] = {
+    def getReplayPieces: Array[PieceLocCleared] = {
 
-      val instrumentedPlcList: List[PieceLocCleared] =
+      val instrumentedPlcArray: Array[PieceLocCleared] =
         if (context.replayGame) {
-          val next3 = context.takeReplayPiecesForRound.toList
+          val next3 = context.getNextReplayPiecesForRound
           if (next3.length < 3)
             gameOver
           else
             next3
         } else {
-          List()
+          Array()
         }
 
-      instrumentedPlcList
+      instrumentedPlcArray
     }
 
-    def piecesForRound(replayPieces: List[PieceLocCleared]): List[Piece] = {
+    def piecesForRound(replayPieces: Array[PieceLocCleared]): Array[Piece] = {
       if (context.replayGame) replayPieces.map(_.piece) else getPiecesForRound
     }
 
-    def getTheChosenOne(results: List[SimulationInfo], replayPieces: List[PieceLocCleared]): Simulation = {
+    def getTheChosenOne(results: List[SimulationInfo], replayPieces: Array[PieceLocCleared]): Simulation = {
       if (context.replayGame && context.ignoreSimulation)
-        Simulation(replayPieces, this.board, 0, replayPieces.length)
+        Simulation(replayPieces, this.board, 0)
       else {
         // take the best result form each simulation, sort it and select the top
         // in some rounds, you will get an infeasible solution so be sure to ensure the
-        // plcList is nonEmpty
-        val filtered = results.map(_.best).filter(_.plcList.nonEmpty)
+        // plcArray is nonEmpty
+        val filtered = results.map(_.best).filter(_.plcArray.nonEmpty)
         if (filtered.isEmpty)
           gameOver
         else
@@ -194,7 +194,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
       }
     }
 
-    def getResults(pieces: List[Piece]): List[SimulationInfo] = {
+    def getResults(pieces: Array[Piece]): List[SimulationInfo] = {
       if (context.replayGame && context.ignoreSimulation) Nil else getSimulationResults(pieces)
     }
 
@@ -208,13 +208,13 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
     }
 
-    def getChosenPlcList(replayPieces: List[PieceLocCleared], bestSimulation: Simulation): List[PieceLocCleared] = {
+    def getChosenPlcArray(replayPieces: Array[PieceLocCleared], bestSimulation: Simulation): Array[PieceLocCleared] = {
       // rather than reverse as they're constructed to put them in the right order
       // just reverse now on the specific best piece
-      if (context.replayGame && context.ignoreSimulation) replayPieces else bestSimulation.plcList.reverse
+      if (context.replayGame && context.ignoreSimulation) replayPieces else bestSimulation.plcArray.reverse
     }
 
-    def placePieces(chosenList: List[PieceLocCleared]): List[PieceHandlerInfo] = {
+    def placePieces(chosenList: Array[PieceLocCleared]): List[PieceHandlerInfo] = {
 
       // reset roundScore for this round
       this.board.roundScore = 0
@@ -228,7 +228,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
             plc.loc,
             index + 1
           )
-      }
+      }.toList
     }
 
     def getPlacePiecesResultsString(pieceHandlerInfoList: List[PieceHandlerInfo]): String = {
@@ -308,7 +308,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
     if (bestSimulation.pieceCount > 0) {
 
-      val chosenList: List[PieceLocCleared] = getChosenPlcList(replayPieces, bestSimulation)
+      val chosenList: Array[PieceLocCleared] = getChosenPlcArray(replayPieces, bestSimulation)
 
       // get the bit mask based on the board state before pieces are placed
       // then pass the bitmask along to json logger
@@ -375,7 +375,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
     throw GameOver
   }
 
-  private def getSimulationResults(pieces: List[Piece]): List[SimulationInfo] = {
+  private def getSimulationResults(pieces: Array[Piece]): List[SimulationInfo] = {
 
     if (context.simulationSelfTest)
       this.piecesSelfTest = pieces
@@ -430,19 +430,19 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
   }
 
-  private def getPiecesForRound: List[Piece] = {
+  private def getPiecesForRound: Array[Piece] = {
     // use this method to return specific pieces under specific circumstances
     // under normal conditions if (false
     // just return a random set of 3 pieces
     val gamePiecesForRound = {
       // List(Pieces.box,Pieces.h3line,Pieces.upperLeftEl)
-      List.fill(3)(gamePieces.getRandomPiece)
+      Array.fill(3)(gamePieces.getRandomPiece)
     }
 
     gamePiecesForRound
   }
 
-  private def simulatePermutation(pieces: List[Piece], permutationIndex: Int, totalPermutations: Int): SimulationInfo = {
+  private def simulatePermutation(pieces: Array[Piece], permutationIndex: Int, totalPermutations: Int): SimulationInfo = {
 
     val simulationDuration = new GameTimer
     val simulationCount = Counter()
@@ -455,10 +455,10 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
     // provided by getLegal below
     var best: Option[Simulation] = None
 
-    case class BoardScorePLCList(board: Board, score: Int, plc: PieceLocCleared)
+    case class BoardScorePlc(board: Board, score: Int, plc: PieceLocCleared)
 
     //return the board copy and the number of lines cleared
-    def placeMe(piece: Piece, theBoard: Board, loc: Loc): BoardScorePLCList = {
+    def placeMe(piece: Piece, theBoard: Board, loc: Loc): BoardScorePlc = {
 
       val boardCopy = Board.copy(theBoard)
       boardCopy.place(piece, loc, updateColor = false)
@@ -469,7 +469,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
       val score = piece.pointValue + context.lineClearingScore(totalCleared)
 
       // return the board with an instance of a PieceLocCleared class
-      BoardScorePLCList(boardCopy, score, PieceLocCleared(piece, loc, isCleared))
+      BoardScorePlc(boardCopy, score, PieceLocCleared(piece, loc, isCleared))
 
     }
 
@@ -489,14 +489,15 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
       } else 0l
     }
 
-    def createSimulations(board: Board, pieces: List[Piece], linesClearedAcc: Boolean, plcAcc: List[PieceLocCleared], plcArrayAcc: Array[PieceLocCleared], scoreAcc: Int, locPieceHashAcc: Long, pieceCountAcc: Int): Unit = {
+    def createSimulations(board: Board, pieces: Array[Piece], linesClearedAcc: Boolean, plcArrayAcc: Array[PieceLocCleared], scoreAcc: Int, locPieceHashAcc: Long): Unit = {
 
-      def isUpdatable(plcList: List[PieceLocCleared], linesCleared: Boolean): Boolean = {
+      def isUpdatable(plcArray:Array[PieceLocCleared], linesCleared: Boolean): Boolean = {
         // improved from (Mac Pro Profiler)
         // 19,000/s - when using toArray
         // 49,500/s - removed toArray
         // 54,182/s - removed lazy val call on offSetToFirstOnPosition - possibly this is just a profiler illusion
         //            but that's okay as the code is now simpler because Board no longer extends Piece
+        // 466,743/s - turned List[PieceLocCleared] into Array[PieceLocCleared].  Yeah.
 
         def mustUpdateForThisPermutation: Boolean = {
 
@@ -506,13 +507,9 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
           // to make this work, stop using List[PieceLocCleared] and start using an Array[PieceLocCleared]
           // then indexing and getting length and all of that BS will go faster.
 
-          // experimented with turning the List into an Array (toArray) under the theory that
-          // Array access is constant time but it turns out that it doesn't help
-          // as the cost of turning it into the array exceeds the cost of indexing into this short list
-          // In the profiler on a MacPro, just indexing the List is about 2.6x faster
-          val plc1 = plcList(0)
-          val plc2 = plcList(1)
-          val plc3 = plcList(2)
+          val plc1 = plcArray(0)
+          val plc2 = plcArray(1)
+          val plc3 = plcArray(2)
 
           // whoah - this was complicated to find
           // a piece can be placed at the same legal position as a number piece if it fits around it
@@ -594,10 +591,10 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
         }
       }
 
-      def updateSimulation(plcList: List[PieceLocCleared], board: Board, pieceCount: Int): Unit = {
+      def updateSimulation(plcArray: Array[PieceLocCleared], board: Board): Unit = {
         val id = simulationCount.inc()
         // reverse is expensive - only do this when showing in the UX
-        val simulation = Simulation(plcList /*.reverse*/ , board, id, pieceCount)
+        val simulation = Simulation(plcArray, board, id)
         updateBest(simulation)
       }
 
@@ -620,11 +617,9 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
         val locPieceHash = getLocPieceHash(loc, piece, locPieceHashAcc)
 
-        val plcList = plc :: plcAcc
+        val plcArray = plcArrayAcc :+ plc
 
         val score = result.score + scoreAcc
-        val pieceCount = 1 + pieceCountAcc
-
         // recurse
         // if we have already cleared lines then propagate that so we don't pay the freight
         // in "isUpdatable" where it's an expensive calculation
@@ -632,7 +627,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
         if (pieces.tail.nonEmpty) {
 
-          createSimulations(boardCopy, pieces.tail, linesCleared, plcList, Array(plc) ++ plcArrayAcc, score, locPieceHash, pieceCount)
+          createSimulations(boardCopy, pieces.tail, linesCleared, plcArray, score, locPieceHash)
 
         } else {
 
@@ -644,7 +639,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
             synchronized { this.legalPositionsSelfTest += locPieceHash }
 
           // only add simulation when we've reached the last legal location on this path
-          if (isUpdatable(plcList, linesCleared)) {
+          if (isUpdatable(plcArray, linesCleared)) {
 
             // this completes the test of validating we are simulating all legal positions
             // this records all simulations
@@ -654,7 +649,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
             // this is the one score that happens outside
             boardCopy.roundScore = score
 
-            updateSimulation(plcList, boardCopy, pieceCount)
+            updateSimulation(plcArray, boardCopy)
 
           } else {
             unsimulatedCount.inc()
@@ -670,13 +665,13 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
         // this allows showing the final pieces placed on the board at the end of the game
         // this particular unfinished simulation will not be chosen as long as another
         // simulation is available that has finished for all 3 pieces
-        updateSimulation(plcAcc, board, pieceCountAcc)
+        updateSimulation(/*plcAcc,*/plcArrayAcc, board)
       }
     }
 
-    createSimulations(board, pieces, linesClearedAcc = false, List(), Array(), 0, 0, 0)
+    createSimulations(board, pieces, linesClearedAcc = false, Array(), 0, 0)
 
-    def emptySimulation: Simulation = Simulation(List(), this.board, 0, 0)
+    def emptySimulation: Simulation = Simulation(Array(), this.board, 0)
 
     // now we know how long this one took - don't need to include the time to show or return it
     val elapsedMs = simulationDuration.elapsedMillisecondsFloor.toInt

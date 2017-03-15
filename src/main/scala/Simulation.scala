@@ -28,7 +28,7 @@ case class PieceLocCleared(
  * @param elapsedMs - how much time did it take to run all of the simulationCount simulations
  */
 case class SimulationInfo(
-  pieces:             List[Piece],
+  pieces:             Array[Piece],
   simulatedCount:     Int,
   unsimulatedCount:   Int,
   best:               Simulation,
@@ -40,17 +40,17 @@ case class SimulationInfo(
  * A single Simulation is the list of the PieceLocCleared (defined above) plus the resultant Board
  * A Simulation also stashes the results of the simulation (as determined by the Specification)
  *
- * @param plcList - PieceLocCleared list
+ * @param plcArray - PieceLocCleared array
  * @param board - the resultant Board after placing all pieces in PieceLocCleared.
  */
-case class Simulation(plcList: List[PieceLocCleared], board: Board, id: Int, pieceCount: Int) {
+case class Simulation(plcArray:Array[PieceLocCleared], board: Board, id: Int) {
 
-  override def toString: String = this.plcList.map(plc => plc.piece.name).mkString(", ") // visible in debugger
+  override def toString: String = this.plcArray.map(plc => plc.piece.name).mkString(", ") // visible in debugger
 
   // used to group Simulations
   // if pieceCount is less than 3 then GameOver man!
   // passed in pieceCount as getting the List[PieceLocCleared].length takes too much time
-  //  val pieceCount: Int = plcList.length
+  val pieceCount: Int = plcArray.length
 
   // pieceCount to weighted sum so Best choice always considers a solution that includes all pieces
   // to be better than a solution with less pieces
