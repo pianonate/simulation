@@ -1,6 +1,10 @@
 /**
-  * Created by nathanmccoy on 3/15/17. 
+  * Created by rhialtotm on 3/15/17.
+  * trait to facilitate unit testing of print and println
   */
-class MockOutput {
-
+trait MockOutput extends Output {
+  var messages: Seq[String] = Seq()
+  override def print(s:String):Unit = messages = messages :+ s
+  override def println(s:String):Unit = messages = messages :+ (s + "\n")
+  override def println():Unit = messages = messages :+ "\n"
 }

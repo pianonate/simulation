@@ -8,6 +8,12 @@ class TestContext extends ContextSpec {
 
   behavior of "the Context"
 
+  it must "generate a valid non-mock context" in {
+    val context = Context(Array[String]())
+    context.show = false
+    assert(context.hashCode()!=0)
+  }
+
   it must "generate hash codes that add up in any combination of 2 or 3 to unique values" in {
 
     val context = getContext()

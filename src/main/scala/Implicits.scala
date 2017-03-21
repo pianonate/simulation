@@ -42,7 +42,6 @@ class CounterFormats(val counter: Counter) {
   def label: String = current.label
   def label(length: Int): String = current.label(length)
   def shortLabel: String = current.shortLabel
-  def boardScoreLabel: String = current.greenLabel
   def scoreLabel: String = current.scoreLabel
 }
 
@@ -54,13 +53,6 @@ class DoubleFormats(val d: Double) {
   }
 
   def weightLabel: String = label(StringFormats.weightFormatLength)
-  def rightAlignedPadded(length: Int): String = d.toString.rightAlignedPadded(length)
-
-  private def coloredWeightLabel(color: String): String = {
-    val s = d.weightLabel.map(c => (if (c == '0') BRIGHT_BLACK + '0' else color + c) + SANE).mkString
-    s
-  }
-  def yellowColoredWeightLabel: String = coloredWeightLabel(YELLOW)
 
 }
 
@@ -94,16 +86,13 @@ class IntFormats(val i: Int) {
     case 1 => "1st"
     case 2 => "2nd"
     case 3 => "3rd"
-    case _ => "not supported"
   }
-  def greenLabel: String = GREEN + optFactorLabel + SANE
+
   def greenPerSecondLabel: String = GREEN + perSecondLabel + SANE
-  def indexLabel: String = (i + 1).toString.appendColon
   def label: String = numberFormat.format(i)
   def label(length: Int): String = ("%," + length.toString + "d").format(i)
   def optFactorLabel: String = optFactorResultFormat.format(i)
   def perSecondLabel: String = label + "/s"
-  def redLabel: String = RED + optFactorLabel + SANE
   def rightAligned(length: Int): String = ("%" + length + "d").format(i)
   def scoreLabel: String = GREEN + label + SANE
   def shortLabel: String = numberFormatShort.format(i)
@@ -183,7 +172,6 @@ class StringFormats(val s: String) {
   def appendColon: String = s + ": "
   def curlyBraces: String = "{" + s + "}"
   def doubleQuote: String = "\"" + s + "\""
-  def elapsedLabel: String = elapsedFormat.format(s)
   def green: String = GREEN + s + SANE
   def greenHeader: String = getHeaderString(GREEN)
   // def greenDigits:String = coloredDigitsLabel(GREEN)
@@ -207,12 +195,6 @@ class StringFormats(val s: String) {
 
   def wrap(width: Int, height: Int, color: String): String = {
 
-    //todo - low priority - measure first -
-    //       you got some of this off the web
-    //       it's got to be inefficient to mk, split, mk again
-    //       you could probably speed this up although it's not happening very often
-    //       and you're only calling it to fit the bullshit in the upper left corner
-    //
     val first = s.split(" ").foldLeft(Array(""))((out, in) => {
       if ((out.last + " " + in).trim.length > width) out :+ in
       else out.updated(out.length - 1, out.last + " " + in)

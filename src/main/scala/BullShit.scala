@@ -18,6 +18,13 @@ class BullShit(val rounds: Counter, gameTimer: GameTimer) extends Iterable[Strin
     showForRounds = showForSeconds * roundsPerSecond
   }
 
+  def getNewBullShit:String = {
+    // used in tests to ensure new bullshit is returned immediately
+    // immediately return new bullshit
+    showForRounds = 1
+    this.iterator.next
+  }
+
   def iterator = new Iterator[String] {
     def hasNext = true
     def next: String = {
@@ -33,8 +40,7 @@ class BullShit(val rounds: Counter, gameTimer: GameTimer) extends Iterable[Strin
         currentBullShit = BullShit.getBullshit
       }
 
-      // (  if (newBullShit) "new: " + currentBullShit else "old: " + currentBullShit ) + " " + roundsPerSecond + " " + (rounds.value % (showForSeconds * roundsPerSecond))
-      /*StringFormats.CYAN +*/ currentBullShit/* + ("." * current)*/ /*+ StringFormats.SANE*/
+      currentBullShit
     }
   }
 }
@@ -45,7 +51,7 @@ object BullShit {
 
     def getBS(a: Array[String]): String = a(scala.util.Random.nextInt(a.length))
 
-     getBS(verbs) + " " + getBS(adjectives) + " " + getBS(nouns) + " " + getBS(prepositions) + " " + getBS(endingPhrases)
+    getBS(verbs) + " " + getBS(adjectives) + " " + getBS(nouns) + " " + getBS(prepositions) + " " + getBS(endingPhrases)
 
   }
 

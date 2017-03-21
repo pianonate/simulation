@@ -28,7 +28,7 @@ case class Feature(
   explanation: String
 )
 
-case class Specification(random: Boolean, constructionInfo: ConstructionInfo, optFactor: Option[Feature]) {
+case class Specification(random: Boolean, constructionInfo: ConstructionInfo/*, optionalFeature: Option[Feature]*/) {
 
   val boardSize: Int = constructionInfo.boardSizeInfo.boardSize
 
@@ -59,41 +59,36 @@ case class Specification(random: Boolean, constructionInfo: ConstructionInfo, op
   private val totalPositions = constructionInfo.boardSizeInfo.boardPositions
 
   // todo - all things being equal, favor a position closer to the upper left (just add Loc Row and Col) - this will allow seeded games to repeat themselves I believe
-  // todo - OptimizationFactor of all combinations of 3x3 1x5 and 5x1 - this is actually a lookahead.  dive into machine learning, m'lad
 
-  // the following code can be paste in by running weightGenerator command line option
-  // make sure that if you change any of the key names above, that you change them here as well
-
-  // providing made up value for initial roundScoreKey feature
-  private val fixedWeightMap = Map(
-
-    "maximizer" -> 0.622593416953521,
-    "avoid middle" -> 0.1628650146642616,
-    "occupied" -> 0.051514039866263454,
-    "open rows + cols" -> 0.043463901967082864,
-    "connected open" -> 0.041670072171356126,
-    "spaces on a line" -> 0.03385277575559437,
-    "4 neighbors" -> 0.01903122736923337,
-    "3 neighbors" -> 0.018033335297438363,
-    "2 neighbors" -> 0.0069762159552488,
-    "round score" -> 0.001
-
-  )
-
-  // magic - 5.1MM high score weights!
+  // magic - 11,026,436 high score weights!
   /*
-  {"type":"Weights",
-  "maximizer":0.19974355898611665,
-  "avoid middle":0.18347596377558661,
-  "spaces on a line":0.16154182283466706,
-  "4 neighbors":0.11850099681586584,
-  "3 neighbors":0.11184045788599091,
-  "connected open":0.10014732501776767,
-  "occupied":0.06129258525854067,
-  "open rows + cols":0.04983397323751548,
-  "2 neighbors":0.013623316187948986}
+{"type":"Weights",
+"4 neighbors":0.19160753467424985,
+"spaces on a line":0.18782432239744193,
+"maximizer":0.1713224666227197,
+"round score":0.1382997920939052,
+"open rows + cols":0.13458425823691889,
+"3 neighbors":0.06100681373856039,
+"occupied":0.05558327536536272,
+"2 neighbors":0.031989559611103384,
+"avoid middle":0.022710246857707443,
+"connected open":0.005071730402030464}
 
    */
+
+  private val fixedWeightMap = Map(
+    "4 neighbors" -> 0.19160753467424985,
+    "spaces on a line" -> 0.18782432239744193,
+    "maximizer" -> 0.1713224666227197,
+    "round score" -> 0.1382997920939052,
+    "open rows + cols" -> 0.13458425823691889,
+    "3 neighbors" -> 0.06100681373856039,
+    "occupied" -> 0.05558327536536272,
+    "2 neighbors" -> 0.031989559611103384,
+    "avoid middle" -> 0.022710246857707443,
+    "connected open" -> 0.005071730402030464
+
+  )
 
   // public for testing purposes
   val allFeatures = ListMap(
@@ -165,14 +160,14 @@ case class Specification(random: Boolean, constructionInfo: ConstructionInfo, op
   val maxFeatureKeyLength: Int = allFeatures.values.map(_.key.length).max
 
   // here is the actual construction of the specification - rand or fixed
-  val spec: ListMap[String, Feature] = optFactor match {
+  val spec: ListMap[String, Feature] = /*optionalFeature match {
 
     case Some(optFactor) =>
       // get a specification just for this optimization factor used in weight generation
       val optFactorListMap = ListMap(optFactor.key -> optFactor)
       weightedSpecification(optFactorListMap)
 
-    case None =>
+    case None =>*/
       if (random) {
 
         val doubleRandomizer = new scala.util.Random(constructionInfo.getCurrentGameSeed)
@@ -185,7 +180,7 @@ case class Specification(random: Boolean, constructionInfo: ConstructionInfo, op
         weightedSpecification(randomSpec)
       } else
         weightedSpecification(allFeatures)
-  }
+ /* }*/
 
   val length: Int = spec.size
 
@@ -323,16 +318,16 @@ object Specification {
     allFeatureDescriptions.map(desc => "* " + desc._1.label + " - " + desc._2).mkString("\n")
   }
 
-  def apply(random: Boolean, constructionInfo: ConstructionInfo): Specification = {
+/*  def apply(random: Boolean, constructionInfo: ConstructionInfo): Specification = {
     Specification(random, constructionInfo, None)
-  }
+  }*/
 
   def apply(optFactor: Feature, constructionInfo: ConstructionInfo): Specification = {
-    Specification(random = true, constructionInfo, Some(optFactor))
+    Specification(random = true, constructionInfo/*, Some(optFactor)*/)
   }
 
   def apply(constructionInfo: ConstructionInfo): Specification = {
-    Specification(random = true, constructionInfo, None)
+    Specification(random = true, constructionInfo/*, None*/)
   }
 
 }

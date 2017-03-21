@@ -8,7 +8,7 @@ class TestPiece extends ContextSpec {
 
   behavior of "A Piece"
 
-  it must "must have a point value consistent with the number of occupied positions in the piece" in {
+  it must "must have a point value equal to the number of occupied positions" in {
 
     // validate all the pieces we create
     val context = getContext()
@@ -17,6 +17,8 @@ class TestPiece extends ContextSpec {
     pieces foreach {piece =>
       val occupancyLength = piece.grid.occupancyGrid.flatten.count(_ == true)
       val pointValue = piece.pointValue
+      val s = piece.toString
+      assert(s.length > 0) // just to make code coverage
       assert(pointValue===occupancyLength)
     }
 

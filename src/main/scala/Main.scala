@@ -15,6 +15,8 @@
 
 object Main {
 
+  // todo - shut down gracefully with unhandled exceptions
+
   def main(args: Array[String]): Unit = {
 
     val context = Context(args)
@@ -22,7 +24,7 @@ object Main {
     context.conf match {
 
       case c if c.printPieces()            => context.getGamePieces.printPossiblePieces(context)
-      case _                               => GameRunner.play(context)
+      case _                               => (new GameRunner).play(context)
 
     }
 

@@ -15,8 +15,7 @@ abstract class ContextSpec extends FlatSpec {
   def getContext(arg:String):Context = getContext(Array(arg))
 
   def getContext(args: Array[String]):Context = {
-    val context = Context(args)
-    context.show = false
+    val context = new Context(new Conf(args)) with MockOutput
     context
   }
 

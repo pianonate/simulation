@@ -17,7 +17,7 @@ class TestSpecification extends ContextSpec {
       context.stopGameAtRound = 2 // ensure the game runs fast - just to exercise code
       context.gamesToPlay = 1 // only run one game
 
-      val game = new Game(context, multiGameStats)
+      val game = new Game(context, multiGameStats) with MockOutput
       val result: GameResults = game.run
       assert(result.score > 0)
       assert(result.rounds > 0)

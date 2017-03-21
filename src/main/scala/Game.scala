@@ -9,6 +9,8 @@
  * todo - allowed combinations optimization could work even with cleared lines - use the specified combinations but if you clear lines, have a 2 combo legal and if you clear another line, then all positions are legal
  * todo - create a blog series
  * todo - automatically output the weights from a highscore game to a file that can be copied over the fixed weight map - code generation
+ * todo - Conf json log folder
+ * todo - Conf simulation.log path/file
  */
 
 import scala.collection.GenSeq
@@ -34,7 +36,7 @@ case class SelfTestResults(
 )
 
 // this constructor is used in testing to pass in a pre-constructed board state
-class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
+class Game(context: Context, multiGameStats: MultiGameStats, board: Board) extends Output {
 
   // this is the normal constructor
   def this(context: Context, multiGameStats: MultiGameStats) {
@@ -89,7 +91,10 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
   // logic that skips simulations correctly
   private[this] val legalPositionsSelfTest = scala.collection.mutable.ListBuffer[Long]()
   private[this] val simulatedPositionsSelfTest = scala.collection.mutable.ListBuffer[Long]()
-  private var piecesSelfTest: Array[Piece] = Array()
+  private[this] var piecesSelfTest: Array[Piece] = Array()
+
+  private[this] var selfDestruct = false
+  def initiateSelfDestruct: Unit = selfDestruct = true
 
   def getSelfTestResults: SelfTestResults = SelfTestResults(
     legalPositionsSelfTest,
@@ -103,12 +108,6 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
   def run: GameResults = {
 
-    /*    def resetTerminalBuffer: Unit = {
-      // reset terminal every 1000 rounds
-      // if (rounds.value % context.eraseTerminalBufferAfterRound == 0)
-      "printf '\u001B[3J'" !
-    }*/
-
     try {
 
       // set the game number and gameSeed so they are part of the JSON file name
@@ -117,29 +116,22 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
         logWeights()
       }
 
-      /* def loop = {
-        var b = 0*/
       do {
 
         // todo figure out how to capture a pause character without having to hit return
-
         roundHandler()
 
-      } while (true) /*while (b == -2)
-        println("char after loop: " + b)
+        if (this.selfDestruct)
+          throw new IllegalStateException("ensure unknown errors are handled")
 
-      }
-
-
-      loop*/
+      } while (true)
 
     } catch {
 
       case GameOver =>
       case e: Throwable =>
         println("abnormal run termination:\n" + e.toString)
-        context.gamesToPlay = 0
-        throw new IllegalArgumentException
+        throw e
     }
 
     showGameOver()
@@ -491,7 +483,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 
     def createSimulations(board: Board, pieces: Array[Piece], linesClearedAcc: Boolean, plcArrayAcc: Array[PieceLocCleared], scoreAcc: Int, locPieceHashAcc: Long): Unit = {
 
-      def isUpdatable(plcArray:Array[PieceLocCleared], linesCleared: Boolean): Boolean = {
+      def isUpdatable(plcArray: Array[PieceLocCleared], linesCleared: Boolean): Boolean = {
         // improved from (Mac Pro Profiler)
         // 19,000/s - when using toArray
         // 49,500/s - removed toArray
@@ -665,7 +657,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
         // this allows showing the final pieces placed on the board at the end of the game
         // this particular unfinished simulation will not be chosen as long as another
         // simulation is available that has finished for all 3 pieces
-        updateSimulation(/*plcAcc,*/plcArrayAcc, board)
+        updateSimulation( /*plcAcc,*/ plcArrayAcc, board)
       }
     }
 
@@ -703,13 +695,6 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
   )
 
   private def pieceHandler(piece: Piece, loc: Loc, index: Int): PieceHandlerInfo = {
-
-    // todo take the returned information from pieceHandler to construct the information string separately
-
-    // approach is to create a copy of the board after each piece is placed but before lines are cleared and then return this board along with the piece,
-    // location, score, and cleared rows and cleared cols after the piece is placed as well as a copy of the board after the lines are cleared (just for the last one)
-    // then pass this into a method that is split off from this one that has the sole responsibility of constructing
-    // the result string - only if we are doing a show results
 
     board.place(piece, loc, updateColor = true)
 
@@ -815,10 +800,6 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
       // todo - how to handle replay mode?
       "Replay Mode - no simulating.  what do you show here?"
     else {
-
-      // todo: after reaching 1.9MM in 2+ hours, the non simulation time was over 7% (next time record exact number)
-      //       game 2 - 611,283 - 4.4% non-simulation time after 49M 49s
-
       def getGameTimeInfo: Array[String] = {
 
         val gameElapsedNanoseconds = gameTimer.elapsedNanoseconds.toFloat
@@ -914,7 +895,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
           "best per second".label + gameStats.bestPerSecond.greenPerSecondLabel,
           // race condition info
           " ",
-          "race cond. on best".label + gameStats.totalRaceConditionOnBest.label + " (" + lastRoundInfo.rcChangedCountBest.shortLabel + ")",
+          "race cond. handled".label + gameStats.totalRaceConditionOnBest.label + " (" + lastRoundInfo.rcChangedCountBest.shortLabel + ")",
           ""
 
         )
@@ -944,11 +925,6 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
         "rows cleared".label + rowsCleared.label + "\n" +
         "cols cleared".label + colsCleared.label + "\n" +
         "game elapsed time".label + gameTimer.elapsedLabel + "\n"
-
-      // todo - there is a bug in this because each piece is re-used in gamePieces
-      //        unless you get gamePieces to create new pieces, you'll just keep incrementing
-      //println(labelFormat.format("piece distribution"))
-      //println(gamePieces.usageString)
 
       print(s)
     }
@@ -1059,20 +1035,5 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) {
 object Game {
 
   val numPiecesInRound: Int = 3
-
-  /* val positions = 0 until Board.BOARD_SIZE * Board.BOARD_SIZE
-  val positions = 0 until 10
-  val combinations = positions.combinations(3).toArray
-  val validOnes = combinations.map(_(0)).toSet
-  val validTwos = combinations.groupBy(_(0)).map{case(key,a)=>key->a.map(_.tail(0)).toSet}
-  val validThrees = combinations.map(_.tail).groupBy(_(0)).map{case(key,a)=>key->a.map(_.tail(0)).toSet}*/
-
-  /*
-    if you are on the first piece, it can be any position from 0 to positions - 2
-    if you are on the second piece, then it can be the first piece position + 1 up to positions - 1
-        if a lines is cleared after the first number then the second piece can be 0 to positions - 1
-    if you are on the third piece, then it can be the second position + 1 up to positions
-        if a line is cleared after the second piece then thd third number can be any position
-   */
 
 }

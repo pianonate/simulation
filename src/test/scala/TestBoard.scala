@@ -30,22 +30,48 @@ trait BoardFixture {
   }
 }
 
+trait BoardCopyFixture extends BoardFixture {
+
+  board.place(gamePieces.getRandomPiece, Loc(boardSize / 2, boardSize / 2), updateColor = true) // just place one in the middle
+
+  val copy: Board = Board.copy(board)
+
+  val sourceColorGrid: Array[Array[String]] = board.colorGrid
+  val sourceGrid: OccupancyGrid = board.grid
+
+  val copyColorGrid: Array[Array[String]] = copy.colorGrid
+  val copyGrid: OccupancyGrid = copy.grid
+}
+
 class TestBoard extends FlatSpec {
 
-  trait BoardCopyFixture extends BoardFixture {
+  behavior of "A board"
 
-    board.place(gamePieces.getRandomPiece, Loc(boardSize / 2, boardSize / 2), updateColor = true) // just place one in the middle
-
-    val copy: Board = Board.copy(board)
-
-    val sourceColorGrid: Array[Array[String]] = board.colorGrid
-    val sourceGrid: OccupancyGrid = board.grid
-
-    val copyColorGrid: Array[Array[String]] = copy.colorGrid
-    val copyGrid: OccupancyGrid = copy.grid
+  it must "contribute to code coverage %" in {
+    new BoardFixture {
+      val simulation = Simulation(Array(PieceLocCleared(gamePieces.bigBox,Loc(0,0),true)), board, 32)
+      val s = simulation.toString
+      assert(s.toString.length > 0)
+    }
   }
 
-  behavior of "A board"
+  it must "give a valid toString for OccupancyGrid" in {
+    val o = OccupancyGrid(10, 10, true, BoardSizeInfo(10))
+    val s = o.toString
+    assert(s.length > 0)
+
+  }
+
+  it must "generate a correct show result for a board" in {
+    new BoardFixture {
+
+      addRow(0)
+
+      val s = board.show
+      // executes code in show that
+      assert(s.split("\n").length === context.boardSize)
+    }
+  }
 
   it must "count 2 neighbors correctly" in {
     new BoardFixture {

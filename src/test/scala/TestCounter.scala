@@ -15,8 +15,11 @@ class TestCounter extends FlatSpec {
   }
 
   it must "allow arbitrary starting point" in {
-    val c = Counter(3)
-    assert(c.value === 3)
+    val c1 = Counter(3)
+    assert(c1.value === 3)
+
+    val c2 = Counter(0)
+    assert(c2.value === 0)
   }
 
   it must "increment by 1" in {

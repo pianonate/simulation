@@ -9,14 +9,19 @@ import java.awt.Toolkit
 import java.io.PrintWriter
 import scala.collection.mutable.ListBuffer
 
-object GameRunner {
+class GameRunner extends Output {
 
   private val allGamesTimer = new GameTimer
+
+  private var mockOutput = false
+  private var simulateNewHighScore = false
+
+  def testOnlySetMockOutput:Unit = mockOutput = true
+  def testOnlySimulateNewHighScore:Unit = simulateNewHighScore = true
 
   def play(context: Context, startGameCount: Int = 0): Array[Int] = {
 
     context.logger.info("starting simulation")
-
 
     val scores = new ListBuffer[Int]
     val rounds = new ListBuffer[Int]
@@ -28,9 +33,9 @@ object GameRunner {
       val roundsPerSecond: Double = (results.rounds / results.gameTimer.elapsedSeconds).toDouble
 
       context.logger.info("game " + gameCount.label(4).green
-        + " - score: " + results.score.label(7).green
-        + " average: " + scores.avg.toInt.label(7).green
-        + " high score: " + scores.max.label(7).green
+        + " - score: " + results.score.label(9).green
+        + " average: " + scores.avg.toInt.label(9).green
+        + " high score: " + scores.max.label(9).green
         + " rounds: " + results.rounds.label(7).green
         + " rounds/s: " + roundsPerSecond.label(2, 2).green
         + " duration: " + results.gameTimer.elapsedLabel.green
@@ -51,7 +56,11 @@ object GameRunner {
 
       val gameInfo = MultiGameStats(average, sessionHighScore, machineHighScore, gameCount.value, allGamesTimer)
 
-       val game = new Game(context, gameInfo)
+
+       val game = mockOutput match {
+         case false => new Game(context, gameInfo)
+         case true => new Game(context, gameInfo) with MockOutput
+       }
 
       val results: GameResults = game.run
 
@@ -59,7 +68,7 @@ object GameRunner {
       rounds.append(results.rounds)
       simulationsPerSecond.append(results.bestPerSecond)
 
-      val allTimeHighScore = List(machineHighScore, scores.max).max
+      val potentialAllTimeHighScore = machineHighScore.max(scores.max)
       val mostRounds = rounds.max
       val bestPerSecond = simulationsPerSecond.max
 
@@ -69,7 +78,7 @@ object GameRunner {
         "games played".label + gameCount.label + "\n" +
         "average score".label + scores.avg.toInt.scoreLabel + "\n" +
         "session high score".label + scores.max.scoreLabel + "\n" +
-        "all time high score".label + allTimeHighScore.scoreLabel + "\n" +
+        "all time high score".label + potentialAllTimeHighScore.scoreLabel + "\n" +
         "most rounds".label + mostRounds.label + "\n" +
         "most simulations/s".label + bestPerSecond.label + "\n" +
         "total elapsed time".label + allGamesTimer.elapsedLabel + "\n\n"
@@ -77,8 +86,8 @@ object GameRunner {
       if (context.show)
         print(endGameString)
 
-      if (allTimeHighScore > machineHighScore) {
-        saveHighScore(allTimeHighScore)
+      if (potentialAllTimeHighScore > machineHighScore || simulateNewHighScore) {
+        saveHighScore(potentialAllTimeHighScore)
 
         if (context.show)
           print("\n" + "new high score!!!!".greenHeader + "\n")

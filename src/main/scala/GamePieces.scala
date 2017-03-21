@@ -71,7 +71,7 @@ import scala.util.Random
 
  */
 
-class GamePieces(val seed: Int, boardSizeInfo: BoardSizeInfo) {
+class GamePieces(val seed: Int, boardSizeInfo: BoardSizeInfo) extends Output {
 
   private[this] val singletonName = "Singleton"
   private[this] val h2LineName = "HLine2"

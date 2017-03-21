@@ -13,10 +13,6 @@
 
 case class ClearedLines(rows: Int, cols: Int)
 
-// todo - do boards need to be pieces?  pieces don't need color grids but boards do
-// boards don't need primes but pieces do
-// if there is any value to mixin, then do that - for example, mixin name and grid but that's it.
-
 class Board(
   final val grid:      OccupancyGrid,
   final val colorGrid: Array[Array[String]],
@@ -41,8 +37,6 @@ class Board(
   // def so a new one is created every time boardScore is called
   def boardScore: BoardScore = BoardScore(this, context)
 
-
-  // todo - thi sis duplicated:
   def show: String = {
 
     val s = new StringBuilder()

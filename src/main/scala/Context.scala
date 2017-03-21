@@ -4,8 +4,6 @@
  */
 
 import org.slf4j.{Logger, LoggerFactory, MDC}
-
-import scala.language.reflectiveCalls
 import ch.qos.logback.classic.LoggerContext
 
 // used for constructing OccupancyGrid's
@@ -76,7 +74,7 @@ case class ConstructionInfo(conf: Conf) {
       lineClearingScore(3)
 }
 
-case class Context(conf: Conf) {
+case class Context(conf: Conf) extends Output {
 
   // all vars on the context are vars so that tests can change them easily
   // it would be possible to create Conf objects with the appropriate changes, I suppose,
@@ -218,8 +216,15 @@ case class Context(conf: Conf) {
 object Context {
   val FILE_HIGH_SCORE = ".highscore"
 
-  def apply(args: Array[String]): Context = {
 
+  // only used in testing where we are accepting defaults fro Conf
+  def apply(): Context = {
+    val args = Array[String]()
+    new Context(new Conf(args)) with MockOutput
+  }
+
+
+  def apply(args: Array[String]):Context = {
     val conf = new Conf(args)
 
     // construction  and boardSizeInfo are used
@@ -230,10 +235,5 @@ object Context {
     // the way to go
 
     Context(conf)
-
   }
-
-  // mostly used in testing where we are accepting defaults fro Conf
-  def apply(): Context = apply(Array[String]())
-
 }

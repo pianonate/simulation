@@ -1,6 +1,9 @@
 /**
-  * Created by nathanmccoy on 3/15/17. 
+  * Created by rhialtotm on 3/15/17.
+  * facade for print and println to facilitate testing
   */
-class Output {
-
+trait Output {
+  def print(s: String):Unit = Console.print(s)
+  def println(s:String):Unit  = Console.println(s)
+  def println():Unit = Console.println
 }

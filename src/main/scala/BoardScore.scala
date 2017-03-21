@@ -30,9 +30,7 @@ case class BoardScore(
     else
       (intValue - opt.minVal) / (opt.maxVal - opt.minVal).toDouble
 
-    if (normalizedValue > 1.0) {
-      throw new IllegalArgumentException(opt.key + ".normalizedValue > 1.0 - here's the scoop: " + normalizedValue)
-    }
+    assert(normalizedValue <= 1.0, opt.key + ".normalizedValue > 1.0 - here's the scoop: " + normalizedValue)
 
     // the weighted value is multiplied by the opt factor's weight - which in theory will guarantee goodness
     val weightedValue: Double = normalizedValue * opt.weight
@@ -105,7 +103,7 @@ case class BoardScore(
       i += 1
     }
 
-    if (sum > 1.0) {
+    assert(sum <= 1.0, {
       val s = scores.map(score =>
         score.key + ", " +
           score.intValue + ", " +
@@ -113,7 +111,7 @@ case class BoardScore(
           score.weightedValue + ", " +
           score.weight).mkString("\n")
       throw new IllegalArgumentException("weighted sum exceeds 1.0 - here's the scoop:\n\n" + s + "\n\nsum:" + sum)
-    }
+    })
 
     sum
   }
