@@ -481,7 +481,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) exten
       } else 0l
     }
 
-    def createSimulations(board: Board, pieces: Array[Piece], linesClearedAcc: Boolean, plcArrayAcc: Array[PieceLocCleared], scoreAcc: Int, locPieceHashAcc: Long): Unit = {
+    def createSimulations(board: Board, pieces: Array[Piece], linesClearedAcc: Boolean, plcArrayAcc: Array[PieceLocCleared], scoreAcc: Int, locPieceHashAcc: Long, depth:Int): Unit = {
 
       def isUpdatable(plcArray: Array[PieceLocCleared], linesCleared: Boolean): Boolean = {
         // improved from (Mac Pro Profiler)
@@ -597,7 +597,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) exten
           board.legalPlacements(piece)
       }
 
-      val piece = pieces.head
+      val piece = pieces(depth) // .head
 
       val paralegal: GenSeq[Loc] = getLegal(board, piece)
 
@@ -617,9 +617,12 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) exten
         // in "isUpdatable" where it's an expensive calculation
         val linesCleared = if (linesClearedAcc) linesClearedAcc else plc.clearedLines
 
-        if (pieces.tail.nonEmpty) {
+        // by adding a depth tracker and not using a call to tail to get the remaining pieces for the simulation
+        // on the macbookair, went from 6,500/s calls to simulationHandler up to 8,000/s
 
-          createSimulations(boardCopy, pieces.tail, linesCleared, plcArray, score, locPieceHash)
+        if ( depth < ( Game.numPiecesInRound - 1 ) /*pieces.tail.nonEmpty*/) {
+
+          createSimulations(boardCopy, pieces/*.tail*/, linesCleared, plcArray, score, locPieceHash, depth + 1)
 
         } else {
 
@@ -661,7 +664,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) exten
       }
     }
 
-    createSimulations(board, pieces, linesClearedAcc = false, Array(), 0, 0)
+    createSimulations(board, pieces, linesClearedAcc = false, plcArrayAcc = Array(), scoreAcc = 0, locPieceHashAcc = 0, 0)
 
     def emptySimulation: Simulation = Simulation(Array(), this.board, 0)
 

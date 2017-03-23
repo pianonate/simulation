@@ -76,7 +76,7 @@ class TestBoard extends FlatSpec {
   it must "count 2 neighbors correctly" in {
     new BoardFixture {
       board.place(gamePieces.singleton, Loc(0, 0), updateColor = true)
-      val score: Int = board.boardScore.twoNeighborsScore.intValue
+      val score: Int = board.countNeighbors(context.allLocations)(2)
       assert(score == 5, "placing a singleton at the upper left should result in a two neighbor count of 5")
     }
   }

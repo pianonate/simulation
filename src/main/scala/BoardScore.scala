@@ -12,6 +12,29 @@ case class FeatureScore(
   weight:          Double
 )
 
+object FeatureScore {
+
+  // case class constructor
+  def apply(feature: Feature, intValue: Int): FeatureScore = {
+
+    // normalize the value to range from 0 to 1.
+    // if an optimization factor is supposed to a low number, then subtract it from it's max value before normalizing
+    val normalizedValue: Double = if (feature.minimize)
+      1 - (intValue - feature.minVal) / (feature.maxVal - feature.minVal).toDouble
+    else
+      (intValue - feature.minVal) / (feature.maxVal - feature.minVal).toDouble
+
+    // todo - turn this assertion into test
+    // assert(normalizedValue <= 1.0, opt.key + ".normalizedValue > 1.0 - here's the scoop: " + normalizedValue)
+
+    // the weighted value is multiplied by the opt factor's weight - which in theory will guarantee goodness
+    val weightedValue: Double = normalizedValue * feature.weight
+
+    FeatureScore(feature.key, intValue, normalizedValue, weightedValue, feature.weight)
+
+  }
+}
+
 case class BoardScore(
   board:   Board,
   context: Context
@@ -19,58 +42,58 @@ case class BoardScore(
 
   private val specification = context.specification
 
-  // sum the weighted results and use this as an alternative comparison to current mechanism
-
-  private def getScore(opt: Feature, intValue: Int): FeatureScore = {
+/*
+  private def getScore(feature: Feature, intValue: Int): FeatureScore = {
 
     // normalize the value to range from 0 to 1.
     // if an optimization factor is supposed to a low number, then subtract it from it's max value before normalizing
-    val normalizedValue: Double = if (opt.minimize)
-      1 - (intValue - opt.minVal) / (opt.maxVal - opt.minVal).toDouble
+    val normalizedValue: Double = if (feature.minimize)
+      1 - (intValue - feature.minVal) / (feature.maxVal - feature.minVal).toDouble
     else
-      (intValue - opt.minVal) / (opt.maxVal - opt.minVal).toDouble
+      (intValue - feature.minVal) / (feature.maxVal - feature.minVal).toDouble
 
-    assert(normalizedValue <= 1.0, opt.key + ".normalizedValue > 1.0 - here's the scoop: " + normalizedValue)
+   // assert(normalizedValue <= 1.0, opt.key + ".normalizedValue > 1.0 - here's the scoop: " + normalizedValue)
 
     // the weighted value is multiplied by the opt factor's weight - which in theory will guarantee goodness
-    val weightedValue: Double = normalizedValue * opt.weight
+    val weightedValue: Double = normalizedValue * feature.weight
 
-    FeatureScore(opt.key, intValue, normalizedValue, weightedValue, opt.weight)
+    FeatureScore(feature.key, intValue, normalizedValue, weightedValue, feature.weight)
 
   }
+*/
 
-  private val neighbors = board.countNeighbors(context.allLocations)
+  private[this] val neighbors = board.countNeighbors(context.allLocations)
 
-  val avoidMiddleScore: FeatureScore = getScore(specification.avoidMiddleFeature, board.avoidMiddleSum)
-  val fourNeighborsScore: FeatureScore = getScore(specification.fourNeighborsFeature, neighbors(4))
-  val lineContiguousScore: FeatureScore = getScore(specification.spacesOnALineFeature, board.grid.lineContiguousCount)
-  val contiguousOpenScore: FeatureScore = getScore(specification.contiguousOpenFeature, board.grid.maxContiguousOpenLines)
-  val maximizerScore: FeatureScore = getScore(specification.maximizerFeature, board.maximizerCount)
-  val occupiedScore: FeatureScore = getScore(specification.occupiedFeature, board.grid.popCount)
-  val openLinesScore: FeatureScore = getScore(specification.openLinesFeature, board.grid.openLineCount)
-  val roundScore: FeatureScore = getScore(specification.roundScoreFeature, board.roundScore)
-  val threeNeighborsScore: FeatureScore = getScore(specification.threeNeighborsFeature, neighbors(3))
-  val twoNeighborsScore: FeatureScore = getScore(specification.twoNeighborsFeature, neighbors(2))
+ /* private[this] val avoidMiddleScore: FeatureScore = FeatureScore(specification.avoidMiddleFeature, board.avoidMiddleSum)
+  private[this] val fourNeighborsScore: FeatureScore = FeatureScore(specification.fourNeighborsFeature, neighbors(4))
+  private[this] val lineContiguousScore: FeatureScore = FeatureScore(specification.spacesOnALineFeature, board.grid.lineContiguousCount)
+  private[this] val contiguousOpenScore: FeatureScore = FeatureScore(specification.contiguousOpenFeature, board.grid.maxContiguousOpenLines)
+  private[this] val maximizerScore: FeatureScore = FeatureScore(specification.maximizerFeature, board.maximizerCount)
+  private[this] val occupiedScore: FeatureScore = FeatureScore(specification.occupiedFeature, board.grid.popCount)
+  private[this] val openLinesScore: FeatureScore = FeatureScore(specification.openLinesFeature, board.grid.openLineCount)
+  private[this] val roundScore: FeatureScore = FeatureScore(specification.roundScoreFeature, board.roundScore)
+  private[this] val threeNeighborsScore: FeatureScore = FeatureScore(specification.threeNeighborsFeature, neighbors(3))
+  private[this] val twoNeighborsScore: FeatureScore = FeatureScore(specification.twoNeighborsFeature, neighbors(2))*/
 
   // experimented with just creating an array and sorting it to match the spec
   // on MacPro profiler this generated 1,724 BoardScore.<init> /s
   // using the getNamedScore algo: 5,284/s
-  // aboux 3x faster in the profiler
+  // about 3x faster in the profiler
   val scores: Array[FeatureScore] = {
 
     def getNamedScore(name: String): FeatureScore = {
 
       name match {
-        case Specification.avoidMiddleKey    => avoidMiddleScore
-        case Specification.fourNeighborsKey  => fourNeighborsScore
-        case Specification.spacesOnALineKey  => lineContiguousScore
-        case Specification.occupiedKey       => occupiedScore
-        case Specification.contiguousOpenKey => contiguousOpenScore
-        case Specification.maximizerKey      => maximizerScore
-        case Specification.openLinesKey      => openLinesScore
-        case Specification.roundScoreKey     => roundScore
-        case Specification.threeNeighborsKey => threeNeighborsScore
-        case Specification.twoNeighborsKey   => twoNeighborsScore
+        case Specification.avoidMiddleKey    => FeatureScore(specification.avoidMiddleFeature, board.avoidMiddleSum)
+        case Specification.fourNeighborsKey  => FeatureScore(specification.fourNeighborsFeature, neighbors(4))
+        case Specification.spacesOnALineKey  => FeatureScore(specification.spacesOnALineFeature, board.grid.lineContiguousCount)
+        case Specification.occupiedKey       => FeatureScore(specification.occupiedFeature, board.grid.popCount)
+        case Specification.contiguousOpenKey => FeatureScore(specification.contiguousOpenFeature, board.grid.maxContiguousOpenLines)
+        case Specification.maximizerKey      => FeatureScore(specification.maximizerFeature, board.maximizerCount)
+        case Specification.openLinesKey      => FeatureScore(specification.openLinesFeature, board.grid.openLineCount)
+        case Specification.roundScoreKey     => FeatureScore(specification.roundScoreFeature, board.roundScore)
+        case Specification.threeNeighborsKey => FeatureScore(specification.threeNeighborsFeature, neighbors(3))
+        case Specification.twoNeighborsKey   => FeatureScore(specification.twoNeighborsFeature, neighbors(2))
         case _ =>
           throw new IllegalArgumentException("This optimization factor was requested but hasn't been added to the scores List: " + name)
       }
@@ -103,7 +126,9 @@ case class BoardScore(
       i += 1
     }
 
-    assert(sum <= 1.0, {
+    // todo - turn this assertion into tests
+
+/*    assert(sum <= 1.0, {
       val s = scores.map(score =>
         score.key + ", " +
           score.intValue + ", " +
@@ -111,7 +136,7 @@ case class BoardScore(
           score.weightedValue + ", " +
           score.weight).mkString("\n")
       throw new IllegalArgumentException("weighted sum exceeds 1.0 - here's the scoop:\n\n" + s + "\n\nsum:" + sum)
-    })
+    })*/
 
     sum
   }
