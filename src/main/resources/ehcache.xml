@@ -1,0 +1,10 @@
+<!--suppress XmlPathReference, XmlUnboundNsPrefix -->
+<ehcache xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="ehcache.xsd"
+         updateCheck="true" monitoring="autodetect"
+         dynamicConfig="true" maxBytesLocalHeap="2G">
+    <diskStore path="java.io.tmpdir"/>
+    <cache name="featureCache" maxEntriesLocalHeap="0" maxEntriesLocalDisk="0" eternal="true" diskSpoolBufferSizeMB="30" timeToIdleSeconds="0" timeToLiveSeconds="600" memoryStoreEvictionPolicy="LFU" transactionalMode="off">
+        <persistence strategy="localTempSwap"/>
+    </cache>
+</ehcache>

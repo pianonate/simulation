@@ -40,9 +40,13 @@ case class BoardScore(
   context: Context
 ) {
 
-  private val specification = context.specification
+ // private[this] val boardState = board.grid.asBigInt
+  private[this] val neighbors = board.countNeighbors(context.allLocations)
 
-/*
+
+  private[this] val specification = context.specification
+
+  /*
   private def getScore(feature: Feature, intValue: Int): FeatureScore = {
 
     // normalize the value to range from 0 to 1.
@@ -62,9 +66,8 @@ case class BoardScore(
   }
 */
 
-  private[this] val neighbors = board.countNeighbors(context.allLocations)
 
- /* private[this] val avoidMiddleScore: FeatureScore = FeatureScore(specification.avoidMiddleFeature, board.avoidMiddleSum)
+  /* private[this] val avoidMiddleScore: FeatureScore = FeatureScore(specification.avoidMiddleFeature, board.avoidMiddleSum)
   private[this] val fourNeighborsScore: FeatureScore = FeatureScore(specification.fourNeighborsFeature, neighbors(4))
   private[this] val lineContiguousScore: FeatureScore = FeatureScore(specification.spacesOnALineFeature, board.grid.lineContiguousCount)
   private[this] val contiguousOpenScore: FeatureScore = FeatureScore(specification.contiguousOpenFeature, board.grid.maxContiguousOpenLines)
@@ -99,13 +102,13 @@ case class BoardScore(
       }
     }
 
-    val factors = specification.featuresArray
-    val scoreArray = new Array[FeatureScore](factors.length)
+    val features = specification.featuresArray
+    val scoreArray = new Array[FeatureScore](features.length)
 
     var i = 0
-    while (i < factors.length) {
-      val factor = factors(i)
-      scoreArray(i) = getNamedScore(factor.key)
+    while (i < features.length) {
+      val feature = features(i)
+      scoreArray(i) = getNamedScore(feature.key)
       i += 1
 
     }
@@ -128,7 +131,7 @@ case class BoardScore(
 
     // todo - turn this assertion into tests
 
-/*    assert(sum <= 1.0, {
+    /*    assert(sum <= 1.0, {
       val s = scores.map(score =>
         score.key + ", " +
           score.intValue + ", " +
@@ -141,4 +144,5 @@ case class BoardScore(
     sum
   }
 }
+
 

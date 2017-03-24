@@ -57,9 +57,10 @@ class GameRunner extends Output {
       val gameInfo = MultiGameStats(average, sessionHighScore, machineHighScore, gameCount.value, allGamesTimer)
 
 
-       val game = mockOutput match {
-         case false => new Game(context, gameInfo)
-         case true => new Game(context, gameInfo) with MockOutput
+       val game = if (mockOutput) {
+         new Game(context, gameInfo) with MockOutput
+       } else {
+         new Game(context, gameInfo)
        }
 
       val results: GameResults = game.run

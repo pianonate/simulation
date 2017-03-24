@@ -174,7 +174,7 @@ class GamePieces(val seed: Int, boardSizeInfo: BoardSizeInfo) extends Output {
     for (piece <- pieceList.sortBy(_.pointValue)) {
       println(piece.name.appendColon + piece.pointValue)
       println(piece.show)
-      println
+      println()
     }
   }
 

@@ -76,6 +76,7 @@ case class ConstructionInfo(conf: Conf) {
 
 case class Context(conf: Conf) extends Output {
 
+
   // all vars on the context are vars so that tests can change them easily
   // it would be possible to create Conf objects with the appropriate changes, I suppose,
   // but it'd be time consuming to add at this point

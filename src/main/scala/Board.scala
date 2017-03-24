@@ -28,7 +28,7 @@ class Board(
     )
   }
 
-  final val specification = context.specification
+  final val specification: Specification = context.specification
 
   final val boardSize: Int = context.boardSize
 
@@ -246,7 +246,7 @@ class Board(
 
     // find all instances
     // where the piece has an occupied value and the board has an occupied value - that is illegal, so bail
-    // otherwise it's leg
+    // otherwise it's legal
 
     // using a while loop rather than a for comprehension because
     // the while loop is a LOT faster
@@ -254,11 +254,7 @@ class Board(
     var c = 0
     while (r < pieceRows) {
       while (c < pieceCols) {
-        // okay - i don't know why in-lining isn't happening by the compiler
-        // but checking this in the profiler - in-lining makes this go a lot faster
-        // also, the cachedOccupancyGrid is usually mostly empty so this should short-circuit
-        // profiler does say it goes faster
-        if ( /*cachedOccupancyGrid*/ grid.occupancyGrid(r + locRow)(c + locCol) && pieceGrid(r)(c)) {
+        if ( grid.occupancyGrid(r + locRow)(c + locCol) && pieceGrid(r)(c)) {
           return false
         }
         c += 1

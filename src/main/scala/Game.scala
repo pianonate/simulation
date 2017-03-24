@@ -94,7 +94,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) exten
   private[this] var piecesSelfTest: Array[Piece] = Array()
 
   private[this] var selfDestruct = false
-  def initiateSelfDestruct: Unit = selfDestruct = true
+  def initiateSelfDestruct(): Unit = selfDestruct = true
 
   def getSelfTestResults: SelfTestResults = SelfTestResults(
     legalPositionsSelfTest,
@@ -104,7 +104,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) exten
 
   // used in testing only
   private var lastRoundJSON: String = ""
-  def getLastRoundJSON = lastRoundJSON
+  def getLastRoundJSON: String = lastRoundJSON
 
   def run: GameResults = {
 
@@ -182,7 +182,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) exten
         if (filtered.isEmpty)
           gameOver
         else
-          filtered.sortBy(-_.weightedSum).head
+          filtered.minBy(-_.weightedSum)
       }
     }
 
@@ -592,7 +592,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) exten
 
       def getLegal(board: Board, piece: Piece): GenSeq[Loc] = {
         if (context.parallel)
-          board.legalPlacements(piece).par
+          board.legalPlacements(piece).toVector.par
         else
           board.legalPlacements(piece)
       }
@@ -660,7 +660,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) exten
         // this allows showing the final pieces placed on the board at the end of the game
         // this particular unfinished simulation will not be chosen as long as another
         // simulation is available that has finished for all 3 pieces
-        updateSimulation( /*plcAcc,*/ plcArrayAcc, board)
+        updateSimulation(plcArrayAcc, board)
       }
     }
 
