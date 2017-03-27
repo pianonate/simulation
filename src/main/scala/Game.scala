@@ -592,7 +592,7 @@ class Game(context: Context, multiGameStats: MultiGameStats, board: Board) exten
 
       def getLegal(board: Board, piece: Piece): GenSeq[Loc] = {
         if (context.parallel)
-          board.legalPlacements(piece).toVector.par
+          board.legalPlacements(piece).par
         else
           board.legalPlacements(piece)
       }

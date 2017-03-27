@@ -1,3 +1,5 @@
+import scala.collection.GenSeq
+
 /**
  * Created by nathan on 12/9/16.
  *
@@ -201,7 +203,8 @@ class Board(
   def legalPlacements(piece: Piece): Array[Loc] = {
     // walk through each position on the board
     // see if the piece fits at that position, if it does, add that position to the list
-    /*for { loc <- Board.allLocationsList.par if legalPlacement(piece, loc) } yield loc */
+    /* idiomatic == slow
+    for { loc <- Board.allLocationsList.par if legalPlacement(piece, loc) } yield loc */
 
     // moving to array and cleaning up lazy vals in Piece
     // made this thing scream - 10x faster
