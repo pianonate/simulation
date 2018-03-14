@@ -1,1 +1,2 @@
-addSbtPlugin("org.xerial.sbt" % "sbt-pack" % "0.8.2")  // for sbt-0.13.x or higher
+// for sbt-0.13.x, sbt-1.x
+addSbtPlugin("org.xerial.sbt" % "sbt-pack" % "0.10.1")
