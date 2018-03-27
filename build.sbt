@@ -1,4 +1,4 @@
-scalaVersion := "2.12.1"
+scalaVersion := "2.12.5"
 scalacOptions ++= Seq("-opt:_", "-target:jvm-1.8")
 javaOptions in run += "-Xmx2G"
 javaOptions in run += "-Xms2G"
